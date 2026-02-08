@@ -1,0 +1,48 @@
+default:
+  image: golang:1.25-bookworm
+  before_script:
+    # 1. Install Linux GUI headers for CGO
+    - apt-get update && apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config curl
+    # 2. Install Task
+    - sh -c "$(curl -ssL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+    # 3. Install Wails v3 CLI
+    - go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+    # 4. Install Node.js for Frontend
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+
+variables:
+  GOPATH: $CI_PROJECT_DIR/.go
+  GOCACHE: $CI_PROJECT_DIR/.cache
+  CGO_ENABLED: "1" # REQUIRED FOR WAILS
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .go/pkg/mod
+    - .cache
+    - frontend/node_modules/
+
+stages:
+  - validate
+  - build
+
+lint-and-test:
+  stage: validate
+  script:
+    - task lint
+    - task test
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: out/reports/coverage.xml
+      junit: out/reports/unit-tests.xml
+
+build-linux:
+  stage: build
+  script:
+    - task build
+  artifacts:
+    paths:
+      - out/bin/

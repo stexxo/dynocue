@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=gui
+Exec=gui
+Icon=gui
+Categories=Development;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false
