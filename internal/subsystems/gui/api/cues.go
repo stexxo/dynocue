@@ -1,11 +1,9 @@
 package api
 
 import (
-	"encoding/json"
 	"log/slog"
 
 	"gitlab.com/stexxo/dynocue/dynod/internal/bus"
-	"gitlab.com/stexxo/dynocue/dynod/internal/cues"
 )
 
 type CueService struct {
@@ -24,18 +22,7 @@ func (c *CueService) CreateCueList() bool {
 	return ok
 }
 
-func (c *CueService) GetCueLists() ([]cues.CueListNumber, bool) {
+func (c *CueService) GetCueLists() bool {
 	slog.Debug("getting cue lists")
-	resp, ok := c.bus.RequestHelper("show.cues.lists.getall", nil)
-	if !ok {
-		return nil, false
-	}
-
-	out := make([]cues.CueListNumber, 0)
-	err := json.Unmarshal(resp.Data, &out)
-	if err != nil {
-		return nil, false
-	}
-
-	return out, true
+	return true
 }
