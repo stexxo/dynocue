@@ -5,10 +5,7 @@ import (
 	"os"
 
 	"gitlab.com/stexxo/dynocue/dynod/internal"
-	"gitlab.com/stexxo/dynocue/dynod/internal/subsystems/cues"
 	"gitlab.com/stexxo/dynocue/dynod/internal/subsystems/gui"
-	"gitlab.com/stexxo/dynocue/dynod/internal/subsystems/manager"
-	"gitlab.com/stexxo/dynocue/dynod/internal/subsystems/metadata"
 )
 
 func main() {
@@ -22,9 +19,6 @@ func main() {
 
 	// Build Application SubSystems
 	app := internal.NewAppManager(defaultShow, 4080)
-	app.Register(metadata.NewMetadata())
-	app.Register(manager.NewManager())
-	app.Register(cues.NewCueSystem())
 	g := gui.NewGui()
 	app.Register(g)
 
@@ -35,7 +29,7 @@ func main() {
 	}
 
 	// Ui Has to run on main thread - starting the ui after subsystems are started
-	g.Run()
+	g.Gui()
 
 	if err := app.Stop(); err != nil {
 		slog.Error("Error during graceful shutdown", "error", err)

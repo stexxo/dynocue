@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"gitlab.com/stexxo/dynocue/dynod/internal/bus"
-	"gitlab.com/stexxo/dynocue/dynod/internal/show"
 	"gitlab.com/stexxo/dynocue/dynod/internal/subsystems"
 	"golang.org/x/sync/errgroup"
 )
@@ -15,7 +14,6 @@ import (
 // AppManager orchestrates the lifecycle and dependency injection for all system show.
 type AppManager struct {
 	bus        *bus.Server
-	show       *show.Show
 	subsystems map[string]subsystems.Subsystem
 	mu         sync.RWMutex
 	isStarted  bool
@@ -24,18 +22,8 @@ type AppManager struct {
 // NewAppManager initializes a new manager and the primary system EventBus.
 func NewAppManager(defaultShowPath string, port int) *AppManager {
 	server := bus.NewServer(port)
-
-	s := &show.Show{}
-	if defaultShowPath != "" {
-		err := s.Load(defaultShowPath)
-		if err != nil {
-			slog.Error("Failed to load shoaw from path", "error", err)
-		}
-	}
-
 	return &AppManager{
 		bus:        server,
-		show:       s,
 		subsystems: make(map[string]subsystems.Subsystem),
 	}
 }
@@ -83,13 +71,7 @@ func (m *AppManager) Start() error {
 			if err != nil {
 				return err
 			}
-
-			client, err := bus.NewClient(sub.Name(), conn)
-			if err != nil {
-				return err
-			}
-
-			if err := sub.Start(client, m.show); err != nil {
+			if err := sub.Start(conn); err != nil {
 				return fmt.Errorf("AppManager: failed to start subsystem [%s]: %w", name, err)
 			}
 			slog.Debug(sub.Name() + " started")

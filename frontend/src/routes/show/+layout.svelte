@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { LifecycleService } from '../../../bindings/gitlab.com/stexxo/dynocue/dynod/internal/subsystems/gui/api/index';
-	import { Window } from '@wailsio/runtime';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	let { children } = $props();
@@ -15,13 +13,6 @@
 	]
 </script>
 
-{#if loading}
-	<div
-		class="fixed inset-0 z-50 flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-sm"
-	>
-		<span class="loading loading-spinner"></span>
-	</div>
-{/if}
 
 <div class="navbar min-h-0 bg-base-100 py-0.5 shadow-sm">
 	<div class="navbar-start">
@@ -50,7 +41,6 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await LifecycleService.NewShow();
 							await goto('/show/cues');
 							loading = false;
 						}}>New Show</a
@@ -60,7 +50,6 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await LifecycleService.OpenShow();
 							await goto('/show/cues');
 							loading = false;
 						}}>Open Show</a
@@ -70,7 +59,6 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await LifecycleService.CloseShow(await Window.Name());
 							loading = false;
 						}}>Close Show</a
 					>
@@ -86,19 +74,3 @@
 
 {@render children()}
 
-{#snippet dashSnippet(pages)}
-	<button
-			onclick={async () => {
-			await goto(pages.page);
-		}}
-			class="w-full hover:bg-base-300"
-			class:dock-active={page.url.pathname === pages.page}
-	>
-		<span>{pages.label}</span>
-	</button>
-{/snippet}
-<div class="dock dock-xs font-sans text-xs font-semibold">
-	{#each pages as page}
-		{@render dashSnippet(page)}
-	{/each}
-</div>

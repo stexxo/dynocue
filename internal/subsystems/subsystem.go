@@ -3,8 +3,7 @@ package subsystems
 import (
 	"errors"
 
-	"gitlab.com/stexxo/dynocue/dynod/internal/bus"
-	"gitlab.com/stexxo/dynocue/dynod/internal/show"
+	"github.com/nats-io/nats.go"
 )
 
 var ErrStarted = errors.New("subsystem already started")
@@ -12,6 +11,6 @@ var ErrStopped = errors.New("subsystem already stopped")
 
 type Subsystem interface {
 	Name() string
-	Start(bus *bus.Client, show *show.Show) error
+	Start(*nats.Conn) error
 	Stop() error
 }
