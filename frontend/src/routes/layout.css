@@ -2,5 +2,5 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui' {
-	themes: dim --default;
+	themes: dark --default;
 }

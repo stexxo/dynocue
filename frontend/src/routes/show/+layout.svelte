@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	let { children } = $props();
 	let loading = $state(false);
+	import {CloseShow, CreateLocalShow, OpenLocalShow} from "../../../bindings/gitlab.com/stexxo/dynocue/cmd/dynocue/commands";
+	import {Dialogs, Window} from "@wailsio/runtime";
 
 	const pages = [
 		{page: '/show/cues', label: 'Cues'},
@@ -11,8 +13,41 @@
 		{page: '/show/lighting', label: 'Lighting'},
 		{page: "/show/settings", label: "Settings"}
 	]
-</script>
 
+
+	async function NewShow() {
+		const selection = await Dialogs.SaveFile({
+			Title: "New Show",
+			CanCreateDirectories: true,
+		})
+		if (selection === "") {
+			return
+		}
+
+		const [filename, success] = await CreateLocalShow(selection)
+		if (success) {
+			await Window.SetTitle(filename)
+			await goto("/show")
+		}
+	}
+
+
+	async function OpenShow() {
+		const selection = await Dialogs.OpenFile({
+			Title: "Open Show",
+			CanChooseDirectories: true,
+			CanChooseFiles: false,
+		})
+		if (selection === "") {
+			return
+		}
+		const [filename, success] = await OpenLocalShow(selection)
+		if (success) {
+			await Window.SetTitle(filename)
+			await goto("/show")
+		}
+	}
+</script>
 
 <div class="navbar min-h-0 bg-base-100 py-0.5 shadow-sm">
 	<div class="navbar-start">
@@ -41,7 +76,7 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await goto('/show/cues');
+							await NewShow();
 							loading = false;
 						}}>New Show</a
 					>
@@ -50,7 +85,7 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await goto('/show/cues');
+							await OpenShow();
 							loading = false;
 						}}>Open Show</a
 					>
@@ -59,6 +94,9 @@
 					<a
 						onclick={async () => {
 							loading = true;
+							await CloseShow()
+							await Window.SetTitle("DynoCue")
+							await goto('/');
 							loading = false;
 						}}>Close Show</a
 					>
@@ -74,3 +112,19 @@
 
 {@render children()}
 
+{#snippet dashSnippet(pages)}
+	<button
+			onclick={async () => {
+			await goto(pages.page);
+		}}
+			class="w-full hover:bg-base-300"
+			class:dock-active={page.url.pathname === pages.page}
+	>
+		<span>{pages.label}</span>
+	</button>
+{/snippet}
+<div class="dock dock-xs font-sans text-xs font-semibold">
+	{#each pages as page}
+		{@render dashSnippet(page)}
+	{/each}
+</div>

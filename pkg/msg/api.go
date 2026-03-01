@@ -10,7 +10,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-// Hooks defines granular entry points for observability.
+// Hooks define granular entry points for observability.
 type Hooks struct {
 	// OnDecodeError: Incoming bytes are malformed.
 	OnDecodeError func(subject string, err error, rawData []byte)
@@ -22,7 +22,7 @@ type Hooks struct {
 	OnPanic func(subject string, err any, stack []byte)
 }
 
-// Result is the standard wire-format envelope for all Request-Reply interactions.
+// The Result is the standard wire-format envelope for all Request-Reply interactions.
 type Result[T any] struct {
 	Data  T      `msgpack:"d,omitempty"`
 	Error string `msgpack:"e,omitempty"`

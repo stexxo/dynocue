@@ -13,14 +13,21 @@ func NewGui() *Gui {
 	g := &Gui{}
 
 	g.app = application.New(application.Options{
-		Name:     "DynoCue",
-		Services: []application.Service{},
+		Name: "DynoCue",
+		Services: []application.Service{
+			application.NewService(&Commands{}),
+		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(frontend.Assets),
 		},
 	})
 
-	g.app.Window.New() // Default Window
+	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Width:  1280,
+		Height: 720,
+		Title:  "DynoCue",
+		URL:    "/",
+	}) // Default Window
 
 	return g
 }
