@@ -2,92 +2,105 @@ package subsystems
 
 import (
 	"errors"
-	"log/slog"
 	"os"
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"github.com/tidwall/buntdb"
 	"gitlab.com/stexxo/dynocue/internal/bus"
-	"gitlab.com/stexxo/dynocue/internal/subsystems/database"
+	"gitlab.com/stexxo/dynocue/internal/subsystems/cues"
 )
 
+// Subsystem is an interface that all subsystems must implement
 type Subsystem interface {
-	Start() error
+	Start(*nats.Conn, *buntdb.DB, string) error
 	Stop() error
 }
 
+// ShowManager manages the lifecycle of a show
 type ShowManager struct {
 	bus        *server.Server
 	location   string
+	db         *buntdb.DB
 	subsystems []Subsystem
 }
 
-func NewShowManager(location string) (*ShowManager, error) {
-
+// NewShowManager creates a new show manager for a provided save path
+func NewShowManager(savePath string) (*ShowManager, error) {
 	// Create the directory if it doesn't exist
-	about, err := os.Stat(location)
+	about, err := os.Stat(savePath)
 	if errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(location, 0755)
+		err := os.Mkdir(savePath, 0755)
 		if err != nil {
 			return nil, err
 		}
 	} else if err != nil {
 		return nil, err
 	} else if !about.IsDir() {
-		return nil, errors.New("location is not a directory")
+		return nil, errors.New("savePath is not a directory")
 	}
 
+	// Build Communication Bus For the Show
 	comBus, err := bus.NewBus()
 	if err != nil {
 		return nil, err
 	}
 
-	manager := &ShowManager{
-		bus:      comBus,
-		location: location,
+	// Open Database
+	db, err := buntdb.Open(savePath + "/dynocue.db")
+	if err != nil {
+		return nil, err
+	}
+	err = db.SetConfig(buntdb.Config{
+		SyncPolicy:           buntdb.Always,
+		AutoShrinkPercentage: 100,
+		AutoShrinkMinSize:    32 * 1024 * 1024,
+		AutoShrinkDisabled:   false,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	err = errors.Join(
-		manager.addSubsystem(func(location string, dbConn *nats.Conn) (Subsystem, error) {
-			return database.NewDatabase(location, dbConn)
-		}),
-	)
+	// Build Show Manager
+	manager := &ShowManager{
+		bus:      comBus,
+		location: savePath,
+		db:       db,
+		subsystems: []Subsystem{
+			cues.NewCueSubsystem(),
+		},
+	}
 
-	if err != nil {
-		slog.Error("failed to start subsystems", "error", err)
-		return nil, err
+	// Start Subsystems managed by Show Manager
+	for _, s := range manager.subsystems {
+		conn, err := manager.GetBusConnection()
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.Start(conn, manager.db, manager.location)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return manager, err
 }
 
-func (m *ShowManager) addSubsystem(fn func(string, *nats.Conn) (Subsystem, error)) error {
-	dbConn, err := bus.GetInProcessConn(m.bus)
-	if err != nil {
-		return err
-	}
-
-	subsystem, err := fn(m.location, dbConn)
-	if err != nil {
-		return err
-	}
-	m.subsystems = append(m.subsystems, subsystem)
-	err = subsystem.Start()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// GetBusConnection is a helper function to get a connection to the communication bus
 func (m *ShowManager) GetBusConnection() (*nats.Conn, error) {
 	return bus.GetInProcessConn(m.bus)
 }
 
+// Stop shuts down the show manager. It cannot be restarted
 func (m *ShowManager) Stop() error {
 	m.bus.Shutdown()
+	m.db.Close()
+
+	var err error
 	for _, s := range m.subsystems {
-		s.Stop()
+		err = errors.Join(err, s.Stop())
 	}
-	return nil
+
+	return err
 }
