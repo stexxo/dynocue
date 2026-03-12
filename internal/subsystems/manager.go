@@ -6,14 +6,14 @@ import (
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
-	"github.com/tidwall/buntdb"
 	"gitlab.com/stexxo/dynocue/internal/bus"
 	"gitlab.com/stexxo/dynocue/internal/subsystems/cues"
+	"go.etcd.io/bbolt"
 )
 
 // Subsystem is an interface that all subsystems must implement
 type Subsystem interface {
-	Start(*nats.Conn, *buntdb.DB, string) error
+	Start(*nats.Conn, *bbolt.DB, string) error
 	Stop() error
 }
 
@@ -21,7 +21,7 @@ type Subsystem interface {
 type ShowManager struct {
 	bus        *server.Server
 	location   string
-	db         *buntdb.DB
+	db         *bbolt.DB
 	subsystems []Subsystem
 }
 
@@ -47,16 +47,7 @@ func NewShowManager(savePath string) (*ShowManager, error) {
 	}
 
 	// Open Database
-	db, err := buntdb.Open(savePath + "/dynocue.db")
-	if err != nil {
-		return nil, err
-	}
-	err = db.SetConfig(buntdb.Config{
-		SyncPolicy:           buntdb.Always,
-		AutoShrinkPercentage: 100,
-		AutoShrinkMinSize:    32 * 1024 * 1024,
-		AutoShrinkDisabled:   false,
-	})
+	db, err := bbolt.Open(savePath+"/dynocue.db", 0600, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +86,11 @@ func (m *ShowManager) GetBusConnection() (*nats.Conn, error) {
 // Stop shuts down the show manager. It cannot be restarted
 func (m *ShowManager) Stop() error {
 	m.bus.Shutdown()
-	m.db.Close()
+	err := m.db.Close()
+	if err != nil {
+		return err
+	}
 
-	var err error
 	for _, s := range m.subsystems {
 		err = errors.Join(err, s.Stop())
 	}
