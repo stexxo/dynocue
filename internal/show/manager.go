@@ -2,6 +2,8 @@ package show
 
 import (
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -23,6 +25,19 @@ type Show struct {
 }
 
 func NewShow(path string) (s *Show, err error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create directory %s: %w", path, err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to stat path %s: %w", path, err)
+		}
+	} else if !fi.IsDir() {
+		return nil, fmt.Errorf("path %s exists and is not a directory", path)
+	}
+
 	b, err := ibus.NewBus()
 	if err != nil {
 		return nil, err

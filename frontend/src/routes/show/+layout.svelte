@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	let { children } = $props();
 	let loading = $state(false);
-	import {CloseShow, CreateLocalShow, OpenLocalShow} from "../../../bindings/gitlab.com/stexxo/dynocue/cmd/dynocue/commands";
+	import {CloseShow, OpenShow} from "../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands";
 	import {Dialogs, Window} from "@wailsio/runtime";
 
 	const pages = [
@@ -15,7 +15,7 @@
 	]
 
 
-	async function NewShow() {
+	async function NewShowDialog() {
 		const selection = await Dialogs.SaveFile({
 			Title: "New Show",
 			CanCreateDirectories: true,
@@ -24,7 +24,7 @@
 			return
 		}
 
-		const [filename, success] = await CreateLocalShow(selection)
+		const [filename, success] = await OpenShow(selection)
 		if (success) {
 			await Window.SetTitle(filename)
 			await goto("/show")
@@ -32,7 +32,7 @@
 	}
 
 
-	async function OpenShow() {
+	async function OpenShowDialog() {
 		const selection = await Dialogs.OpenFile({
 			Title: "Open Show",
 			CanChooseDirectories: true,
@@ -41,7 +41,7 @@
 		if (selection === "") {
 			return
 		}
-		const [filename, success] = await OpenLocalShow(selection)
+		const [filename, success] = await OpenShow(selection)
 		if (success) {
 			await Window.SetTitle(filename)
 			await goto("/show")
@@ -76,7 +76,7 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await NewShow();
+							await NewShowDialog();
 							loading = false;
 						}}>New Show</a
 					>
@@ -85,7 +85,7 @@
 					<a
 						onclick={async () => {
 							loading = true;
-							await OpenShow();
+							await OpenShowDialog();
 							loading = false;
 						}}>Open Show</a
 					>
