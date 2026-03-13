@@ -43,7 +43,7 @@ func NewShow(path string) (s *Show, err error) {
 
 	// Build Subsystems Required for Show
 
-	// Cues
+	// CueSystem
 	conn, err := bus.GetInProcessConn(b)
 	if err != nil {
 		return nil, err

@@ -13,10 +13,8 @@ func NewGui() *Gui {
 	g := &Gui{}
 
 	g.app = application.New(application.Options{
-		Name: "DynoCue",
-		Services: []application.Service{
-			application.NewService(&Commands{}),
-		},
+		Name:     "DynoCue",
+		Services: []application.Service{},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(frontend.Assets),
 		},

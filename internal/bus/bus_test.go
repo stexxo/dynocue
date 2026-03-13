@@ -33,7 +33,8 @@ func TestBusGeneric(t *testing.T) {
 		var receivedMsg TestMsg
 		subject := "test.pubsub"
 
-		sub, err := Subscribe(nc, subject, func(msg TestMsg) {
+		sub, err := Subscribe(nc, subject, func(s string, msg TestMsg) {
+			assert.Equal(t, subject, s)
 			receivedMsg = msg
 			wg.Done()
 		})
@@ -62,7 +63,8 @@ func TestBusGeneric(t *testing.T) {
 	t.Run("Request and Reply", func(t *testing.T) {
 		subject := "test.request"
 
-		sub, err := Reply(nc, subject, func(req TestMsg) (*MessageResponse[TestMsg], error) {
+		sub, err := Reply(nc, subject, func(sub string, req TestMsg) (*MessageResponse[TestMsg], error) {
+			assert.Equal(t, subject, sub)
 			if req.ID == -2 {
 				return nil, assert.AnError
 			}
@@ -135,7 +137,7 @@ func TestBusGeneric(t *testing.T) {
 		})
 
 		t.Run("Nil Response Value", func(t *testing.T) {
-			sub2, err := Reply(nc, "test.nil.res", func(req TestMsg) (*MessageResponse[TestMsg], error) {
+			sub2, err := Reply(nc, "test.nil.res", func(_ string, req TestMsg) (*MessageResponse[TestMsg], error) {
 				return &MessageResponse[TestMsg]{}, nil
 			})
 			require.NoError(t, err)
@@ -163,7 +165,7 @@ func TestBusGeneric(t *testing.T) {
 		// This is tricky because the handler isn't called if unmarshal fails.
 		// We'll use a second subscription to know when the message has been processed.
 		subject := "test.sub.unmarshal"
-		_, err := Subscribe(nc, subject, func(msg TestMsg) {
+		_, err := Subscribe(nc, subject, func(_ string, msg TestMsg) {
 			t.Error("handler should not be called")
 		})
 		require.NoError(t, err)
@@ -217,7 +219,7 @@ func TestBusGeneric(t *testing.T) {
 		})
 
 		t.Run("Reply Marshal Error", func(t *testing.T) {
-			sub2, err := Reply(nc, "test.marshal.reply", func(req int) (*MessageResponse[NotMarshalable], error) {
+			sub2, err := Reply(nc, "test.marshal.reply", func(_ string, req int) (*MessageResponse[NotMarshalable], error) {
 				return &MessageResponse[NotMarshalable]{
 					ResponseValue: &bad,
 				}, nil

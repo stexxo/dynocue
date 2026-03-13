@@ -8,11 +8,12 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-// InternalErrorCode is a well-known error code for internal processing failures.
-const InternalErrorCode = 500
-
-// InvalidPayloadCode is a well-known error code for invalid payloads.
-const InvalidPayloadCode = 400
+// Message bus error codes.
+const (
+	InvalidPayloadCode = 400 // Invalid payload
+	InternalErrorCode  = 500 // Internal processing failure
+	ConflictCode       = 409 // Resource conflict
+)
 
 // MessageError contains error information for the message bus.
 type MessageError struct {
@@ -36,15 +37,18 @@ func Publish[T any](nc *nats.Conn, subject string, msg T) error {
 	return nc.Publish(subject, data)
 }
 
+// SubscribeHandler is a function that processes a published message.
+type SubscribeHandler[T any] func(string, T)
+
 // Subscribe deserializes the incoming message using msgpack and calls the handler.
-func Subscribe[T any](nc *nats.Conn, subject string, handler func(msg T)) (*nats.Subscription, error) {
+func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[T]) (*nats.Subscription, error) {
 	return nc.Subscribe(subject, func(m *nats.Msg) {
 		var msg T
 		if err := msgpack.Unmarshal(m.Data, &msg); err != nil {
 			// In a real app, we might want to log this error or handle it differently.
 			return
 		}
-		handler(msg)
+		handler(m.Subject, msg)
 	})
 }
 
@@ -78,7 +82,7 @@ func Request[Req any, Res any](nc *nats.Conn, subject string, req Req, timeout t
 }
 
 // ReplyHandler is a function that processes a request and returns a MessageResponse.
-type ReplyHandler[Req any, Res any] func(Req) (*MessageResponse[Res], error)
+type ReplyHandler[Req any, Res any] func(string, Req) (*MessageResponse[Res], error)
 
 // Reply listens for requests, deserializes the request, calls the handler,
 // and serializes the response back to the requester.
@@ -103,7 +107,7 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 			return
 		}
 
-		msgRes, handlerErr := handler(req)
+		msgRes, handlerErr := handler(m.Subject, req)
 
 		if handlerErr != nil && msgRes == nil {
 			msgRes = &MessageResponse[Res]{
