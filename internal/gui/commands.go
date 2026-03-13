@@ -3,6 +3,7 @@ package gui
 import (
 	"strings"
 
+	"github.com/nats-io/nats.go"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"gitlab.com/stexxo/dynocue/internal/show"
 )
@@ -10,6 +11,7 @@ import (
 type Commands struct {
 	app  *application.App
 	show *show.Show
+	conn *nats.Conn
 }
 
 func NewCommands() *Commands {
@@ -33,12 +35,19 @@ func (cmds *Commands) OpenShow(path string) (string, bool) {
 		return "", false
 	}
 	cmds.show = s
+	cmds.conn, err = s.GetConn()
+	if err != nil {
+		return "", false
+	}
+
 	return path, true
 }
 
 func (cmds *Commands) CloseShow() {
 	if cmds.show != nil {
+		cmds.conn.Close()
 		cmds.show.Close()
 		cmds.show = nil
+		cmds.conn = nil
 	}
 }
