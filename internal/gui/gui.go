@@ -1,4 +1,4 @@
-package main
+package gui
 
 import (
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -12,13 +12,18 @@ type Gui struct {
 func NewGui() *Gui {
 	g := &Gui{}
 
+	cmds := NewCommands()
 	g.app = application.New(application.Options{
-		Name:     "DynoCue",
-		Services: []application.Service{},
+		Name: "DynoCue",
+		Services: []application.Service{
+			application.NewService(cmds),
+		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(frontend.Assets),
 		},
 	})
+
+	cmds.SetApplication(g.app)
 
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:  1280,

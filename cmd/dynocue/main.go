@@ -3,13 +3,15 @@ package main
 import (
 	"log/slog"
 	"os"
+
+	"gitlab.com/stexxo/dynocue/internal/gui"
 )
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 
-	err := NewGui().Run()
+	err := gui.NewGui().Run()
 	if err != nil {
 		slog.Error("GUI failed to start", "error", err)
 	}

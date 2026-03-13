@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 	ibus "gitlab.com/stexxo/dynocue/internal/bus"
 	"gitlab.com/stexxo/dynocue/internal/show/cues"
 	"go.etcd.io/bbolt"
@@ -55,6 +56,10 @@ func NewShow(path string) (s *Show, err error) {
 	s.subsystem = append(s.subsystem, c)
 
 	return
+}
+
+func (s *Show) GetConn() (*nats.Conn, error) {
+	return ibus.GetInProcessConn(s.bus)
 }
 
 func (s *Show) Close() error {
