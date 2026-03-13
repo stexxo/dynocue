@@ -36,7 +36,7 @@ func NewBus() (*server.Server, error) {
 
 // GetInProcessConn returns a connection to the internal bus given a NATS server
 func GetInProcessConn(s *server.Server) (*nats.Conn, error) {
-	if !s.Running() {
+	if s == nil || !s.Running() {
 		return nil, errors.New("cannot connect: bus is not started")
 	}
 
