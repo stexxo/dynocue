@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -120,6 +121,21 @@ func TestBusGeneric(t *testing.T) {
 			assert.Contains(t, msgRes.MessageError.ErrorMessage, "failed to unmarshal request")
 		})
 
+		t.Run("Validation Error", func(t *testing.T) {
+			type ValidatedMsg struct {
+				ID int `msgpack:"id" validate:"gt=0"`
+			}
+			vSub, err := Reply(nc, "test.validation", func(s string, req ValidatedMsg) (*MessageResponse[ValidatedMsg], error) {
+				return &MessageResponse[ValidatedMsg]{ResponseValue: &req}, nil
+			})
+			require.NoError(t, err)
+			defer vSub.Unsubscribe()
+
+			_, err = Request[ValidatedMsg, ValidatedMsg](nc, "test.validation", ValidatedMsg{ID: 0}, 1*time.Second)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "validation failed")
+		})
+
 		t.Run("Timeout", func(t *testing.T) {
 			_, err := Request[TestMsg, TestMsg](nc, "non.existent.subject", TestMsg{ID: 1}, 10*time.Millisecond)
 			require.Error(t, err)
@@ -221,6 +237,10 @@ func TestBusGeneric(t *testing.T) {
 
 		t.Run("Reply Marshal Error", func(t *testing.T) {
 			sub2, err := Reply(nc, "test.marshal.reply", func(_ string, req int) (*MessageResponse[NotMarshalable], error) {
+				// req should be 1
+				if req != 1 {
+					return nil, fmt.Errorf("unexpected req: %d", req)
+				}
 				return &MessageResponse[NotMarshalable]{
 					ResponseValue: &bad,
 				}, nil
@@ -231,6 +251,7 @@ func TestBusGeneric(t *testing.T) {
 			data, _ := msgpack.Marshal(1)
 			_, err = nc.Request("test.marshal.reply", data, 500*time.Millisecond)
 			require.Error(t, err)
+			assert.Contains(t, err.Error(), "timeout")
 		})
 
 	})

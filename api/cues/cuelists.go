@@ -13,31 +13,31 @@ const (
 )
 
 type NewCueListInput struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gte=0"`
 }
 
 type NewCueListOutput struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gte=0"`
 }
 
 type NewCueListEvent struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gte=0"`
 }
 
 type UpdateCueListMetadataInput struct {
-	Number float64 `msgpack:"number"`
-	Value  string  `msgpack:"value"`
+	Number float64 `msgpack:"number" validate:"gt=0"`
+	Value  string  `msgpack:"value" validate:"required"`
 }
 
 type UpdateCueListMetadataOutput struct{}
 
 type UpdateCueListMetadataEvent struct {
-	Number float64 `msgpack:"number"`
-	Value  string  `msgpack:"value"`
+	Number float64 `msgpack:"number" validate:"gt=0"`
+	Value  string  `msgpack:"value" validate:"required"`
 }
 
 type GetCueListMetadataInput struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gt=0"`
 }
 
 type GetCueListMetadataOutput struct {
@@ -57,11 +57,11 @@ type EnumerateCueListOutput struct {
 }
 
 type DeleteCueListInput struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gt=0"`
 }
 
 type DeleteCueListOutput struct{}
 
 type DeleteCueListEvent struct {
-	Number float64 `msgpack:"number"`
+	Number float64 `msgpack:"number" validate:"gt=0"`
 }

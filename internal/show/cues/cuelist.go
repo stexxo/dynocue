@@ -27,6 +27,15 @@ type cueListMetadata struct {
 }
 
 func (c *CueSystem) NewCueList(sub string, in apicues.NewCueListInput) (*apibus.MessageResponse[apicues.NewCueListOutput], error) {
+	if err := apibus.Validate(in); err != nil {
+		return &apibus.MessageResponse[apicues.NewCueListOutput]{
+			MessageError: &apibus.MessageError{
+				Code:         apibus.ValidationErrorCode,
+				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+			},
+		}, nil
+	}
+
 	var outNum float64
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
@@ -77,6 +86,19 @@ func (c *CueSystem) NewCueList(sub string, in apicues.NewCueListInput) (*apibus.
 }
 
 func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMetadataInput) (*apibus.MessageResponse[apicues.UpdateCueListMetadataOutput], error) {
+	if err := apibus.Validate(in); err != nil {
+		return &apibus.MessageResponse[apicues.UpdateCueListMetadataOutput]{
+			MessageError: &apibus.MessageError{
+				Code:         apibus.ValidationErrorCode,
+				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+			},
+		}, nil
+	}
+
+	parts := strings.Split(sub, ".")
+	field := parts[len(parts)-1]
+	eventSub := fmt.Sprintf("%s.%s", apicues.EventUpdateCueList, field)
+
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
@@ -99,9 +121,13 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		}
 
 		parts := strings.Split(sub, ".")
-		field := parts[len(parts)-1]
+		f := parts[len(parts)-1]
 
-		if err := utils.SetFieldByTag(&md, "msgpack", field, in.Value); err != nil {
+		if f == "*" {
+			return errors.New("cannot update wildcard subject")
+		}
+
+		if err := utils.SetFieldByTag(&md, "msgpack", f, in.Value); err != nil {
 			return err
 		}
 
@@ -125,10 +151,6 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		return nil, err
 	}
 
-	parts := strings.Split(sub, ".")
-	field := parts[len(parts)-1]
-	eventSub := fmt.Sprintf("%s.%s", apicues.EventUpdateCueList, field)
-
 	if err = apibus.Publish(c.conn, eventSub, apicues.UpdateCueListMetadataEvent{
 		Number: in.Number,
 		Value:  in.Value,
@@ -142,6 +164,15 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 }
 
 func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadataInput) (*apibus.MessageResponse[apicues.GetCueListMetadataOutput], error) {
+	if err := apibus.Validate(in); err != nil {
+		return &apibus.MessageResponse[apicues.GetCueListMetadataOutput]{
+			MessageError: &apibus.MessageError{
+				Code:         apibus.ValidationErrorCode,
+				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+			},
+		}, nil
+	}
+
 	var md cueListMetadata
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucketCueLists))
@@ -228,6 +259,15 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 }
 
 func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*apibus.MessageResponse[apicues.DeleteCueListOutput], error) {
+	if err := apibus.Validate(in); err != nil {
+		return &apibus.MessageResponse[apicues.DeleteCueListOutput]{
+			MessageError: &apibus.MessageError{
+				Code:         apibus.ValidationErrorCode,
+				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+			},
+		}, nil
+	}
+
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {

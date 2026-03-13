@@ -2,19 +2,36 @@ package bus
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/nats-io/nats.go"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Message bus error codes.
 const (
-	InvalidPayloadCode = 400 // Invalid payload
-	NotFoundCode       = 404 // Resource not found
-	ConflictCode       = 409 // Resource conflict
-	InternalErrorCode  = 500 // Internal processing failure
+	InvalidPayloadCode  = 400 // Invalid payload
+	NotFoundCode        = 404 // Resource not found
+	ConflictCode        = 409 // Resource conflict
+	ValidationErrorCode = 422 // Validation failed
+	InternalErrorCode   = 500 // Internal processing failure
 )
+
+var validate = validator.New(validator.WithRequiredStructEnabled())
+
+// Validate performs structural validation on the given object.
+func Validate(obj any) error {
+	if obj == nil {
+		return nil
+	}
+	rv := reflect.ValueOf(obj)
+	if rv.Kind() == reflect.Struct || (rv.Kind() == reflect.Ptr && rv.Elem().Kind() == reflect.Struct) {
+		return validate.Struct(obj)
+	}
+	return nil
+}
 
 // MessageError contains error information for the message bus.
 type MessageError struct {
@@ -28,8 +45,12 @@ type MessageResponse[T any] struct {
 	MessageError  *MessageError `msgpack:"messageError,omitzero"`
 }
 
-// Publish serializes the message using msgpack and publishes it to the given subject.
+// Publish validates and serializes the message using msgpack and publishes it to the given subject.
 func Publish[T any](nc *nats.Conn, subject string, msg T) error {
+	if err := Validate(msg); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
 	data, err := msgpack.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
@@ -53,9 +74,13 @@ func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[T]
 	})
 }
 
-// Request serializes the request using msgpack, sends it, and deserializes the response.
+// Request validates and serializes the request using msgpack, sends it, and deserializes the response.
 func Request[Req any, Res any](nc *nats.Conn, subject string, req Req, timeout time.Duration) (Res, error) {
 	var res Res
+	if err := Validate(req); err != nil {
+		return res, fmt.Errorf("validation failed: %w", err)
+	}
+
 	data, err := msgpack.Marshal(req)
 	if err != nil {
 		return res, fmt.Errorf("failed to marshal request: %w", err)
@@ -108,6 +133,24 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 			return
 		}
 
+		if err := Validate(req); err != nil {
+			msgRes := &MessageResponse[Res]{
+				MessageError: &MessageError{
+					Code:         ValidationErrorCode,
+					ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+				},
+			}
+
+			data, marshalErr := msgpack.Marshal(msgRes)
+			if marshalErr != nil {
+				_ = m.Respond(nil)
+				return
+			}
+
+			_ = m.Respond(data)
+			return
+		}
+
 		msgRes, handlerErr := handler(m.Subject, req)
 
 		if handlerErr != nil && msgRes == nil {
@@ -117,6 +160,10 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 					ErrorMessage: handlerErr.Error(),
 				},
 			}
+		}
+
+		if msgRes == nil {
+			msgRes = &MessageResponse[Res]{}
 		}
 
 		data, err := msgpack.Marshal(msgRes)

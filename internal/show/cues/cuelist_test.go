@@ -187,4 +187,23 @@ func TestNewCueList(t *testing.T) {
 		assert.Equal(t, apibus.ConflictCode, res.MessageError.Code)
 		assert.Contains(t, res.MessageError.ErrorMessage, "already exists")
 	})
+
+	t.Run("Validation failure", func(t *testing.T) {
+		// Update with empty value (required)
+		res, err := cs.UpdateCueListMetadata(apicues.RequestUpdateCueListMetadata+".label", apicues.UpdateCueListMetadataInput{
+			Number: 1,
+			Value:  "",
+		})
+		require.NoError(t, err)
+		require.NotNil(t, res.MessageError)
+		assert.Equal(t, apibus.ValidationErrorCode, res.MessageError.Code)
+		assert.Contains(t, res.MessageError.ErrorMessage, "validation failed")
+
+		// Get with invalid number (gt=0)
+		resGet, err := cs.GetCueListMetadata(apicues.RequestGetCueListMetadata, apicues.GetCueListMetadataInput{Number: -1})
+		require.NoError(t, err)
+		require.NotNil(t, resGet.MessageError)
+		assert.Equal(t, apibus.ValidationErrorCode, resGet.MessageError.Code)
+		assert.Contains(t, resGet.MessageError.ErrorMessage, "validation failed")
+	})
 }
