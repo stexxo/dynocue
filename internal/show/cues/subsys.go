@@ -2,8 +2,8 @@ package cues
 
 import (
 	"github.com/nats-io/nats.go"
+	apibus "gitlab.com/stexxo/dynocue/api/bus"
 	apicues "gitlab.com/stexxo/dynocue/api/cues"
-	"gitlab.com/stexxo/dynocue/internal/bus"
 	"go.etcd.io/bbolt"
 )
 
@@ -18,7 +18,19 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 		db:   db,
 	}
 
-	if _, err := bus.Reply(conn, apicues.RequestCreateCueList, c.NewCueList); err != nil {
+	if _, err := apibus.Reply(conn, apicues.RequestCreateCueList, c.NewCueList); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestUpdateCueListMetadata, c.UpdateCueListMetadata); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestGetCueListMetadata, c.GetCueListMetadata); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestEnumerateCueList, c.EnumerateCueList); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestDeleteCueList, c.DeleteCueList); err != nil {
 		return nil, err
 	}
 

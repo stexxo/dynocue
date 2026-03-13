@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/nats-io/nats-server/v2/server"
-	"gitlab.com/stexxo/dynocue/internal/bus"
+	ibus "gitlab.com/stexxo/dynocue/internal/bus"
 	"gitlab.com/stexxo/dynocue/internal/show/cues"
 	"go.etcd.io/bbolt"
 )
@@ -22,7 +22,7 @@ type Show struct {
 }
 
 func NewShow(path string) (s *Show, err error) {
-	b, err := bus.NewBus()
+	b, err := ibus.NewBus()
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func NewShow(path string) (s *Show, err error) {
 	// Build Subsystems Required for Show
 
 	// CueSystem
-	conn, err := bus.GetInProcessConn(b)
+	conn, err := ibus.GetInProcessConn(b)
 	if err != nil {
 		return nil, err
 	}

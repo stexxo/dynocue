@@ -11,8 +11,9 @@ import (
 // Message bus error codes.
 const (
 	InvalidPayloadCode = 400 // Invalid payload
-	InternalErrorCode  = 500 // Internal processing failure
+	NotFoundCode       = 404 // Resource not found
 	ConflictCode       = 409 // Resource conflict
+	InternalErrorCode  = 500 // Internal processing failure
 )
 
 // MessageError contains error information for the message bus.

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vmihailenco/msgpack/v5"
+	ibus "gitlab.com/stexxo/dynocue/internal/bus"
 )
 
 type TestMsg struct {
@@ -18,11 +19,11 @@ type TestMsg struct {
 
 func TestBusGeneric(t *testing.T) {
 	// Start an in-process NATS server
-	ns, err := NewBus()
+	ns, err := ibus.NewBus()
 	require.NoError(t, err)
 	defer ns.Shutdown()
 
-	nc, err := GetInProcessConn(ns)
+	nc, err := ibus.GetInProcessConn(ns)
 	require.NoError(t, err)
 	defer nc.Close()
 
@@ -150,7 +151,7 @@ func TestBusGeneric(t *testing.T) {
 	})
 
 	t.Run("Publish Error", func(t *testing.T) {
-		closedNc, err := GetInProcessConn(ns)
+		closedNc, err := ibus.GetInProcessConn(ns)
 		require.NoError(t, err)
 		closedNc.Close()
 
@@ -180,11 +181,11 @@ func TestBusGeneric(t *testing.T) {
 
 	t.Run("Server Connection Errors", func(t *testing.T) {
 		t.Run("GetInProcessConn - Stopped Server", func(t *testing.T) {
-			ns2, err := NewBus()
+			ns2, err := ibus.NewBus()
 			require.NoError(t, err)
 			ns2.Shutdown()
 
-			_, err = GetInProcessConn(ns2)
+			_, err = ibus.GetInProcessConn(ns2)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "bus is not started")
 		})
@@ -193,7 +194,7 @@ func TestBusGeneric(t *testing.T) {
 			// This is hard to trigger with in-process server, but we can try
 			// by passing a nil server if the function doesn't check for it.
 			// Actually the function checks s.Running().
-			_, err = GetInProcessConn(nil)
+			_, err = ibus.GetInProcessConn(nil)
 			require.Error(t, err)
 		})
 	})
