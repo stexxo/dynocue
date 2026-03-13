@@ -7,10 +7,10 @@ includes:
   linux: ./build/linux/Taskfile.yml
 
 vars:
-  APP_NAME: "dynocue"
+  APP_NAME: "show"
   BIN_DIR: "out/bin"
   REPORTS_DIR: "out/reports"
-  MAIN_DIR: "./cmd/dynocue"
+  MAIN_DIR: "./cmd/show"
   COVERAGE_FILE: "{{.REPORTS_DIR}}/coverage.out"
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
 

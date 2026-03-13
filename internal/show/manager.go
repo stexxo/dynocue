@@ -1,0 +1,69 @@
+package show
+
+import (
+	"errors"
+
+	"github.com/nats-io/nats-server/v2/server"
+	"gitlab.com/stexxo/dynocue/internal/bus"
+	"gitlab.com/stexxo/dynocue/internal/show/cues"
+	"go.etcd.io/bbolt"
+)
+
+type Subsystem interface {
+	Close() error
+}
+
+type Show struct {
+	db       *bbolt.DB
+	bus      *server.Server
+	savePath string
+
+	subsystem []Subsystem
+}
+
+func NewShow(path string) (s *Show, err error) {
+	b, err := bus.NewBus()
+	if err != nil {
+		return nil, err
+	}
+	db, err := bbolt.Open(path+"/dynocue.db", 0600, &bbolt.Options{})
+	if err != nil {
+		return nil, err
+	}
+	s = &Show{
+		db:       db,
+		savePath: path,
+		bus:      b,
+	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, s.Close())
+		}
+	}()
+
+	// Build Subsystems Required for Show
+
+	// Cues
+	conn, err := bus.GetInProcessConn(b)
+	if err != nil {
+		return nil, err
+	}
+	c, err := cues.NewCues(conn, db)
+	if err != nil {
+		return nil, err
+	}
+	s.subsystem = append(s.subsystem, c)
+
+	return
+}
+
+func (s *Show) Close() error {
+	for _, subsystem := range s.subsystem {
+		if err := subsystem.Close(); err != nil {
+			return err
+		}
+	}
+
+	s.bus.Shutdown()
+	return s.db.Close()
+}
