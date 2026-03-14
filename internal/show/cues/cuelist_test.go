@@ -45,7 +45,7 @@ func TestNewCueList(t *testing.T) {
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
 
-		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 1})
+		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 1})
 		require.NoError(t, err)
 		assert.Equal(t, float64(1), res.ResponseValue.Number)
 
@@ -142,13 +142,13 @@ func TestNewCueList(t *testing.T) {
 		getRes, err = cs.GetCueListMetadata(apicues.RequestGetCueListMetadata, apicues.GetCueListMetadataInput{Number: 1})
 		require.NoError(t, err)
 		assert.NotNil(t, getRes.MessageError)
-		assert.Equal(t, apibus.NotFoundCode, getRes.MessageError.Code)
+		assert.Equal(t, apibus.CodeResourceNotFound, getRes.MessageError.Code)
 	})
 
 	t.Run("Create next cuelist (0 provided)", func(t *testing.T) {
 		// We deleted 1. Next should be 1 again (since max is 0).
 		// Wait, if we delete 1, NextBucketWholeNumber will see no buckets and return 1.
-		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 0})
+		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 0})
 		require.NoError(t, err)
 		assert.NotNil(t, res.ResponseValue)
 		assert.Equal(t, float64(1), res.ResponseValue.Number)
@@ -164,27 +164,27 @@ func TestNewCueList(t *testing.T) {
 	})
 
 	t.Run("Create another specific number", func(t *testing.T) {
-		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 10})
+		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 10})
 		require.NoError(t, err)
 		assert.Equal(t, float64(10), res.ResponseValue.Number)
 
 		// Create a non-whole number list
-		res, err = cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 10.5})
+		res, err = cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 10.5})
 		require.NoError(t, err)
 		assert.Equal(t, float64(10.5), res.ResponseValue.Number)
 
 		// Next 0 should be 11, not 11.5
-		res, err = cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 0})
+		res, err = cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 0})
 		require.NoError(t, err)
 		assert.Equal(t, float64(11), res.ResponseValue.Number)
 	})
 
 	t.Run("Sub-bucket already exists", func(t *testing.T) {
-		// 10 already exists, should return ConflictCode
-		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.NewCueListInput{Number: 10})
+		// 10 already exists, should return CodeResourceConflict
+		res, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 10})
 		require.NoError(t, err)
 		require.NotNil(t, res.MessageError)
-		assert.Equal(t, apibus.ConflictCode, res.MessageError.Code)
+		assert.Equal(t, apibus.CodeResourceConflict, res.MessageError.Code)
 		assert.Contains(t, res.MessageError.ErrorMessage, "already exists")
 	})
 
@@ -196,14 +196,14 @@ func TestNewCueList(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.NotNil(t, res.MessageError)
-		assert.Equal(t, apibus.ValidationErrorCode, res.MessageError.Code)
+		assert.Equal(t, apibus.CodePayloadValidationFailure, res.MessageError.Code)
 		assert.Contains(t, res.MessageError.ErrorMessage, "validation failed")
 
 		// Get with invalid number (gt=0)
 		resGet, err := cs.GetCueListMetadata(apicues.RequestGetCueListMetadata, apicues.GetCueListMetadataInput{Number: -1})
 		require.NoError(t, err)
 		require.NotNil(t, resGet.MessageError)
-		assert.Equal(t, apibus.ValidationErrorCode, resGet.MessageError.Code)
+		assert.Equal(t, apibus.CodePayloadValidationFailure, resGet.MessageError.Code)
 		assert.Contains(t, resGet.MessageError.ErrorMessage, "validation failed")
 	})
 }

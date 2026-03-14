@@ -26,11 +26,11 @@ type cueListMetadata struct {
 	ListType string  `msgpack:"listType"`
 }
 
-func (c *CueSystem) NewCueList(sub string, in apicues.NewCueListInput) (*apibus.MessageResponse[apicues.NewCueListOutput], error) {
+func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apibus.MessageResponse[apicues.CreateCueListOutput], error) {
 	if err := apibus.Validate(in); err != nil {
-		return &apibus.MessageResponse[apicues.NewCueListOutput]{
+		return &apibus.MessageResponse[apicues.CreateCueListOutput]{
 			MessageError: &apibus.MessageError{
-				Code:         apibus.ValidationErrorCode,
+				Code:         apibus.CodePayloadValidationFailure,
 				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 			},
 		}, nil
@@ -66,9 +66,9 @@ func (c *CueSystem) NewCueList(sub string, in apicues.NewCueListInput) (*apibus.
 
 	if err != nil {
 		if errors.Is(err, berrors.ErrBucketExists) {
-			return &apibus.MessageResponse[apicues.NewCueListOutput]{
+			return &apibus.MessageResponse[apicues.CreateCueListOutput]{
 				MessageError: &apibus.MessageError{
-					Code:         apibus.ConflictCode,
+					Code:         apibus.CodeResourceConflict,
 					ErrorMessage: fmt.Sprintf("cuelist %f already exists", outNum),
 				},
 			}, nil
@@ -80,8 +80,8 @@ func (c *CueSystem) NewCueList(sub string, in apicues.NewCueListInput) (*apibus.
 		slog.Error("failed to publish change event for new cuelist", slog.String("err", err.Error()))
 	}
 
-	return &apibus.MessageResponse[apicues.NewCueListOutput]{
-		ResponseValue: &apicues.NewCueListOutput{Number: outNum},
+	return &apibus.MessageResponse[apicues.CreateCueListOutput]{
+		ResponseValue: &apicues.CreateCueListOutput{Number: outNum},
 	}, nil
 }
 
@@ -89,7 +89,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.UpdateCueListMetadataOutput]{
 			MessageError: &apibus.MessageError{
-				Code:         apibus.ValidationErrorCode,
+				Code:         apibus.CodePayloadValidationFailure,
 				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 			},
 		}, nil
@@ -143,7 +143,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		if errors.Is(err, berrors.ErrBucketNotFound) {
 			return &apibus.MessageResponse[apicues.UpdateCueListMetadataOutput]{
 				MessageError: &apibus.MessageError{
-					Code:         apibus.NotFoundCode,
+					Code:         apibus.CodeResourceNotFound,
 					ErrorMessage: fmt.Sprintf("cuelist %f not found", in.Number),
 				},
 			}, nil
@@ -167,7 +167,7 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.GetCueListMetadataOutput]{
 			MessageError: &apibus.MessageError{
-				Code:         apibus.ValidationErrorCode,
+				Code:         apibus.CodePayloadValidationFailure,
 				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 			},
 		}, nil
@@ -197,7 +197,7 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 		if errors.Is(err, berrors.ErrBucketNotFound) {
 			return &apibus.MessageResponse[apicues.GetCueListMetadataOutput]{
 				MessageError: &apibus.MessageError{
-					Code:         apibus.NotFoundCode,
+					Code:         apibus.CodeResourceNotFound,
 					ErrorMessage: fmt.Sprintf("cuelist %f not found", in.Number),
 				},
 			}, nil
@@ -262,7 +262,7 @@ func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*a
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.DeleteCueListOutput]{
 			MessageError: &apibus.MessageError{
-				Code:         apibus.ValidationErrorCode,
+				Code:         apibus.CodePayloadValidationFailure,
 				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 			},
 		}, nil
@@ -286,7 +286,7 @@ func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*a
 		if errors.Is(err, berrors.ErrBucketNotFound) {
 			return &apibus.MessageResponse[apicues.DeleteCueListOutput]{
 				MessageError: &apibus.MessageError{
-					Code:         apibus.NotFoundCode,
+					Code:         apibus.CodeResourceNotFound,
 					ErrorMessage: fmt.Sprintf("cuelist %f not found", in.Number),
 				},
 			}, nil

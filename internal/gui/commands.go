@@ -1,41 +1,46 @@
 package gui
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	apibus "gitlab.com/stexxo/dynocue/api/bus"
 	"gitlab.com/stexxo/dynocue/internal/show"
 )
 
 type Commands struct {
-	app  *application.App
-	show *show.Show
-	conn *nats.Conn
+	app *application.App
+
+	show          *show.Show
+	conn          *nats.Conn
+	subscriptions []*nats.Subscription
 }
 
 func NewCommands() *Commands {
 	return &Commands{}
 }
 
-func (cmds *Commands) SetApplication(app *application.App) {
-	cmds.app = app
+func (c *Commands) SetApplication(app *application.App) {
+	c.app = app
 }
 
-func (cmds *Commands) OpenShow(path string) (string, bool) {
+func (c *Commands) OpenShow(path string) (string, bool) {
 	if !strings.HasSuffix(path, ".dynocue") {
 		path = path + ".dynocue"
 	}
 
-	if cmds.show != nil {
-		cmds.show.Close()
+	if c.show != nil {
+		c.show.Close()
 	}
 	s, err := show.NewShow(path)
 	if err != nil {
 		return "", false
 	}
-	cmds.show = s
-	cmds.conn, err = s.GetConn()
+	c.show = s
+	c.conn, err = s.GetConn()
 	if err != nil {
 		return "", false
 	}
@@ -43,11 +48,32 @@ func (cmds *Commands) OpenShow(path string) (string, bool) {
 	return path, true
 }
 
-func (cmds *Commands) CloseShow() {
-	if cmds.show != nil {
-		cmds.conn.Close()
-		cmds.show.Close()
-		cmds.show = nil
-		cmds.conn = nil
+func (c *Commands) CloseShow() {
+	if c.show != nil {
+		c.conn.Close()
+		c.show.Close()
+		c.show = nil
+		c.conn = nil
 	}
+}
+
+func makeRequest[T any, E any](c *Commands, subject string, input T) (*E, error) {
+	if c.show == nil || c.conn == nil {
+		return nil, errors.New("show closed")
+	}
+
+	res, err := apibus.Request[T, E](c.conn, subject, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, errors.New("no response returned")
+	}
+
+	if res.MessageError != nil {
+		return nil, fmt.Errorf("error code %d: %s", res.MessageError.Code, res.MessageError.ErrorMessage)
+	}
+
+	return res.ResponseValue, nil
 }

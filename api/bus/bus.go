@@ -12,11 +12,11 @@ import (
 
 // Message bus error codes.
 const (
-	InvalidPayloadCode  = 400 // Invalid payload
-	NotFoundCode        = 404 // Resource not found
-	ConflictCode        = 409 // Resource conflict
-	ValidationErrorCode = 422 // Validation failed
-	InternalErrorCode   = 500 // Internal processing failure
+	CodeInvalidPayload           = 1000 // Invalid payload
+	CodeResourceNotFound         = 1001 // Resource not found
+	CodeResourceConflict         = 1002 // Resource conflict
+	CodePayloadValidationFailure = 1003 // Validation failed
+	CodeInternalError            = 1004 // Internal processing failure
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -75,36 +75,23 @@ func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[T]
 }
 
 // Request validates and serializes the request using msgpack, sends it, and deserializes the response.
-func Request[Req any, Res any](nc *nats.Conn, subject string, req Req, timeout time.Duration) (Res, error) {
-	var res Res
-	if err := Validate(req); err != nil {
-		return res, fmt.Errorf("validation failed: %w", err)
-	}
-
+func Request[Req any, Res any](nc *nats.Conn, subject string, req Req) (*MessageResponse[Res], error) {
 	data, err := msgpack.Marshal(req)
 	if err != nil {
-		return res, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	msg, err := nc.Request(subject, data, timeout)
+	msg, err := nc.Request(subject, data, 100*time.Millisecond)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
-	var msgRes MessageResponse[Res]
-	if err := msgpack.Unmarshal(msg.Data, &msgRes); err != nil {
-		return res, fmt.Errorf("failed to unmarshal response: %w", err)
+	var msgRes *MessageResponse[Res]
+	if err := msgpack.Unmarshal(msg.Data, msgRes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	if msgRes.MessageError != nil {
-		return res, fmt.Errorf("bus error [%d]: %s", msgRes.MessageError.Code, msgRes.MessageError.ErrorMessage)
-	}
-
-	if msgRes.ResponseValue != nil {
-		return *msgRes.ResponseValue, nil
-	}
-
-	return res, nil
+	return msgRes, nil
 }
 
 // ReplyHandler is a function that processes a request and returns a MessageResponse.
@@ -118,7 +105,7 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if err := msgpack.Unmarshal(m.Data, &req); err != nil {
 			msgRes := &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         InvalidPayloadCode,
+					Code:         CodeInvalidPayload,
 					ErrorMessage: fmt.Sprintf("failed to unmarshal request: %s", err.Error()),
 				},
 			}
@@ -136,7 +123,7 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if err := Validate(req); err != nil {
 			msgRes := &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         ValidationErrorCode,
+					Code:         CodePayloadValidationFailure,
 					ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 				},
 			}
@@ -156,7 +143,7 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if handlerErr != nil && msgRes == nil {
 			msgRes = &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         InternalErrorCode,
+					Code:         CodeInternalError,
 					ErrorMessage: handlerErr.Error(),
 				},
 			}

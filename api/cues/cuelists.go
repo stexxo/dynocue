@@ -12,11 +12,11 @@ const (
 	EventDeleteCueList = "event.cuelist.deleted"
 )
 
-type NewCueListInput struct {
+type CreateCueListInput struct {
 	Number float64 `msgpack:"number" validate:"gte=0"`
 }
 
-type NewCueListOutput struct {
+type CreateCueListOutput struct {
 	Number float64 `msgpack:"number" validate:"gte=0"`
 }
 
