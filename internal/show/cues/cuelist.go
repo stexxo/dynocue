@@ -54,7 +54,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 		}
 
 		outMetadata = cueListMetadata{Number: outNum}
-		return data.PutMetadata(sb, outMetadata)
+		return data.PutKey(sb, outMetadata, "metadata")
 	})
 
 	if err != nil {
@@ -107,7 +107,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		}
 
 		var errUpdate error
-		outMetadata, errUpdate = data.UpdateMetadataField[cueListMetadata](sb, in.Key, in.Value)
+		outMetadata, errUpdate = data.UpdateEntry[cueListMetadata](sb, "metadata", in.Key, in.Value)
 		return errUpdate
 	})
 
@@ -159,7 +159,7 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 			return err
 		}
 
-		return data.GetMetadata(sb, &md)
+		return data.GetKey(sb, &md, "metadata")
 	})
 
 	if err != nil {
@@ -196,7 +196,7 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 			return nil
 		}
 
-		list, err := data.EnumerateMetadata[cueListMetadata](b)
+		list, err := data.EnumerateBucketsForKey[cueListMetadata](b, keyMetadata)
 		if err != nil {
 			return err
 		}

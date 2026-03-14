@@ -36,37 +36,24 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 	var outNum float64
 	var outMetadata cueMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		clb, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
-		if err != nil {
-			return err
-		}
-
-		sb, err := data.GetSubBucket(clb, utils.Float64ToBytes(in.CueListNumber))
-		if err != nil {
-			return err
-		}
-
-		cb, err := sb.CreateBucketIfNotExists([]byte(bucketCues))
-		if err != nil {
-			return fmt.Errorf("failed to create %s bucket: %w", bucketCues, err)
-		}
+		cueBucket, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues))
 
 		outNum = in.Number
 		if outNum == 0 {
-			outNum = data.NextBucketWholeNumber(cb)
+			outNum = data.NextBucketWholeNumber(cueBucket)
 		}
 
-		nb, err := cb.CreateBucket(utils.Float64ToBytes(outNum))
+		nb, err := cueBucket.CreateBucket(utils.Float64ToBytes(outNum))
 		if err != nil {
 			return err
 		}
 
 		outMetadata = cueMetadata{Number: outNum}
-		return data.PutMetadata(nb, outMetadata)
+		return data.PutKey(nb, outMetadata, "metadata")
 	})
 
 	if err != nil {
-		if errors.Is(err, berrors.ErrBucketNotFound) {
+		if errors.Is(err, data.ErrNoBucket) {
 			return &apibus.MessageResponse[apicues.CreateCueOutput]{
 				MessageError: &apibus.MessageError{
 					Code:         apibus.CodeResourceNotFound,
@@ -125,7 +112,7 @@ func (c *CueSystem) UpdateCueMetadata(sub string, in apicues.UpdateCueMetadataIn
 		}
 
 		var errUpdate error
-		outMetadata, errUpdate = data.UpdateMetadataField[cueMetadata](nb, in.Key, in.Value)
+		outMetadata, errUpdate = data.UpdateEntry[cueMetadata](nb, "metadata", in.Key, in.Value)
 		return errUpdate
 	})
 
@@ -177,7 +164,7 @@ func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (
 			return err
 		}
 
-		return data.GetMetadata(nb, &md)
+		return data.GetKey(nb, &md, "metadata")
 	})
 
 	if err != nil {
@@ -233,7 +220,7 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 			return err
 		}
 
-		list, err := data.EnumerateMetadata[cueMetadata](cb)
+		list, err := data.EnumerateBucketsForKey[cueMetadata](cb, "metadata")
 		if err != nil {
 			return err
 		}

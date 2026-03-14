@@ -35,42 +35,51 @@ func CopyBucket(src, dst *bbolt.Bucket) error {
 	})
 }
 
-// GetSubBucket traverses nested buckets and returns the leaf bucket
-// or an error if any part of the path is missing.
-func GetSubBucket(b *bbolt.Bucket, keys ...[]byte) (*bbolt.Bucket, error) {
-	curr := b
-	for _, k := range keys {
-		curr = curr.Bucket(k)
-		if curr == nil {
-			return nil, berrors.ErrBucketNotFound
-		}
+var ErrNoBucket = errors.New("bucket path does not exist")
+
+func GetSubBucket(tx *bbolt.Bucket, keys ...[]byte) (*bbolt.Bucket, error) {
+	if len(keys) == 0 {
+		return tx, nil
 	}
-	return curr, nil
+
+	b := tx.Bucket(keys[0])
+	if b == nil {
+		return nil, ErrNoBucket
+	}
+
+	return GetSubBucket(b, keys[1:]...)
 }
 
-// GetMetadata unmarshals msgpack metadata from a bucket into the provided value.
-func GetMetadata[T any](b *bbolt.Bucket, v *T) error {
-	val := b.Get([]byte(KeyMetadata))
+func GetBucket(tx *bbolt.Tx, keys ...[]byte) (*bbolt.Bucket, error) {
+	if len(keys) == 0 {
+		return nil, ErrNoBucket
+	}
+	b := tx.Bucket(keys[0])
+	if b == nil {
+		return nil, ErrNoBucket
+	}
+	return GetSubBucket(b, keys[1:]...)
+}
+
+func GetKey[T any](b *bbolt.Bucket, v *T, key string) error {
+	val := b.Get([]byte(key))
 	if val == nil {
 		return berrors.ErrBucketNotFound
 	}
 	return msgpack.Unmarshal(val, v)
 }
 
-// PutMetadata marshals and saves msgpack metadata to a bucket using the default key.
-func PutMetadata[T any](b *bbolt.Bucket, v T) error {
+func PutKey[T any](b *bbolt.Bucket, v T, key string) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
 	}
-	return b.Put([]byte(KeyMetadata), md)
+	return b.Put([]byte(key), md)
 }
 
-// UpdateMetadataField updates a single field in the metadata struct,
-// saves it back to the bucket, and returns the updated metadata.
-func UpdateMetadataField[T any](b *bbolt.Bucket, fieldKey, newValue string) (T, error) {
+func UpdateEntry[T any](b *bbolt.Bucket, entryKey, fieldKey, newValue string) (T, error) {
 	var md T
-	if err := GetMetadata(b, &md); err != nil {
+	if err := GetKey(b, &md, entryKey); err != nil {
 		return md, err
 	}
 
@@ -78,20 +87,20 @@ func UpdateMetadataField[T any](b *bbolt.Bucket, fieldKey, newValue string) (T, 
 		return md, err
 	}
 
-	if err := PutMetadata(b, md); err != nil {
+	if err := PutKey(b, md, entryKey); err != nil {
 		return md, err
 	}
 
 	return md, nil
 }
 
-// EnumerateMetadata iterates over all sub-buckets and returns a slice of their metadata.
-func EnumerateMetadata[T any](b *bbolt.Bucket) ([]T, error) {
+// EnumerateBucketsForKey iterates over all sub-buckets and returns a slice of their entries for the provided key
+func EnumerateBucketsForKey[T any](b *bbolt.Bucket, key string) ([]T, error) {
 	var list []T
 	err := b.ForEachBucket(func(k []byte) error {
 		sb := b.Bucket(k)
 		var md T
-		if err := GetMetadata(sb, &md); err != nil {
+		if err := GetKey(sb, &md, key); err != nil {
 			if errors.Is(err, berrors.ErrBucketNotFound) {
 				return nil
 			}
@@ -112,7 +121,7 @@ func MoveBucket[T any](parent *bbolt.Bucket, oldNum, newNum float64, updateNum f
 
 	sb := parent.Bucket(oldKey)
 	if sb == nil {
-		return outMetadata, berrors.ErrBucketNotFound
+		return outMetadata, ErrNoBucket
 	}
 
 	newSb, err := parent.CreateBucket(newKey)
@@ -121,15 +130,6 @@ func MoveBucket[T any](parent *bbolt.Bucket, oldNum, newNum float64, updateNum f
 	}
 
 	if err := CopyBucket(sb, newSb); err != nil {
-		return outMetadata, err
-	}
-
-	if err := GetMetadata(newSb, &outMetadata); err == nil {
-		updateNum(&outMetadata, newNum)
-		if err := PutMetadata(newSb, outMetadata); err != nil {
-			return outMetadata, err
-		}
-	} else if !errors.Is(err, berrors.ErrBucketNotFound) {
 		return outMetadata, err
 	}
 
