@@ -27,17 +27,6 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Cache Go Binaries
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/go/bin
-            /go/bin
-            C:\Users\runneradmin\go\bin
-          key: ${{ runner.os }}-go-bin-${{ hashFiles('go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-bin-
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
