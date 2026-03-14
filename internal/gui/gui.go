@@ -26,10 +26,12 @@ func NewGui() *Gui {
 	cmds.SetApplication(g.app)
 
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Width:  1280,
-		Height: 720,
-		Title:  "DynoCue",
-		URL:    "/",
+		Width:     1280,
+		Height:    720,
+		MinWidth:  800,
+		MinHeight: 600,
+		Title:     "DynoCue",
+		URL:       "/",
 	}) // Default Window
 
 	return g

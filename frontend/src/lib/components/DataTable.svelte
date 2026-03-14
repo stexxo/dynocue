@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { SvelteSet } from 'svelte/reactivity';
     import type { Snippet } from 'svelte';
 
     export interface ToolbarButton<T> {
@@ -25,15 +26,17 @@
         items: T[];
         columns: ColumnConfig<T>[];
         toolbar?: ToolbarButton<T>[];
+        isActive?: (item: T) => boolean;
     }
 
     let {
         items,
         columns,
-        toolbar = []
+        toolbar = [],
+        isActive = () => false
     }: Props<any> = $props();
 
-    let selectedNumbers = $state(new Set<number>());
+    let selectedNumbers = $state(new SvelteSet<number>());
     let editingCell = $state<{ number: number; key: any } | null>(null);
     let editValue = $state('');
     let initialValue = $state('');
@@ -53,9 +56,10 @@
         if (allSelected) {
             selectedNumbers.clear();
         } else {
-            selectedNumbers = new Set(items.map(item => item.number));
+            for (const item of items) {
+                selectedNumbers.add(item.number);
+            }
         }
-        selectedNumbers = selectedNumbers;
     }
 
     function toggleSelect(number: number) {
@@ -64,7 +68,6 @@
         } else {
             selectedNumbers.add(number);
         }
-        selectedNumbers = selectedNumbers;
     }
 
     let selectedItems = $derived(items.filter(item => selectedNumbers.has(item.number)));
@@ -79,7 +82,6 @@
         // Actually, let's just clear it to be safe if it's a multi-item action.
         if (selectedNumbers.size > 0) {
             selectedNumbers.clear();
-            selectedNumbers = selectedNumbers;
         }
     }
 
@@ -134,7 +136,7 @@
         {/each}
     </div>
 
-    <div class="overflow-x-auto overflow-y-auto flex-grow">
+    <div class="overflow-x-auto overflow-y-auto grow">
         <table class="table table-pin-rows">
             <thead>
                 <tr>
@@ -153,7 +155,7 @@
             </thead>
             <tbody>
                 {#each items as item (item.number)}
-                    <tr class="h-12 {selectedNumbers.has(item.number) ? 'bg-base-300' : ''}">
+                    <tr class="h-12 {selectedNumbers.has(item.number) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
                         <td>
                             <label>
                                 <input type="checkbox" class="checkbox checkbox-sm"
