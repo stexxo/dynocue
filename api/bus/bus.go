@@ -57,7 +57,7 @@ func Publish[T any](nc *nats.Conn, subject string, msg T) error {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 	slog.Debug("publishing message to NATS", "subject", subject, "data", string(data))
-	
+
 	return nc.Publish(subject, data)
 }
 

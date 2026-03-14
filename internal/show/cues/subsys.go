@@ -40,7 +40,6 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	if _, err := apibus.Reply(conn, apicues.RequestMoveCueList, c.MoveCueList); err != nil {
 		return nil, err
 	}
-
 	if _, err := apibus.Reply(conn, apicues.RequestCreateCue, c.NewCue); err != nil {
 		return nil, err
 	}
