@@ -35,7 +35,8 @@ func CopyBucket(src, dst *bbolt.Bucket) error {
 	})
 }
 
-// GetSubBucket traverses nested buckets and returns the leaf bucket or an error if any part of the path is missing.
+// GetSubBucket traverses nested buckets and returns the leaf bucket
+// or an error if any part of the path is missing.
 func GetSubBucket(b *bbolt.Bucket, keys ...[]byte) (*bbolt.Bucket, error) {
 	curr := b
 	for _, k := range keys {
@@ -47,7 +48,7 @@ func GetSubBucket(b *bbolt.Bucket, keys ...[]byte) (*bbolt.Bucket, error) {
 	return curr, nil
 }
 
-// GetMetadata unmarshals msgpack metadata from a bucket.
+// GetMetadata unmarshals msgpack metadata from a bucket into the provided value.
 func GetMetadata[T any](b *bbolt.Bucket, v *T) error {
 	val := b.Get([]byte(KeyMetadata))
 	if val == nil {
@@ -56,7 +57,7 @@ func GetMetadata[T any](b *bbolt.Bucket, v *T) error {
 	return msgpack.Unmarshal(val, v)
 }
 
-// PutMetadata marshals and saves msgpack metadata to a bucket.
+// PutMetadata marshals and saves msgpack metadata to a bucket using the default key.
 func PutMetadata[T any](b *bbolt.Bucket, v T) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
@@ -65,7 +66,8 @@ func PutMetadata[T any](b *bbolt.Bucket, v T) error {
 	return b.Put([]byte(KeyMetadata), md)
 }
 
-// UpdateMetadataField updates a single field in the metadata struct and saves it.
+// UpdateMetadataField updates a single field in the metadata struct,
+// saves it back to the bucket, and returns the updated metadata.
 func UpdateMetadataField[T any](b *bbolt.Bucket, fieldKey, newValue string) (T, error) {
 	var md T
 	if err := GetMetadata(b, &md); err != nil {
@@ -83,7 +85,7 @@ func UpdateMetadataField[T any](b *bbolt.Bucket, fieldKey, newValue string) (T, 
 	return md, nil
 }
 
-// EnumerateMetadata iterates over all sub-buckets and unmarshals their metadata.
+// EnumerateMetadata iterates over all sub-buckets and returns a slice of their metadata.
 func EnumerateMetadata[T any](b *bbolt.Bucket) ([]T, error) {
 	var list []T
 	err := b.ForEachBucket(func(k []byte) error {
@@ -101,7 +103,8 @@ func EnumerateMetadata[T any](b *bbolt.Bucket) ([]T, error) {
 	return list, err
 }
 
-// MoveBucket moves a bucket to a new numeric key and updates its number in metadata.
+// MoveBucket copies a bucket to a new numeric key, updates its number in metadata,
+// and deletes the old bucket.
 func MoveBucket[T any](parent *bbolt.Bucket, oldNum, newNum float64, updateNum func(*T, float64)) (T, error) {
 	var outMetadata T
 	oldKey := utils.Float64ToBytes(oldNum)

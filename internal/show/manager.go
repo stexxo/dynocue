@@ -12,10 +12,14 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// Subsystem defines an interface for all show components that require
+// lifecycle management and cleanup.
 type Subsystem interface {
 	Close() error
 }
 
+// Show represents a show session, managing the database, message bus,
+// and all active subsystems.
 type Show struct {
 	db       *bbolt.DB
 	bus      *server.Server
@@ -24,6 +28,8 @@ type Show struct {
 	subsystem []Subsystem
 }
 
+// NewShow initializes a new show session at the given directory path,
+// starting the message bus, database, and all required subsystems.
 func NewShow(path string) (s *Show, err error) {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -73,10 +79,13 @@ func NewShow(path string) (s *Show, err error) {
 	return
 }
 
+// GetConn returns a NATS connection for communicating with the show's internal bus.
 func (s *Show) GetConn() (*nats.Conn, error) {
 	return ibus.GetInProcessConn(s.bus)
 }
 
+// Close shuts down the show session, closing all subsystems, the message bus,
+// and the database.
 func (s *Show) Close() error {
 	for _, subsystem := range s.subsystem {
 		if err := subsystem.Close(); err != nil {

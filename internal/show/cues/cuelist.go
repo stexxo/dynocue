@@ -24,6 +24,7 @@ type cueListMetadata struct {
 	ListType string  `msgpack:"listType"`
 }
 
+// NewCueList creates a new cue list with an initial number.
 func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apibus.MessageResponse[apicues.CreateCueListOutput], error) {
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.CreateCueListOutput]{
@@ -82,6 +83,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 	}, nil
 }
 
+// UpdateCueListMetadata updates the metadata fields of an existing cue list.
 func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMetadataInput) (*apibus.MessageResponse[apicues.UpdateCueListMetadataOutput], error) {
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.UpdateCueListMetadataOutput]{
@@ -134,6 +136,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 	}, nil
 }
 
+// GetCueListMetadata retrieves the metadata for a specific cue list.
 func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadataInput) (*apibus.MessageResponse[apicues.GetCueListMetadataOutput], error) {
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.GetCueListMetadataOutput]{
@@ -180,6 +183,7 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 	}, nil
 }
 
+// EnumerateCueList returns a list of all existing cue lists.
 func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInput) (*apibus.MessageResponse[apicues.EnumerateCueListOutput], error) {
 	var cueLists []struct {
 		Number   float64 `json:"number" msgpack:"number"`
@@ -219,6 +223,7 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 	}, nil
 }
 
+// DeleteCueList removes a cue list and all its associated cues.
 func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*apibus.MessageResponse[apicues.DeleteCueListOutput], error) {
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.DeleteCueListOutput]{
@@ -260,6 +265,7 @@ func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*a
 	}, nil
 }
 
+// MoveCueList changes the number of an existing cue list.
 func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibus.MessageResponse[apicues.MoveCueListOutput], error) {
 	if err := apibus.Validate(in); err != nil {
 		return &apibus.MessageResponse[apicues.MoveCueListOutput]{

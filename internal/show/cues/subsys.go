@@ -7,11 +7,15 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// CueSystem manages the cue and cue list operations, handling communication
+// between the NATS messaging bus and the bbolt database.
 type CueSystem struct {
 	conn *nats.Conn
 	db   *bbolt.DB
 }
 
+// NewCues initializes a new CueSystem, setting up NATS responders for all
+// cue and cue list related requests.
 func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	c := &CueSystem{
 		conn: conn,
@@ -59,6 +63,7 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	return c, nil
 }
 
+// Close performs any necessary cleanup for the CueSystem.
 func (c *CueSystem) Close() error {
 	return nil
 }
