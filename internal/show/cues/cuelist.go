@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/vmihailenco/msgpack/v5"
 	apibus "gitlab.com/stexxo/dynocue/api/bus"
@@ -37,6 +36,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 	}
 
 	var outNum float64
+	var outMetadata cueListMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
@@ -56,7 +56,8 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 			return fmt.Errorf("failed to create sub-bucket %f: %w", outNum, err)
 		}
 
-		md, err := msgpack.Marshal(cueListMetadata{Number: outNum})
+		outMetadata = cueListMetadata{Number: outNum}
+		md, err := msgpack.Marshal(outMetadata)
 		if err != nil {
 			return err
 		}
@@ -76,9 +77,14 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 		return nil, err
 	}
 
-	if err = apibus.Publish(c.conn, apicues.EventNewCueList, apicues.NewCueListEvent{Number: outNum}); err != nil {
+	if err = apibus.Publish(c.conn, apicues.EventNewCueList, apicues.NewCueListEvent{
+		Number:   outMetadata.Number,
+		Label:    outMetadata.Label,
+		ListType: outMetadata.ListType,
+	}); err != nil {
 		slog.Error("failed to publish change event for new cuelist", slog.String("err", err.Error()))
 	}
+	slog.Debug("new cuelist event published successfully")
 
 	return &apibus.MessageResponse[apicues.CreateCueListOutput]{
 		ResponseValue: &apicues.CreateCueListOutput{Number: outNum},
@@ -95,10 +101,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		}, nil
 	}
 
-	parts := strings.Split(sub, ".")
-	field := parts[len(parts)-1]
-	eventSub := fmt.Sprintf("%s.%s", apicues.EventUpdateCueList, field)
-
+	var outMetadata cueListMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
@@ -120,14 +123,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 			return err
 		}
 
-		parts := strings.Split(sub, ".")
-		f := parts[len(parts)-1]
-
-		if f == "*" {
-			return errors.New("cannot update wildcard subject")
-		}
-
-		if err := utils.SetFieldByTag(&md, "msgpack", f, in.Value); err != nil {
+		if err := utils.SetFieldByTag(&md, "msgpack", in.Key, in.Value); err != nil {
 			return err
 		}
 
@@ -136,6 +132,7 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 			return err
 		}
 
+		outMetadata = md
 		return sb.Put([]byte(keyMetadata), mdBytes)
 	})
 
@@ -151,9 +148,10 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 		return nil, err
 	}
 
-	if err = apibus.Publish(c.conn, eventSub, apicues.UpdateCueListMetadataEvent{
-		Number: in.Number,
-		Value:  in.Value,
+	if err = apibus.Publish(c.conn, apicues.EventUpdateCueList, apicues.UpdateCueListMetadataEvent{
+		Number:   outMetadata.Number,
+		Label:    outMetadata.Label,
+		ListType: outMetadata.ListType,
 	}); err != nil {
 		slog.Error("failed to publish change event for update cuelist metadata", slog.String("err", err.Error()))
 	}
@@ -216,9 +214,9 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 
 func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInput) (*apibus.MessageResponse[apicues.EnumerateCueListOutput], error) {
 	var cueLists []struct {
-		Number   float64 `msgpack:"number"`
-		Label    string  `msgpack:"label"`
-		ListType string  `msgpack:"listType"`
+		Number   float64 `json:"number" msgpack:"number"`
+		Label    string  `json:"label" msgpack:"label"`
+		ListType string  `json:"listType" msgpack:"listType"`
 	}
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucketCueLists))
@@ -237,9 +235,9 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 				return err
 			}
 			cueLists = append(cueLists, struct {
-				Number   float64 `msgpack:"number"`
-				Label    string  `msgpack:"label"`
-				ListType string  `msgpack:"listType"`
+				Number   float64 `json:"number" msgpack:"number"`
+				Label    string  `json:"label" msgpack:"label"`
+				ListType string  `json:"listType" msgpack:"listType"`
 			}{
 				Number:   md.Number,
 				Label:    md.Label,

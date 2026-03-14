@@ -3,6 +3,7 @@ package gui
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -28,6 +29,10 @@ func (c *Commands) SetApplication(app *application.App) {
 }
 
 func (c *Commands) OpenShow(path string) (string, bool) {
+	if path == "" {
+		return "", false
+	}
+
 	if !strings.HasSuffix(path, ".dynocue") {
 		path = path + ".dynocue"
 	}
@@ -42,6 +47,12 @@ func (c *Commands) OpenShow(path string) (string, bool) {
 	c.show = s
 	c.conn, err = s.GetConn()
 	if err != nil {
+		return "", false
+	}
+
+	err = c.SubscribeToAll()
+	if err != nil {
+		slog.Error("Failed to subscribe to all events", "error", err)
 		return "", false
 	}
 

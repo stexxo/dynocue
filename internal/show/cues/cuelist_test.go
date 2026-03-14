@@ -38,9 +38,9 @@ func TestNewCueList(t *testing.T) {
 
 	t.Run("Create cuelist and verify event", func(t *testing.T) {
 		eventChan := make(chan apicues.NewCueListEvent, 1)
-		sub, err := apibus.Subscribe(conn, apicues.EventNewCueList, func(s string, msg apicues.NewCueListEvent) {
+		sub, err := apibus.Subscribe[apicues.NewCueListEvent](conn, apicues.EventNewCueList, func(s string, msg *apicues.NewCueListEvent) {
 			assert.Equal(t, apicues.EventNewCueList, s)
-			eventChan <- msg
+			eventChan <- *msg
 		})
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -52,6 +52,8 @@ func TestNewCueList(t *testing.T) {
 		select {
 		case event := <-eventChan:
 			assert.Equal(t, float64(1), event.Number)
+			assert.Equal(t, "", event.Label)
+			assert.Equal(t, "", event.ListType)
 		case <-time.After(1 * time.Second):
 			t.Fatal("timed out waiting for NewCueListEvent")
 		}
@@ -70,9 +72,9 @@ func TestNewCueList(t *testing.T) {
 
 	t.Run("Update, Get, Enumerate, and Delete", func(t *testing.T) {
 		// Subscribe to update events
-		updateChan := make(chan apicues.UpdateCueListMetadataEvent, 1)
-		sub, err := apibus.Subscribe(conn, apicues.EventUpdateCueList+".label", func(s string, msg apicues.UpdateCueListMetadataEvent) {
-			updateChan <- msg
+		updateChan := make(chan apicues.UpdateCueListMetadataEvent, 2)
+		sub, err := apibus.Subscribe[apicues.UpdateCueListMetadataEvent](conn, apicues.EventUpdateCueList, func(s string, msg *apicues.UpdateCueListMetadataEvent) {
+			updateChan <- *msg
 		})
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
@@ -80,16 +82,19 @@ func TestNewCueList(t *testing.T) {
 		// Update Label
 		updateRes, err := cs.UpdateCueListMetadata("request.cuelist.metadata.update.label", apicues.UpdateCueListMetadataInput{
 			Number: 1,
+			Key:    "label",
 			Value:  "Test Label",
 		})
 		require.NoError(t, err)
+		require.Nil(t, updateRes.MessageError)
 		assert.NotNil(t, updateRes.ResponseValue)
 
 		// Verify update event
 		select {
 		case event := <-updateChan:
 			assert.Equal(t, float64(1), event.Number)
-			assert.Equal(t, "Test Label", event.Value)
+			assert.Equal(t, "Test Label", event.Label)
+			assert.Equal(t, "", event.ListType)
 		case <-time.After(1 * time.Second):
 			t.Fatal("timed out waiting for UpdateCueListMetadataEvent")
 		}
@@ -97,10 +102,22 @@ func TestNewCueList(t *testing.T) {
 		// Update ListType
 		updateRes, err = cs.UpdateCueListMetadata("request.cuelist.metadata.update.listType", apicues.UpdateCueListMetadataInput{
 			Number: 1,
+			Key:    "listType",
 			Value:  "Main",
 		})
 		require.NoError(t, err)
+		require.Nil(t, updateRes.MessageError)
 		assert.NotNil(t, updateRes.ResponseValue)
+
+		// Verify update event for ListType
+		select {
+		case event := <-updateChan:
+			assert.Equal(t, float64(1), event.Number)
+			assert.Equal(t, "Test Label", event.Label)
+			assert.Equal(t, "Main", event.ListType)
+		case <-time.After(1 * time.Second):
+			t.Fatal("timed out waiting for UpdateCueListMetadataEvent (ListType)")
+		}
 
 		// Get
 		getRes, err := cs.GetCueListMetadata(apicues.RequestGetCueListMetadata, apicues.GetCueListMetadataInput{Number: 1})
@@ -120,8 +137,8 @@ func TestNewCueList(t *testing.T) {
 
 		// Delete
 		deleteChan := make(chan apicues.DeleteCueListEvent, 1)
-		dsub, err := apibus.Subscribe(conn, apicues.EventDeleteCueList, func(s string, msg apicues.DeleteCueListEvent) {
-			deleteChan <- msg
+		dsub, err := apibus.Subscribe[apicues.DeleteCueListEvent](conn, apicues.EventDeleteCueList, func(s string, msg *apicues.DeleteCueListEvent) {
+			deleteChan <- *msg
 		})
 		require.NoError(t, err)
 		defer dsub.Unsubscribe()
@@ -189,15 +206,32 @@ func TestNewCueList(t *testing.T) {
 	})
 
 	t.Run("Validation failure", func(t *testing.T) {
-		// Update with empty value (required)
+		// Subscribe to update events
+		updateChan := make(chan apicues.UpdateCueListMetadataEvent, 1)
+		sub, err := apibus.Subscribe[apicues.UpdateCueListMetadataEvent](conn, apicues.EventUpdateCueList, func(s string, msg *apicues.UpdateCueListMetadataEvent) {
+			updateChan <- *msg
+		})
+		require.NoError(t, err)
+		defer sub.Unsubscribe()
+
+		// Update with empty value (should now be allowed)
 		res, err := cs.UpdateCueListMetadata(apicues.RequestUpdateCueListMetadata+".label", apicues.UpdateCueListMetadataInput{
 			Number: 1,
+			Key:    "label",
 			Value:  "",
 		})
 		require.NoError(t, err)
-		require.NotNil(t, res.MessageError)
-		assert.Equal(t, apibus.CodePayloadValidationFailure, res.MessageError.Code)
-		assert.Contains(t, res.MessageError.ErrorMessage, "validation failed")
+		require.Nil(t, res.MessageError)
+		assert.NotNil(t, res.ResponseValue)
+
+		// Verify event also has empty label
+		select {
+		case event := <-updateChan:
+			assert.Equal(t, float64(1), event.Number)
+			assert.Equal(t, "", event.Label)
+		case <-time.After(1 * time.Second):
+			t.Fatal("timed out waiting for UpdateCueListMetadataEvent (empty value)")
+		}
 
 		// Get with invalid number (gt=0)
 		resGet, err := cs.GetCueListMetadata(apicues.RequestGetCueListMetadata, apicues.GetCueListMetadataInput{Number: -1})

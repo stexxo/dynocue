@@ -2,6 +2,7 @@ package bus
 
 import (
 	"fmt"
+	"log/slog"
 	"reflect"
 	"time"
 
@@ -55,7 +56,8 @@ func Publish[T any](nc *nats.Conn, subject string, msg T) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
-
+	slog.Debug("publishing message to NATS", "subject", subject, "data", string(data))
+	
 	return nc.Publish(subject, data)
 }
 
@@ -63,10 +65,10 @@ func Publish[T any](nc *nats.Conn, subject string, msg T) error {
 type SubscribeHandler[T any] func(string, T)
 
 // Subscribe deserializes the incoming message using msgpack and calls the handler.
-func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[T]) (*nats.Subscription, error) {
+func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[*T]) (*nats.Subscription, error) {
 	return nc.Subscribe(subject, func(m *nats.Msg) {
-		var msg T
-		if err := msgpack.Unmarshal(m.Data, &msg); err != nil {
+		msg := new(T)
+		if err := msgpack.Unmarshal(m.Data, msg); err != nil {
 			// In a real app, we might want to log this error or handle it differently.
 			return
 		}
@@ -86,7 +88,7 @@ func Request[Req any, Res any](nc *nats.Conn, subject string, req Req) (*Message
 		return nil, err
 	}
 
-	var msgRes *MessageResponse[Res]
+	msgRes := new(MessageResponse[Res])
 	if err := msgpack.Unmarshal(msg.Data, msgRes); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}

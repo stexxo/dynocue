@@ -52,7 +52,7 @@ dev_mode:
       type: blocking
     - cmd: wails3 task common:dev:frontend
       type: background
-    - cmd: ./out/bin/show
+    - cmd: ./out/bin/dynocue
       type: primary
 
 # File Associations
