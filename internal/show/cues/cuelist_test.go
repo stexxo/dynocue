@@ -240,4 +240,60 @@ func TestNewCueList(t *testing.T) {
 		assert.Equal(t, apibus.CodePayloadValidationFailure, resGet.MessageError.Code)
 		assert.Contains(t, resGet.MessageError.ErrorMessage, "validation failed")
 	})
+
+	t.Run("Move CueList", func(t *testing.T) {
+		// Create cuelist 5
+		_, err := cs.NewCueList(apicues.RequestCreateCueList, apicues.CreateCueListInput{Number: 5})
+		require.NoError(t, err)
+
+		// Subscribe to events
+		deleteChan := make(chan apicues.DeleteCueListEvent, 1)
+		createChan := make(chan apicues.NewCueListEvent, 1)
+
+		dsub, err := apibus.Subscribe[apicues.DeleteCueListEvent](conn, apicues.EventDeleteCueList, func(s string, msg *apicues.DeleteCueListEvent) {
+			deleteChan <- *msg
+		})
+		require.NoError(t, err)
+		defer dsub.Unsubscribe()
+
+		csub, err := apibus.Subscribe[apicues.NewCueListEvent](conn, apicues.EventNewCueList, func(s string, msg *apicues.NewCueListEvent) {
+			createChan <- *msg
+		})
+		require.NoError(t, err)
+		defer csub.Unsubscribe()
+
+		// Move 5 to 6
+		res, err := cs.MoveCueList(apicues.RequestMoveCueList, apicues.MoveCueListInput{
+			OriginalNumber: 5,
+			NewNumber:      6,
+		})
+		require.NoError(t, err)
+		require.Nil(t, res.MessageError)
+		assert.Equal(t, float64(6), res.ResponseValue.NewNumber)
+
+		// Verify events
+		select {
+		case ev := <-deleteChan:
+			assert.Equal(t, float64(5), ev.Number)
+		case <-time.After(1 * time.Second):
+			t.Fatal("timeout waiting for DeleteCueListEvent")
+		}
+
+		select {
+		case ev := <-createChan:
+			assert.Equal(t, float64(6), ev.Number)
+		case <-time.After(1 * time.Second):
+			t.Fatal("timeout waiting for NewCueListEvent")
+		}
+
+		// Verify database
+		err = db.View(func(tx *bbolt.Tx) error {
+			b := tx.Bucket([]byte("cuelists"))
+			assert.Nil(t, b.Bucket(utils.Float64ToBytes(5)))
+			sb := b.Bucket(utils.Float64ToBytes(6))
+			assert.NotNil(t, sb)
+			return nil
+		})
+		require.NoError(t, err)
+	})
 }

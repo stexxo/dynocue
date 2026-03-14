@@ -1,18 +1,28 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { pageTitle } from '$lib/stores/header';
 	let { children } = $props();
 	let loading = $state(false);
 	import {CloseShow, OpenShow} from "../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands";
 	import {Dialogs, Window} from "@wailsio/runtime";
 
 	const pages = [
-		{page: '/show/cues', label: 'Cues'},
+		{page: '/show/cues', label: 'Cue Lists'},
 		{page: '/show/audio', label: 'Audio'},
 		{page: '/show/video', label: 'Video'},
 		{page: '/show/lighting', label: 'Lighting'},
 		{page: "/show/settings", label: "Settings"}
 	]
+
+	$effect(() => {
+		const currentPage = pages.find((p) => p.page === page.url.pathname);
+		if (currentPage) {
+			pageTitle.set(currentPage.label);
+		} else if (page.url.pathname === "/show") {
+			pageTitle.set("DynoCue");
+		}
+	});
 
 
 	async function NewShowDialog() {
@@ -105,7 +115,7 @@
 		</div>
 	</div>
 	<div class="navbar-center">
-		<h3>DynoCue</h3>
+		<h3>{$pageTitle}</h3>
 	</div>
 	<div class="navbar-end"></div>
 </div>

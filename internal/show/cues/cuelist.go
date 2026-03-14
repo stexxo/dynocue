@@ -300,3 +300,105 @@ func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*a
 		ResponseValue: &apicues.DeleteCueListOutput{},
 	}, nil
 }
+
+func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibus.MessageResponse[apicues.MoveCueListOutput], error) {
+	if err := apibus.Validate(in); err != nil {
+		return &apibus.MessageResponse[apicues.MoveCueListOutput]{
+			MessageError: &apibus.MessageError{
+				Code:         apibus.CodePayloadValidationFailure,
+				ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
+			},
+		}, nil
+	}
+
+	if in.OriginalNumber == in.NewNumber {
+		return &apibus.MessageResponse[apicues.MoveCueListOutput]{
+			ResponseValue: &apicues.MoveCueListOutput{NewNumber: in.NewNumber},
+		}, nil
+	}
+
+	var outMetadata cueListMetadata
+	err := c.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(bucketCueLists))
+		if b == nil {
+			return berrors.ErrBucketNotFound
+		}
+
+		oldNumBytes := utils.Float64ToBytes(in.OriginalNumber)
+		newNumBytes := utils.Float64ToBytes(in.NewNumber)
+
+		// Check that the old bucket exists
+		sb := b.Bucket(oldNumBytes)
+		if sb == nil {
+			return berrors.ErrBucketNotFound
+		}
+
+		// Create the New Bucket
+		newSb, err := b.CreateBucket(newNumBytes)
+		if err != nil {
+			return err
+		}
+		// Copy all data from old bucket to new bucket
+		if err := data.CopyBucket(sb, newSb); err != nil {
+			return err
+		}
+
+		// Update metadata with new number
+		val := newSb.Get([]byte(keyMetadata))
+		if val != nil {
+			if err := msgpack.Unmarshal(val, &outMetadata); err != nil {
+				return err
+			}
+			outMetadata.Number = in.NewNumber
+			mdBytes, err := msgpack.Marshal(outMetadata)
+			if err != nil {
+				return err
+			}
+			if err := newSb.Put([]byte(keyMetadata), mdBytes); err != nil {
+				return err
+			}
+		}
+
+		// Delete old bucket
+		return b.DeleteBucket(oldNumBytes)
+	})
+
+	if err != nil {
+		if errors.Is(err, berrors.ErrBucketNotFound) {
+			return &apibus.MessageResponse[apicues.MoveCueListOutput]{
+				MessageError: &apibus.MessageError{
+					Code:         apibus.CodeResourceNotFound,
+					ErrorMessage: fmt.Sprintf("cuelist %f not found", in.OriginalNumber),
+				},
+			}, nil
+		}
+		if errors.Is(err, berrors.ErrBucketExists) {
+			return &apibus.MessageResponse[apicues.MoveCueListOutput]{
+				MessageError: &apibus.MessageError{
+					Code:         apibus.CodeResourceConflict,
+					ErrorMessage: fmt.Sprintf("cuelist %f already exists", in.NewNumber),
+				},
+			}, nil
+		}
+		return nil, err
+	}
+
+	// Emit events: delete old, create new
+	if err = apibus.Publish(c.conn, apicues.EventDeleteCueList, apicues.DeleteCueListEvent{
+		Number: in.OriginalNumber,
+	}); err != nil {
+		slog.Error("failed to publish delete event for move cuelist", slog.String("err", err.Error()))
+	}
+
+	if err = apibus.Publish(c.conn, apicues.EventNewCueList, apicues.NewCueListEvent{
+		Number:   outMetadata.Number,
+		Label:    outMetadata.Label,
+		ListType: outMetadata.ListType,
+	}); err != nil {
+		slog.Error("failed to publish create event for move cuelist", slog.String("err", err.Error()))
+	}
+
+	return &apibus.MessageResponse[apicues.MoveCueListOutput]{
+		ResponseValue: &apicues.MoveCueListOutput{NewNumber: in.NewNumber},
+	}, nil
+}

@@ -23,3 +23,7 @@ func (c *Commands) EnumerateCueList(input cues.EnumerateCueListInput) (*cues.Enu
 func (c *Commands) DeleteCueList(input cues.DeleteCueListInput) (*cues.DeleteCueListOutput, error) {
 	return makeRequest[cues.DeleteCueListInput, cues.DeleteCueListOutput](c, cues.RequestDeleteCueList, input)
 }
+
+func (c *Commands) MoveCueList(input cues.MoveCueListInput) (*cues.MoveCueListOutput, error) {
+	return makeRequest[cues.MoveCueListInput, cues.MoveCueListOutput](c, cues.RequestMoveCueList, input)
+}

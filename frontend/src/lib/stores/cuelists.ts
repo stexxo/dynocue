@@ -49,6 +49,15 @@ function createCueListStore() {
         }
     }
 
+    async function move(originalNumber: number, newNumber: number) {
+        try {
+            await Commands.MoveCueList({ originalNumber: originalNumber, newNumber: newNumber });
+            // The store will be updated by the event handlers (delete old, create new)
+        } catch (err) {
+            console.error(`Failed to move cue list ${originalNumber} to ${newNumber}:`, err);
+        }
+    }
+
     // Subscribe to backend events
     Events.On('event.cuelist.created', (event: any) => {
         const { number, label, listType } = event.data;
@@ -80,7 +89,8 @@ function createCueListStore() {
         refresh,
         updateMetadata,
         create,
-        remove
+        remove,
+        move
     };
 }
 

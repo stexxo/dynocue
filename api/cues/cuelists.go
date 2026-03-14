@@ -6,6 +6,7 @@ const (
 	RequestGetCueListMetadata    = "request.cuelist.metadata.get"
 	RequestEnumerateCueList      = "request.cuelist.enumerate"
 	RequestDeleteCueList         = "request.cuelist.delete"
+	RequestMoveCueList           = "request.cuelist.move"
 
 	EventNewCueList    = "event.cuelist.created"
 	EventUpdateCueList = "event.cuelist.updated"
@@ -65,6 +66,15 @@ type DeleteCueListInput struct {
 }
 
 type DeleteCueListOutput struct{}
+
+type MoveCueListInput struct {
+	OriginalNumber float64 `json:"originalNumber" msgpack:"originalNumber" validate:"gt=0"`
+	NewNumber      float64 `json:"newNumber" msgpack:"newNumber" validate:"gt=0"`
+}
+
+type MoveCueListOutput struct {
+	NewNumber float64 `json:"newNumber" msgpack:"newNumber"`
+}
 
 type DeleteCueListEvent struct {
 	Number float64 `json:"number" msgpack:"number" validate:"gt=0"`

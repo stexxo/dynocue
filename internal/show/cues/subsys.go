@@ -33,6 +33,9 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	if _, err := apibus.Reply(conn, apicues.RequestDeleteCueList, c.DeleteCueList); err != nil {
 		return nil, err
 	}
+	if _, err := apibus.Reply(conn, apicues.RequestMoveCueList, c.MoveCueList); err != nil {
+		return nil, err
+	}
 
 	return c, nil
 }
