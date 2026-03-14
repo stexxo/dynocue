@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/vmihailenco/msgpack/v5"
 	apibus "gitlab.com/stexxo/dynocue/api/bus"
 	apicues "gitlab.com/stexxo/dynocue/api/cues"
 	"gitlab.com/stexxo/dynocue/internal/data"
@@ -50,19 +49,11 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 
 		sb, err := b.CreateBucket(utils.Float64ToBytes(outNum))
 		if err != nil {
-			if errors.Is(err, berrors.ErrBucketExists) {
-				return err
-			}
-			return fmt.Errorf("failed to create sub-bucket %f: %w", outNum, err)
-		}
-
-		outMetadata = cueListMetadata{Number: outNum}
-		md, err := msgpack.Marshal(outMetadata)
-		if err != nil {
 			return err
 		}
 
-		return sb.Put([]byte(keyMetadata), md)
+		outMetadata = cueListMetadata{Number: outNum}
+		return data.PutMetadata(sb, outMetadata)
 	})
 
 	if err != nil {
@@ -103,37 +94,19 @@ func (c *CueSystem) UpdateCueListMetadata(sub string, in apicues.UpdateCueListMe
 
 	var outMetadata cueListMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
+		clb, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
 			return err
 		}
 
-		sb := b.Bucket(utils.Float64ToBytes(in.Number))
-		if sb == nil {
-			return berrors.ErrBucketNotFound
-		}
-
-		val := sb.Get([]byte(keyMetadata))
-		if val == nil {
-			return berrors.ErrBucketNotFound
-		}
-
-		var md cueListMetadata
-		if err := msgpack.Unmarshal(val, &md); err != nil {
-			return err
-		}
-
-		if err := utils.SetFieldByTag(&md, "msgpack", in.Key, in.Value); err != nil {
-			return err
-		}
-
-		mdBytes, err := msgpack.Marshal(md)
+		sb, err := data.GetSubBucket(clb, utils.Float64ToBytes(in.Number))
 		if err != nil {
 			return err
 		}
 
-		outMetadata = md
-		return sb.Put([]byte(keyMetadata), mdBytes)
+		var errUpdate error
+		outMetadata, errUpdate = data.UpdateMetadataField[cueListMetadata](sb, in.Key, in.Value)
+		return errUpdate
 	})
 
 	if err != nil {
@@ -173,22 +146,17 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 
 	var md cueListMetadata
 	err := c.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(bucketCueLists))
-		if b == nil {
+		clb := tx.Bucket([]byte(bucketCueLists))
+		if clb == nil {
 			return berrors.ErrBucketNotFound
 		}
 
-		sb := b.Bucket(utils.Float64ToBytes(in.Number))
-		if sb == nil {
-			return berrors.ErrBucketNotFound
+		sb, err := data.GetSubBucket(clb, utils.Float64ToBytes(in.Number))
+		if err != nil {
+			return err
 		}
 
-		val := sb.Get([]byte(keyMetadata))
-		if val == nil {
-			return berrors.ErrBucketNotFound
-		}
-
-		return msgpack.Unmarshal(val, &md)
+		return data.GetMetadata(sb, &md)
 	})
 
 	if err != nil {
@@ -224,16 +192,11 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 			return nil
 		}
 
-		return b.ForEachBucket(func(k []byte) error {
-			sb := b.Bucket(k)
-			v := sb.Get([]byte(keyMetadata))
-			if v == nil {
-				return nil
-			}
-			var md cueListMetadata
-			if err := msgpack.Unmarshal(v, &md); err != nil {
-				return err
-			}
+		list, err := data.EnumerateMetadata[cueListMetadata](b)
+		if err != nil {
+			return err
+		}
+		for _, md := range list {
 			cueLists = append(cueLists, struct {
 				Number   float64 `json:"number" msgpack:"number"`
 				Label    string  `json:"label" msgpack:"label"`
@@ -243,8 +206,8 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 				Label:    md.Label,
 				ListType: md.ListType,
 			})
-			return nil
-		})
+		}
+		return nil
 	})
 
 	if err != nil {
@@ -273,10 +236,6 @@ func (c *CueSystem) DeleteCueList(sub string, in apicues.DeleteCueListInput) (*a
 		}
 
 		key := utils.Float64ToBytes(in.Number)
-		if b.Bucket(key) == nil {
-			return berrors.ErrBucketNotFound
-		}
-
 		return b.DeleteBucket(key)
 	})
 
@@ -319,48 +278,16 @@ func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibu
 
 	var outMetadata cueListMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(bucketCueLists))
-		if b == nil {
-			return berrors.ErrBucketNotFound
-		}
-
-		oldNumBytes := utils.Float64ToBytes(in.OriginalNumber)
-		newNumBytes := utils.Float64ToBytes(in.NewNumber)
-
-		// Check that the old bucket exists
-		sb := b.Bucket(oldNumBytes)
-		if sb == nil {
-			return berrors.ErrBucketNotFound
-		}
-
-		// Create the New Bucket
-		newSb, err := b.CreateBucket(newNumBytes)
+		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
 			return err
 		}
-		// Copy all data from old bucket to new bucket
-		if err := data.CopyBucket(sb, newSb); err != nil {
-			return err
-		}
 
-		// Update metadata with new number
-		val := newSb.Get([]byte(keyMetadata))
-		if val != nil {
-			if err := msgpack.Unmarshal(val, &outMetadata); err != nil {
-				return err
-			}
-			outMetadata.Number = in.NewNumber
-			mdBytes, err := msgpack.Marshal(outMetadata)
-			if err != nil {
-				return err
-			}
-			if err := newSb.Put([]byte(keyMetadata), mdBytes); err != nil {
-				return err
-			}
-		}
-
-		// Delete old bucket
-		return b.DeleteBucket(oldNumBytes)
+		var errMove error
+		outMetadata, errMove = data.MoveBucket(b, in.OriginalNumber, in.NewNumber, func(md *cueListMetadata, num float64) {
+			md.Number = num
+		})
+		return errMove
 	})
 
 	if err != nil {

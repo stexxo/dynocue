@@ -16,14 +16,14 @@ const config = {
 			// these options are set automatically — see below
 			pages: 'dist',
 			assets: 'dist',
-			fallback: null, // Essential for Wails to handle routing
+			fallback: 'index.html', // Essential for SPA behavior with Wails
 			precompress: false,
-			strict: true
+			strict: false
 		}),
 		prerender: {
 			// Crawl all pages to prerender them
 			crawl: true,
-			entries: ['*'] // Prerender all routes
+			entries: [] // Do not prerender any routes by default, let them be handled at runtime
 		}
 	}
 };

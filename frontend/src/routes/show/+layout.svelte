@@ -83,32 +83,35 @@
 				class="dropdown-content menu z-1 mt-3 w-52 menu-sm rounded-box bg-base-100 p-2 shadow"
 			>
 				<li>
-					<a
+					<button
+						class="btn btn-ghost btn-sm justify-start w-full font-normal"
 						onclick={async () => {
 							loading = true;
 							await NewShowDialog();
 							loading = false;
-						}}>New Show</a
+						}}>New Show</button
 					>
 				</li>
 				<li>
-					<a
+					<button
+						class="btn btn-ghost btn-sm justify-start w-full font-normal"
 						onclick={async () => {
 							loading = true;
 							await OpenShowDialog();
 							loading = false;
-						}}>Open Show</a
+						}}>Open Show</button
 					>
 				</li>
 				<li>
-					<a
+					<button
+						class="btn btn-ghost btn-sm justify-start w-full font-normal"
 						onclick={async () => {
 							loading = true;
 							await CloseShow()
 							await Window.SetTitle("DynoCue")
 							await goto('/');
 							loading = false;
-						}}>Close Show</a
+						}}>Close Show</button
 					>
 				</li>
 			</ul>
@@ -122,19 +125,19 @@
 
 {@render children()}
 
-{#snippet dashSnippet(pages)}
+{#snippet dashSnippet(p)}
 	<button
 			onclick={async () => {
-			await goto(pages.page);
+			await goto(p.page);
 		}}
 			class="w-full hover:bg-base-300"
-			class:dock-active={page.url.pathname === pages.page}
+			class:dock-active={page.url.pathname === p.page}
 	>
-		<span>{pages.label}</span>
+		<span>{p.label}</span>
 	</button>
 {/snippet}
 <div class="dock dock-xs font-sans text-xs font-semibold">
-	{#each pages as page}
-		{@render dashSnippet(page)}
+	{#each pages as p}
+		{@render dashSnippet(p)}
 	{/each}
 </div>

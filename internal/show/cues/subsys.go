@@ -37,6 +37,25 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 		return nil, err
 	}
 
+	if _, err := apibus.Reply(conn, apicues.RequestCreateCue, c.NewCue); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestUpdateCueMetadata, c.UpdateCueMetadata); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestGetCueMetadata, c.GetCueMetadata); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestEnumerateCue, c.EnumerateCue); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestDeleteCue, c.DeleteCue); err != nil {
+		return nil, err
+	}
+	if _, err := apibus.Reply(conn, apicues.RequestMoveCue, c.MoveCue); err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
