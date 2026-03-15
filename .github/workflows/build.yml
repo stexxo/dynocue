@@ -68,6 +68,8 @@ jobs:
 
       - name: Install Task
         uses: go-task/setup-task@v1
+        with:
+          version: 3.x
 
       - name: Build Application
         run: task build ARCH=${{ matrix.arch }}
