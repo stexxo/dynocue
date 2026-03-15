@@ -3,120 +3,210 @@ package data
 import (
 	"errors"
 	"fmt"
-	"log/slog"
-	"strconv"
 
 	"github.com/vmihailenco/msgpack/v5"
 	"gitlab.com/stexxo/dynocue/internal/utils"
 	"go.etcd.io/bbolt"
-	berrors "go.etcd.io/bbolt/errors"
 )
 
-const KeyMetadata = "metadata"
-
-// CopyBucket recursively copies all keys and sub-buckets from src to dst.
-func CopyBucket(src, dst *bbolt.Bucket) error {
-	// Copy key-value pairs
-	if err := src.ForEach(func(k, v []byte) error {
-		if v != nil {
-			return dst.Put(k, v)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	// Copy sub-buckets recursively
-	return src.ForEachBucket(func(k []byte) error {
-		subSrc := src.Bucket(k)
-		subDst, err := dst.CreateBucket(k)
-		if err != nil {
-			return err
-		}
-		return CopyBucket(subSrc, subDst)
-	})
-}
-
 var ErrNoBucket = errors.New("bucket path does not exist")
+var ErrKeyNotFound = errors.New("key not found")
 
-func GetSubBucket(tx *bbolt.Bucket, keys ...[]byte) (*bbolt.Bucket, error) {
-	if len(keys) == 0 {
-		return tx, nil
-	}
-
-	b := tx.Bucket(keys[0])
-	if b == nil {
-		return nil, ErrNoBucket
-	}
-
-	return GetSubBucket(b, keys[1:]...)
-}
-
-func GetBucket(tx *bbolt.Tx, keys ...[]byte) (*bbolt.Bucket, error) {
-	if len(keys) == 0 {
-		return nil, ErrNoBucket
-	}
-	b := tx.Bucket(keys[0])
-	if b == nil {
-		return nil, ErrNoBucket
-	}
-	return GetSubBucket(b, keys[1:]...)
-}
-
-func GetKey[T any](b *bbolt.Bucket, v *T, key string) error {
-	val := b.Get([]byte(key))
+func GetKey[T any](b *bbolt.Bucket, v *T, key []byte) error {
+	val := b.Get(key)
 	if val == nil {
-		return berrors.ErrBucketNotFound
+		return ErrKeyNotFound
 	}
 	return msgpack.Unmarshal(val, v)
 }
 
-func PutKey[T any](b *bbolt.Bucket, v *T, key string) error {
+func PutKey[T any](b *bbolt.Bucket, v *T, key []byte) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
 	}
-	return b.Put([]byte(key), md)
+	return b.Put(key, md)
 }
 
-func UpdateEntry[T any](b *bbolt.Bucket, entryKey, fieldKey, newValue string) (*T, error) {
+func GetBucketFromRoot(tx *bbolt.Tx, readOnly bool, rootKey BucketKey, path ...BucketKey) (*bbolt.Bucket, error) {
+	var b *bbolt.Bucket
+	var err error
+	if !readOnly && rootKey.CreateIfNotExists {
+		b, err = tx.CreateBucketIfNotExists(rootKey.Key)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		b = tx.Bucket(rootKey.Key)
+		if b == nil {
+			return nil, ErrNoBucket
+		}
+	}
+	return GetBucket(b, readOnly, path...)
+}
+
+func GetBucket(bucket *bbolt.Bucket, readOnly bool, keys ...BucketKey) (*bbolt.Bucket, error) {
+	if len(keys) == 0 {
+		return nil, ErrNoBucket
+	}
+
+	var b *bbolt.Bucket
+	var err error
+	k := keys[0]
+	if !readOnly && k.CreateIfNotExists {
+		b, err = bucket.CreateBucketIfNotExists(k.Key)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		b := bucket.Bucket(keys[0].Key)
+		if b == nil {
+			return nil, ErrNoBucket
+		}
+	}
+
+	return GetBucket(b, readOnly, keys[1:]...)
+}
+
+func UpdateAttributeInKeyValuePair[T any](b *bbolt.Bucket, dbKey []byte, attrKey, newValue string) (*T, error) {
 	out := new(T)
-	if err := GetKey(b, out, entryKey); err != nil {
+	if err := GetKey(b, out, dbKey); err != nil {
 		return out, err
 	}
-
-	if err := utils.SetFieldByTag(out, "msgpack", fieldKey, newValue); err != nil {
+	if err := utils.SetFieldByTag(out, "msgpack", attrKey, newValue); err != nil {
 		return out, err
 	}
-
-	if err := PutKey(b, out, entryKey); err != nil {
+	if err := PutKey(b, out, dbKey); err != nil {
 		return out, err
 	}
-
 	return out, nil
 }
 
-// EnumerateBucketsForKey iterates over all sub-buckets and returns a slice of their entries for the provided key
-func EnumerateBucketsForKey[T comparable, E any](b *bbolt.Bucket, key string, keyFn func([]byte) T) (map[T]*E, error) {
+func EnumerateKeysFromSubBuckets[T comparable, E any](b *bbolt.Bucket, key []byte, bucketKeyFn func([]byte) T) (map[T]*E, error) {
 	vals := make(map[T]*E)
 	err := b.ForEachBucket(func(k []byte) error {
 		sb := b.Bucket(k)
 		var md E
 		if err := GetKey(sb, &md, key); err != nil {
-			if errors.Is(err, berrors.ErrBucketNotFound) {
-				return nil
+			if errors.Is(err, ErrKeyNotFound) {
+				return fmt.Errorf("could not find key %s", key)
 			}
 			return err
 		}
-		vals[keyFn(k)] = &md
+		vals[bucketKeyFn(k)] = &md
 		return nil
 	})
 	return vals, err
 }
 
-// MoveBucket copies a bucket to a new numeric key, updates its number in metadata,
+type BucketKey struct {
+	Key               []byte
+	CreateIfNotExists bool
+}
+
+func NewFloatBucketKey(key float64, createIfNotExists bool) BucketKey {
+	return BucketKey{
+		Key:               utils.Float64ToBytes(key),
+		CreateIfNotExists: createIfNotExists,
+	}
+}
+
+func NewStringBucketKey(key string, createIfNotExists bool) BucketKey {
+	return BucketKey{
+		Key:               []byte(key),
+		CreateIfNotExists: createIfNotExists,
+	}
+}
+
+func NewBucketKey(key []byte, createIfNotExists bool) BucketKey {
+	return BucketKey{
+		Key:               key,
+		CreateIfNotExists: createIfNotExists,
+	}
+}
+
+type KeyValuePair struct {
+	Key   []byte
+	Value interface{}
+}
+
+type NewResourceBootstrap struct {
+	InitialValues []KeyValuePair
+	Buckets       []BucketKey
+}
+
+func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKey, key float64, bootstrap NewResourceBootstrap) (*bbolt.Bucket, error) {
+	b, err := GetBucketFromRoot(tx, false, rootBucket, path...)
+	if err != nil {
+		return nil, err
+	}
+
+	if key == 0 {
+		key = NextBucketWholeNumber(b)
+	}
+
+	b, err = b.CreateBucket(utils.Float64ToBytes(key))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, kv := range bootstrap.InitialValues {
+		err = PutKey[any](b, &kv.Value, utils.Float64ToBytes(key))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, kv := range bootstrap.Buckets {
+		_, err := b.CreateBucket(kv.Key)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return b, nil
+}
+
+func AddResource[T any](bucket *bbolt.Bucket, number float64, metdataKey []byte, metadata *T) (*bbolt.Bucket, float64, error) {
+	if number == 0 {
+		number = NextBucketWholeNumber(bucket)
+	}
+
+	b := bucket.Bucket(utils.Float64ToBytes(number))
+	if b != nil {
+		return nil, 0, ErrBucketExists
+	}
+
+	sb, err := bucket.CreateBucket(utils.Float64ToBytes(number))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = PutKey[T](sb, metadata, metdataKey)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return sb, number, nil
+}
+
+func DeleteBucketByPath(tx *bbolt.Tx, key []byte, rootKey BucketKey, path ...BucketKey) error {
+	b, err := GetBucketFromRoot(tx, false, rootKey, path...)
+	if err != nil {
+		return err
+	}
+
+	bucketToDelete := b.Bucket(key)
+	if bucketToDelete == nil {
+		return nil
+	}
+
+	return b.DeleteBucket(key)
+}
+
+// RenameBucket copies a bucket to a new numeric key, updates its number in metadata,
 // and deletes the old bucket.
-func MoveBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
+func RenameBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
 	oldKey := utils.Float64ToBytes(oldNum)
 	newKey := utils.Float64ToBytes(newNum)
 
@@ -146,29 +236,27 @@ func MoveBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
 	return nil
 }
 
-var ErrBucketExists = errors.New("bucket already exists")
-
-func AddResource[T any](bucket *bbolt.Bucket, number float64, metdataKey string, metadata *T) (*bbolt.Bucket, float64, error) {
-	if number == 0 {
-		number = NextBucketWholeNumber(bucket)
+// CopyBucket recursively copies all keys and sub-buckets from src to dst.
+func CopyBucket(src, dst *bbolt.Bucket) error {
+	// Copy key-value pairs
+	if err := src.ForEach(func(k, v []byte) error {
+		if v != nil {
+			return dst.Put(k, v)
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	b := bucket.Bucket(utils.Float64ToBytes(number))
-	if b != nil {
-		return nil, 0, ErrBucketExists
-	}
-
-	slog.Debug("bucket does not yet exist, creating new resource " + strconv.FormatFloat(number, 'f', -1, 64))
-
-	sb, err := bucket.CreateBucket(utils.Float64ToBytes(number))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	err = PutKey[T](sb, metadata, metdataKey)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return sb, number, nil
+	// Copy sub-buckets recursively
+	return src.ForEachBucket(func(k []byte) error {
+		subSrc := src.Bucket(k)
+		subDst, err := dst.CreateBucket(k)
+		if err != nil {
+			return err
+		}
+		return CopyBucket(subSrc, subDst)
+	})
 }
+
+var ErrBucketExists = errors.New("bucket already exists")

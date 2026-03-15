@@ -14,11 +14,6 @@ import (
 	berrors "go.etcd.io/bbolt/errors"
 )
 
-const (
-	bucketCues    = "cues"
-	bucketActions = "actions"
-)
-
 type cueMetadata struct {
 	Label string `msgpack:"label"`
 }
@@ -28,31 +23,21 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 	md := &cueMetadata{}
 	var outNum float64
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues))
-		if err != nil {
-			return err
-		}
-
-		b, outNum, err = data.AddResource(b, in.Number, "metadata", md)
-		if err != nil {
-			return err
-		}
-
-		_, err = b.CreateBucket([]byte(bucketActions))
-		if err != nil {
-			return err
-		}
+		_, err := data.AddIncrementedSubBucket(
+			tx,
+			BucketCueListKey,
+			[]data.BucketKey{data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey},
+			in.Number,
+			data.NewResourceBootstrap{
+				InitialValues: []data.KeyValuePair{{Key: KeyMetadata, Value: md}},
+				Buckets:       []data.BucketKey{BucketActionsKey},
+			},
+		)
 		return err
 	})
-
 	if err != nil {
-		errCode := apibus.CodeInternalError
-		errMessage := fmt.Sprintf("failed to create cue due to internal problem %s", err.Error())
-		if errors.Is(err, data.ErrBucketExists) {
-			errCode = apibus.CodeResourceConflict
-			errMessage = fmt.Sprintf("cue %f already exists", outNum)
-		}
-		return apibus.NewMessageResponse[apicues.CreateCueOutput](nil, apibus.NewMessageError(errCode, errMessage)), nil
+		slog.Error("failed to create new cue", "err", err.Error(), "number", outNum, "cueList", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.CreateCueOutput](nil, apibus.NewMessageError("failed to create cue")), nil
 	}
 
 	if err = apibus.Publish(c.conn, apicues.EventNewCue, apicues.NewCueEvent{
@@ -75,23 +60,16 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 func (c *CueSystem) UpdateCueMetadata(sub string, in apicues.UpdateCueMetadataInput) (*apibus.MessageResponse[apicues.UpdateCueMetadataOutput], error) {
 	var outMetadata *cueMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues), utils.Float64ToBytes(in.Number))
+		b, err := data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey, data.NewFloatBucketKey(in.Number, false))
 		if err != nil {
 			return err
 		}
-
-		outMetadata, err = data.UpdateEntry[cueMetadata](b, "metadata", in.Key, in.Value)
+		outMetadata, err = data.UpdateAttributeInKeyValuePair[cueMetadata](b, KeyMetadata, in.Key, in.Value)
 		return err
 	})
-
 	if err != nil {
-		code := apibus.CodeInternalError
-		errMessage := fmt.Sprintf("failed to update cuelist metadata due to internal problem %s", err.Error())
-		if errors.Is(err, data.ErrNoBucket) {
-			code = apibus.CodeResourceNotFound
-			errMessage = fmt.Sprintf("cuelist %f not found", in.Number)
-		}
-		return apibus.NewMessageResponse[apicues.UpdateCueMetadataOutput](nil, apibus.NewMessageError(code, errMessage)), nil
+		slog.Error("failed to update cue metdata", "err", err.Error(), "cuelist", in.Number, "cue", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.UpdateCueMetadataOutput](nil, apibus.NewMessageError("failed to update cue")), nil
 	}
 
 	if err = apibus.Publish(c.conn, apicues.EventUpdateCue, apicues.UpdateCueMetadataEvent{
@@ -111,22 +89,17 @@ func (c *CueSystem) UpdateCueMetadata(sub string, in apicues.UpdateCueMetadataIn
 func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (*apibus.MessageResponse[apicues.GetCueMetadataOutput], error) {
 	var md *cueMetadata
 	err := c.db.View(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues), utils.Float64ToBytes(in.Number))
+		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey, data.NewFloatBucketKey(in.Number, false), BucketCuesKey, data.NewFloatBucketKey(in.Number, false))
 		if err != nil {
 			return err
 		}
-
-		return data.GetKey(b, md, "metadata")
+		md = new(cueMetadata)
+		return data.GetKey(b, md, KeyMetadata)
 	})
 
 	if err != nil {
-		code := apibus.CodeInternalError
-		errMessage := fmt.Sprintf("failed to update cuelist metadata due to internal problem %s", err.Error())
-		if errors.Is(err, data.ErrNoBucket) {
-			code = apibus.CodeResourceNotFound
-			errMessage = fmt.Sprintf("cuelist %f not found", in.Number)
-		}
-		return apibus.NewMessageResponse[apicues.GetCueMetadataOutput](nil, apibus.NewMessageError(code, errMessage)), nil
+		slog.Error("failed to get cue metadata", "err", err.Error(), "cuelist", in.Number, "cue", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.GetCueMetadataOutput](nil, apibus.NewMessageError("failed to retrieve cue metadata")), nil
 	}
 
 	return &apibus.MessageResponse[apicues.GetCueMetadataOutput]{
@@ -142,12 +115,12 @@ func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (
 func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*apibus.MessageResponse[apicues.EnumerateCueOutput], error) {
 	var values map[float64]*cueMetadata
 	err := c.db.View(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues))
+		b, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
 		if err != nil {
 			return err
 		}
 
-		values, err = data.EnumerateBucketsForKey[float64, cueMetadata](b, keyMetadata, func(bytes []byte) float64 {
+		values, err = data.EnumerateKeysFromSubBuckets[float64, cueMetadata](b, KeyMetadata, func(bytes []byte) float64 {
 			k, err := utils.BytesToFloat64(bytes)
 			if err != nil {
 				return 0
@@ -189,7 +162,7 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 func (c *CueSystem) DeleteCue(sub string, in apicues.DeleteCueInput) (*apibus.MessageResponse[apicues.DeleteCueOutput], error) {
 
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		cb, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues))
+		cb, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
 		if err != nil {
 			return err
 		}
@@ -227,23 +200,23 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 
 	var outMetadata *cueMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues))
+		b, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
 		if err != nil {
 			return err
 		}
 
-		err = data.MoveBucket(b, in.OriginalNumber, in.NewNumber)
+		err = data.RenameBucket(b, in.OriginalNumber, in.NewNumber)
 		if err != nil {
 			return err
 		}
 
-		b, err = data.GetBucket(tx, []byte(bucketCueLists), utils.Float64ToBytes(in.CueListNumber), []byte(bucketCues), utils.Float64ToBytes(in.NewNumber))
+		b, err = data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues, utils.Float64ToBytes(in.NewNumber))
 		if err != nil {
 			return err
 		}
 
 		outMetadata = new(cueMetadata)
-		err = data.GetKey(b, outMetadata, "metadata")
+		err = data.GetKey(b, outMetadata, KeyMetadata)
 		return err
 	})
 

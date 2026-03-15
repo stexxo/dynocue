@@ -11,15 +11,6 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-// Message bus error codes.
-const (
-	CodeInvalidPayload           = 1000 // Invalid payload
-	CodeResourceNotFound         = 1001 // Resource not found
-	CodeResourceConflict         = 1002 // Resource conflict
-	CodePayloadValidationFailure = 1003 // Validation failed
-	CodeInternalError            = 1004 // Internal processing failure
-)
-
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 // Validate performs structural validation on the given object.
@@ -36,13 +27,11 @@ func Validate(obj any) error {
 
 // MessageError contains error information for the message bus.
 type MessageError struct {
-	Code         int    `msgpack:"code"`
 	ErrorMessage string `msgpack:"errorMessage"`
 }
 
-func NewMessageError(code int, errorMessage string) *MessageError {
+func NewMessageError(errorMessage string) *MessageError {
 	return &MessageError{
-		Code:         code,
 		ErrorMessage: errorMessage,
 	}
 }
@@ -126,7 +115,6 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if err := msgpack.Unmarshal(m.Data, &req); err != nil {
 			msgRes := &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         CodeInvalidPayload,
 					ErrorMessage: fmt.Sprintf("failed to unmarshal request: %s", err.Error()),
 				},
 			}
@@ -144,7 +132,6 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if err := Validate(req); err != nil {
 			msgRes := &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         CodePayloadValidationFailure,
 					ErrorMessage: fmt.Sprintf("validation failed: %s", err.Error()),
 				},
 			}
@@ -164,7 +151,6 @@ func Reply[Req any, Res any](nc *nats.Conn, subject string, handler ReplyHandler
 		if handlerErr != nil && msgRes == nil {
 			msgRes = &MessageResponse[Res]{
 				MessageError: &MessageError{
-					Code:         CodeInternalError,
 					ErrorMessage: handlerErr.Error(),
 				},
 			}
