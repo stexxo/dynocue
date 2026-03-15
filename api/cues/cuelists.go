@@ -54,11 +54,7 @@ type GetCueListMetadataOutput struct {
 type EnumerateCueListInput struct{}
 
 type EnumerateCueListOutput struct {
-	CueLists []struct {
-		Number   float64 `json:"number" msgpack:"number"`
-		Label    string  `json:"label" msgpack:"label"`
-		ListType string  `json:"listType" msgpack:"listType"`
-	} `json:"cueLists" msgpack:"cueLists"`
+	CueLists []GetCueListMetadataOutput `json:"cueLists" msgpack:"cueLists"`
 }
 
 type DeleteCueListInput struct {
@@ -73,7 +69,8 @@ type MoveCueListInput struct {
 }
 
 type MoveCueListOutput struct {
-	NewNumber float64 `json:"newNumber" msgpack:"newNumber"`
+	OriginalNumber float64 `json:"originalNumber" msgpack:"originalNumber"`
+	NewNumber      float64 `json:"newNumber" msgpack:"newNumber"`
 }
 
 type DeleteCueListEvent struct {

@@ -3,6 +3,8 @@ package data
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"strconv"
 
 	"github.com/vmihailenco/msgpack/v5"
 	"gitlab.com/stexxo/dynocue/internal/utils"
@@ -69,7 +71,7 @@ func GetKey[T any](b *bbolt.Bucket, v *T, key string) error {
 	return msgpack.Unmarshal(val, v)
 }
 
-func PutKey[T any](b *bbolt.Bucket, v T, key string) error {
+func PutKey[T any](b *bbolt.Bucket, v *T, key string) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
@@ -77,65 +79,96 @@ func PutKey[T any](b *bbolt.Bucket, v T, key string) error {
 	return b.Put([]byte(key), md)
 }
 
-func UpdateEntry[T any](b *bbolt.Bucket, entryKey, fieldKey, newValue string) (T, error) {
-	var md T
-	if err := GetKey(b, &md, entryKey); err != nil {
-		return md, err
+func UpdateEntry[T any](b *bbolt.Bucket, entryKey, fieldKey, newValue string) (*T, error) {
+	out := new(T)
+	if err := GetKey(b, out, entryKey); err != nil {
+		return out, err
 	}
 
-	if err := utils.SetFieldByTag(&md, "msgpack", fieldKey, newValue); err != nil {
-		return md, err
+	if err := utils.SetFieldByTag(out, "msgpack", fieldKey, newValue); err != nil {
+		return out, err
 	}
 
-	if err := PutKey(b, md, entryKey); err != nil {
-		return md, err
+	if err := PutKey(b, out, entryKey); err != nil {
+		return out, err
 	}
 
-	return md, nil
+	return out, nil
 }
 
 // EnumerateBucketsForKey iterates over all sub-buckets and returns a slice of their entries for the provided key
-func EnumerateBucketsForKey[T any](b *bbolt.Bucket, key string) ([]T, error) {
-	var list []T
+func EnumerateBucketsForKey[T comparable, E any](b *bbolt.Bucket, key string, keyFn func([]byte) T) (map[T]*E, error) {
+	vals := make(map[T]*E)
 	err := b.ForEachBucket(func(k []byte) error {
 		sb := b.Bucket(k)
-		var md T
+		var md E
 		if err := GetKey(sb, &md, key); err != nil {
 			if errors.Is(err, berrors.ErrBucketNotFound) {
 				return nil
 			}
 			return err
 		}
-		list = append(list, md)
+		vals[keyFn(k)] = &md
 		return nil
 	})
-	return list, err
+	return vals, err
 }
 
 // MoveBucket copies a bucket to a new numeric key, updates its number in metadata,
 // and deletes the old bucket.
-func MoveBucket[T any](parent *bbolt.Bucket, oldNum, newNum float64, updateNum func(*T, float64)) (T, error) {
-	var outMetadata T
+func MoveBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
 	oldKey := utils.Float64ToBytes(oldNum)
 	newKey := utils.Float64ToBytes(newNum)
 
-	sb := parent.Bucket(oldKey)
-	if sb == nil {
-		return outMetadata, ErrNoBucket
+	ob := parent.Bucket(oldKey)
+	if ob == nil {
+		return ErrNoBucket
+	}
+
+	nb := parent.Bucket(newKey)
+	if nb != nil {
+		return ErrBucketExists
 	}
 
 	newSb, err := parent.CreateBucket(newKey)
 	if err != nil {
-		return outMetadata, err
+		return err
 	}
 
-	if err := CopyBucket(sb, newSb); err != nil {
-		return outMetadata, err
+	if err := CopyBucket(ob, newSb); err != nil {
+		return err
 	}
 
 	if err := parent.DeleteBucket(oldKey); err != nil {
-		return outMetadata, fmt.Errorf("failed to delete old bucket: %w", err)
+		return fmt.Errorf("failed to delete old bucket: %w", err)
 	}
 
-	return outMetadata, nil
+	return nil
+}
+
+var ErrBucketExists = errors.New("bucket already exists")
+
+func AddResource[T any](bucket *bbolt.Bucket, number float64, metdataKey string, metadata *T) (*bbolt.Bucket, float64, error) {
+	if number == 0 {
+		number = NextBucketWholeNumber(bucket)
+	}
+
+	b := bucket.Bucket(utils.Float64ToBytes(number))
+	if b != nil {
+		return nil, 0, ErrBucketExists
+	}
+
+	slog.Debug("bucket does not yet exist, creating new resource " + strconv.FormatFloat(number, 'f', -1, 64))
+
+	sb, err := bucket.CreateBucket(utils.Float64ToBytes(number))
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = PutKey[T](sb, metadata, metdataKey)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return sb, number, nil
 }

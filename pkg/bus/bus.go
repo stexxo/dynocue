@@ -40,10 +40,24 @@ type MessageError struct {
 	ErrorMessage string `msgpack:"errorMessage"`
 }
 
+func NewMessageError(code int, errorMessage string) *MessageError {
+	return &MessageError{
+		Code:         code,
+		ErrorMessage: errorMessage,
+	}
+}
+
 // MessageResponse is a generic response wrapper that includes optional error information.
 type MessageResponse[T any] struct {
 	ResponseValue *T            `msgpack:"responseValue,omitzero"`
 	MessageError  *MessageError `msgpack:"messageError,omitzero"`
+}
+
+func NewMessageResponse[T any](v *T, Err *MessageError) *MessageResponse[T] {
+	return &MessageResponse[T]{
+		ResponseValue: v,
+		MessageError:  Err,
+	}
 }
 
 // Publish validates and serializes the message using msgpack and publishes it to the given subject.
@@ -72,6 +86,11 @@ func Subscribe[T any](nc *nats.Conn, subject string, handler SubscribeHandler[*T
 			// In a real app, we might want to log this error or handle it differently.
 			return
 		}
+
+		if err := Validate(*msg); err != nil {
+			return
+		}
+
 		handler(m.Subject, msg)
 	})
 }

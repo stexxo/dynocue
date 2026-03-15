@@ -60,11 +60,8 @@ type EnumerateCueInput struct {
 }
 
 type EnumerateCueOutput struct {
-	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
-	Cues          []struct {
-		Number float64 `json:"number" msgpack:"number"`
-		Label  string  `json:"label" msgpack:"label"`
-	} `json:"cues" msgpack:"cues"`
+	CueListNumber float64                `json:"cueListNumber" msgpack:"cueListNumber"`
+	Cues          []GetCueMetadataOutput `json:"cues" msgpack:"cues"`
 }
 
 type DeleteCueInput struct {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	apibus "gitlab.com/stexxo/dynocue/api/bus"
 	"gitlab.com/stexxo/dynocue/internal/show"
+	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
 )
 
 // Commands handles backend operations exposed to the frontend,
