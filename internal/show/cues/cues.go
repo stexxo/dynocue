@@ -2,7 +2,6 @@ package cues
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"slices"
 
@@ -113,13 +112,15 @@ func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (
 
 // EnumerateCue returns a list of all cues within a specific cue list.
 func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*apibus.MessageResponse[apicues.EnumerateCueOutput], error) {
-	var values map[float64]*cueMetadata
+	values := map[float64]*cueMetadata{}
 	err := c.db.View(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
+		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey)
+		if errors.Is(err, data.ErrNoBucket) {
+			return nil
+		}
 		if err != nil {
 			return err
 		}
-
 		values, err = data.EnumerateKeysFromSubBuckets[float64, cueMetadata](b, KeyMetadata, func(bytes []byte) float64 {
 			k, err := utils.BytesToFloat64(bytes)
 			if err != nil {
@@ -130,7 +131,8 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 		return err
 	})
 	if err != nil {
-		return apibus.NewMessageResponse[apicues.EnumerateCueOutput](nil, apibus.NewMessageError(apibus.CodeInternalError, fmt.Sprintf("failed to enumerate cues, %s", err.Error()))), nil
+		slog.Error("failed to enumerate cues", "err", err.Error(), "cuelist", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.EnumerateCueOutput](nil, apibus.NewMessageError("failed to enumerate cues")), nil
 	}
 
 	out := make([]apicues.GetCueMetadataOutput, 0, len(values))
@@ -162,17 +164,12 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 func (c *CueSystem) DeleteCue(sub string, in apicues.DeleteCueInput) (*apibus.MessageResponse[apicues.DeleteCueOutput], error) {
 
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		cb, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
-		if err != nil {
-			return err
-		}
-
-		key := utils.Float64ToBytes(in.Number)
-		return cb.DeleteBucket(key)
+		return data.DeleteBucketByPath(tx, utils.Float64ToBytes(in.Number), BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey)
 	})
 
 	if err != nil && !errors.Is(err, berrors.ErrBucketNotFound) {
-		return apibus.NewMessageResponse[apicues.DeleteCueOutput](nil, apibus.NewMessageError(apibus.CodeInternalError, fmt.Sprintf("failed to delete cue, %s", err.Error()))), nil
+		slog.Error("failed to delete cue", "err", err.Error(), "cuelist", in.CueListNumber, "cue", in.Number)
+		return apibus.NewMessageResponse[apicues.DeleteCueOutput](nil, apibus.NewMessageError("failed to delete cue")), nil
 	}
 
 	if err = apibus.Publish(c.conn, apicues.EventDeleteCue, apicues.DeleteCueEvent{
@@ -200,7 +197,7 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 
 	var outMetadata *cueMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		b, err := data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues)
+		b, err := data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey)
 		if err != nil {
 			return err
 		}
@@ -210,7 +207,7 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 			return err
 		}
 
-		b, err = data.GetBucket(tx, BucketCueLists, utils.Float64ToBytes(in.CueListNumber), BucketCues, utils.Float64ToBytes(in.NewNumber))
+		b, err = data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey, data.NewFloatBucketKey(in.NewNumber, false))
 		if err != nil {
 			return err
 		}
@@ -221,19 +218,8 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 	})
 
 	if err != nil {
-		code := apibus.CodeInternalError
-		errMessage := fmt.Sprintf("failed to move cue due to internal problem %s", err.Error())
-		if errors.Is(err, data.ErrNoBucket) {
-			code = apibus.CodeResourceNotFound
-			errMessage = fmt.Sprintf("could not find bucket for original cue number %d", in.OriginalNumber)
-		}
-
-		if errors.Is(err, data.ErrBucketExists) {
-			code = apibus.CodeResourceConflict
-			errMessage = fmt.Sprintf("destination cue number %d already exists", in.OriginalNumber)
-		}
-
-		return apibus.NewMessageResponse[apicues.MoveCueOutput](nil, apibus.NewMessageError(code, errMessage)), nil
+		slog.Error("failed to move cue", "err", err.Error(), "cuelist", in.CueListNumber, "cue", in.OriginalNumber, "newNumber", in.NewNumber)
+		return apibus.NewMessageResponse[apicues.MoveCueOutput](nil, apibus.NewMessageError("failed to move cue")), nil
 	}
 
 	// Emit events: delete old, create new

@@ -112,10 +112,15 @@ func (c *CueSystem) GetCueListMetadata(sub string, in apicues.GetCueListMetadata
 // EnumerateCueList returns a list of all existing cue lists.
 func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInput) (*apibus.MessageResponse[apicues.EnumerateCueListOutput], error) {
 
-	var values map[float64]*cueListMetadata
+	values := map[float64]*cueListMetadata{}
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey)
-
+		if errors.Is(err, data.ErrNoBucket) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 		values, err = data.EnumerateKeysFromSubBuckets[float64, cueListMetadata](b, KeyMetadata, func(bytes []byte) float64 {
 			k, err := utils.BytesToFloat64(bytes)
 			if err != nil {
@@ -123,10 +128,7 @@ func (c *CueSystem) EnumerateCueList(sub string, in apicues.EnumerateCueListInpu
 			}
 			return k
 		})
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		slog.Error("failed to enumerate cuelists", "err", err.Error())
