@@ -196,7 +196,6 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 		}, nil
 	}
 
-	var outMetadata *cueMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey)
 		if err != nil {
@@ -204,23 +203,27 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 		}
 
 		err = data.RenameSubBucket(b, in.OriginalNumber, in.NewNumber)
-		if err != nil {
-			return err
-		}
-
-		b, err = data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey, data.NewFloatBucketKey(in.NewNumber, false))
-		if err != nil {
-			return err
-		}
-
-		outMetadata = new(cueMetadata)
-		err = data.GetKey(b, outMetadata, KeyMetadata)
 		return err
 	})
 
 	if err != nil {
 		slog.Error("failed to move cue", "err", err.Error(), "cuelist", in.CueListNumber, "cue", in.OriginalNumber, "newNumber", in.NewNumber)
 		return apibus.NewMessageResponse[apicues.MoveCueOutput](nil, apibus.NewMessageError("failed to move cue")), nil
+	}
+
+	outMetadata := &cueMetadata{}
+	err = c.db.View(func(tx *bbolt.Tx) error {
+		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey, data.NewFloatBucketKey(in.NewNumber, false))
+		if err != nil {
+			return err
+		}
+
+		err = data.GetKey(b, outMetadata, KeyMetadata)
+		return err
+	})
+	if err != nil {
+		slog.Error("failed to get data about cue after move", "err", err.Error(), "cuelist", in.OriginalNumber, "newNumber", in.NewNumber)
+		return apibus.NewMessageResponse[apicues.MoveCueOutput](nil, apibus.NewMessageError("failed to get data about cue after move")), nil
 	}
 
 	// Emit events: delete old, create new

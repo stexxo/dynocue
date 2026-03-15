@@ -191,15 +191,6 @@ func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibu
 			return err
 		}
 		err = data.RenameSubBucket(b, in.OriginalNumber, in.NewNumber)
-		if err != nil {
-			return err
-		}
-
-		b, err = data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.NewNumber, false))
-		if err != nil {
-			return err
-		}
-
 		return err
 	})
 	if err != nil {
@@ -213,7 +204,7 @@ func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibu
 		if err != nil {
 			return err
 		}
-		
+
 		err = data.GetKey(b, outMetadata, KeyMetadata)
 		return err
 	})
