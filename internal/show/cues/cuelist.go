@@ -29,6 +29,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 	md := &cueListMetadata{}
 
 	var outNum float64
+
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(bucketCueLists))
 		if err != nil {
