@@ -90,7 +90,7 @@ func makeRequest[T any, E any](c *Commands, subject string, input T) (*E, error)
 	}
 
 	if res.MessageError != nil {
-		return nil, fmt.Errorf("error code %d: %s", res.MessageError.Code, res.MessageError.ErrorMessage)
+		return nil, fmt.Errorf("error in response: %s", res.MessageError.ErrorMessage)
 	}
 
 	return res.ResponseValue, nil

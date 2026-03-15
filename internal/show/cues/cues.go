@@ -22,7 +22,7 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 	md := &cueMetadata{}
 	var outNum float64
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		_, err := data.AddIncrementedSubBucket(
+		_, key, err := data.AddIncrementedSubBucket(
 			tx,
 			BucketCueListKey,
 			[]data.BucketKey{data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey},
@@ -32,6 +32,7 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 				Buckets:       []data.BucketKey{BucketActionsKey},
 			},
 		)
+		outNum = key
 		return err
 	})
 	if err != nil {
@@ -202,7 +203,7 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 			return err
 		}
 
-		err = data.RenameBucket(b, in.OriginalNumber, in.NewNumber)
+		err = data.RenameSubBucket(b, in.OriginalNumber, in.NewNumber)
 		if err != nil {
 			return err
 		}

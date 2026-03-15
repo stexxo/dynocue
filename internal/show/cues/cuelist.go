@@ -25,7 +25,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 
 	var outNum float64
 	err := c.db.Update(func(tx *bbolt.Tx) error {
-		_, err := data.AddIncrementedSubBucket(
+		_, key, err := data.AddIncrementedSubBucket(
 			tx,
 			BucketCueListKey,
 			nil,
@@ -35,6 +35,7 @@ func (c *CueSystem) NewCueList(sub string, in apicues.CreateCueListInput) (*apib
 				Buckets:       []data.BucketKey{BucketCuesKey},
 			},
 		)
+		outNum = key
 		return err
 	})
 	if err != nil {
@@ -184,13 +185,12 @@ func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibu
 		}, nil
 	}
 
-	var outMetadata *cueListMetadata
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := data.GetBucketFromRoot(tx, false, BucketCueListKey)
 		if err != nil {
 			return err
 		}
-		err = data.RenameBucket(b, in.OriginalNumber, in.NewNumber)
+		err = data.RenameSubBucket(b, in.OriginalNumber, in.NewNumber)
 		if err != nil {
 			return err
 		}
@@ -200,14 +200,26 @@ func (c *CueSystem) MoveCueList(sub string, in apicues.MoveCueListInput) (*apibu
 			return err
 		}
 
-		outMetadata = new(cueListMetadata)
-		err = data.GetKey(b, outMetadata, KeyMetadata)
 		return err
 	})
-
 	if err != nil {
 		slog.Error("failed to move cue list", "err", err.Error(), "cuelist", in.OriginalNumber, "newNumber", in.NewNumber)
 		return apibus.NewMessageResponse[apicues.MoveCueListOutput](nil, apibus.NewMessageError("failed to move cue lists")), nil
+	}
+
+	outMetadata := &cueListMetadata{}
+	err = c.db.View(func(tx *bbolt.Tx) error {
+		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey, data.NewFloatBucketKey(in.NewNumber, false))
+		if err != nil {
+			return err
+		}
+		
+		err = data.GetKey(b, outMetadata, KeyMetadata)
+		return err
+	})
+	if err != nil {
+		slog.Error("failed to get data about cue list after move", "err", err.Error(), "cuelist", in.OriginalNumber, "newNumber", in.NewNumber)
+		return apibus.NewMessageResponse[apicues.MoveCueListOutput](nil, apibus.NewMessageError("failed to get data about cue list after move")), nil
 	}
 
 	// Emit events: delete old, create new

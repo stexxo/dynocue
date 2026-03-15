@@ -12,7 +12,7 @@ import (
 var ErrNoBucket = errors.New("bucket path does not exist")
 var ErrKeyNotFound = errors.New("key not found")
 
-func GetKey[T any](b *bbolt.Bucket, v *T, key []byte) error {
+func GetKey(b *bbolt.Bucket, v any, key []byte) error {
 	val := b.Get(key)
 	if val == nil {
 		return ErrKeyNotFound
@@ -20,7 +20,7 @@ func GetKey[T any](b *bbolt.Bucket, v *T, key []byte) error {
 	return msgpack.Unmarshal(val, v)
 }
 
-func PutKey[T any](b *bbolt.Bucket, v *T, key []byte) error {
+func PutKey(b *bbolt.Bucket, v any, key []byte) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
@@ -34,12 +34,12 @@ func GetBucketFromRoot(tx *bbolt.Tx, readOnly bool, rootKey BucketKey, path ...B
 	if !readOnly && rootKey.CreateIfNotExists {
 		b, err = tx.CreateBucketIfNotExists(rootKey.Key)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not create root bucket: %w", err)
 		}
 	} else {
 		b = tx.Bucket(rootKey.Key)
 		if b == nil {
-			return nil, ErrNoBucket
+			return nil, fmt.Errorf("%w: could not find the root bucket %s", ErrNoBucket, rootKey.Key)
 		}
 	}
 	return GetBucket(b, readOnly, path...)
@@ -47,7 +47,7 @@ func GetBucketFromRoot(tx *bbolt.Tx, readOnly bool, rootKey BucketKey, path ...B
 
 func GetBucket(bucket *bbolt.Bucket, readOnly bool, keys ...BucketKey) (*bbolt.Bucket, error) {
 	if len(keys) == 0 {
-		return nil, ErrNoBucket
+		return bucket, nil
 	}
 
 	var b *bbolt.Bucket
@@ -55,14 +55,12 @@ func GetBucket(bucket *bbolt.Bucket, readOnly bool, keys ...BucketKey) (*bbolt.B
 	k := keys[0]
 	if !readOnly && k.CreateIfNotExists {
 		b, err = bucket.CreateBucketIfNotExists(k.Key)
-		if err != nil {
-			return nil, err
-		}
 	} else {
-		b := bucket.Bucket(keys[0].Key)
-		if b == nil {
-			return nil, ErrNoBucket
-		}
+		b = bucket.Bucket(k.Key)
+	}
+
+	if b == nil {
+		return nil, fmt.Errorf("could not find or create bucket %s: %w", k.Key, errors.Join(err, ErrNoBucket))
 	}
 
 	return GetBucket(b, readOnly, keys[1:]...)
@@ -135,10 +133,10 @@ type NewResourceBootstrap struct {
 	Buckets       []BucketKey
 }
 
-func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKey, key float64, bootstrap NewResourceBootstrap) (*bbolt.Bucket, error) {
+func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKey, key float64, bootstrap NewResourceBootstrap) (*bbolt.Bucket, float64, error) {
 	b, err := GetBucketFromRoot(tx, false, rootBucket, path...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if key == 0 {
@@ -147,47 +145,24 @@ func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKe
 
 	b, err = b.CreateBucket(utils.Float64ToBytes(key))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for _, kv := range bootstrap.InitialValues {
-		err = PutKey[any](b, &kv.Value, utils.Float64ToBytes(key))
+		err = PutKey(b, kv.Value, kv.Key)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	}
 
 	for _, kv := range bootstrap.Buckets {
 		_, err := b.CreateBucket(kv.Key)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	}
 
-	return b, nil
-}
-
-func AddResource[T any](bucket *bbolt.Bucket, number float64, metdataKey []byte, metadata *T) (*bbolt.Bucket, float64, error) {
-	if number == 0 {
-		number = NextBucketWholeNumber(bucket)
-	}
-
-	b := bucket.Bucket(utils.Float64ToBytes(number))
-	if b != nil {
-		return nil, 0, ErrBucketExists
-	}
-
-	sb, err := bucket.CreateBucket(utils.Float64ToBytes(number))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	err = PutKey[T](sb, metadata, metdataKey)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return sb, number, nil
+	return b, key, nil
 }
 
 func DeleteBucketByPath(tx *bbolt.Tx, key []byte, rootKey BucketKey, path ...BucketKey) error {
@@ -204,9 +179,9 @@ func DeleteBucketByPath(tx *bbolt.Tx, key []byte, rootKey BucketKey, path ...Buc
 	return b.DeleteBucket(key)
 }
 
-// RenameBucket copies a bucket to a new numeric key, updates its number in metadata,
+// RenameSubBucket copies a bucket to a new numeric key, updates its number in metadata,
 // and deletes the old bucket.
-func RenameBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
+func RenameSubBucket(parent *bbolt.Bucket, oldNum, newNum float64) error {
 	oldKey := utils.Float64ToBytes(oldNum)
 	newKey := utils.Float64ToBytes(newNum)
 

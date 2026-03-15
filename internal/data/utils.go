@@ -4,9 +4,10 @@ import (
 	"math"
 
 	"gitlab.com/stexxo/dynocue/internal/utils"
+	"go.etcd.io/bbolt"
 )
 
-func NextBucketWholeNumber(b Bucket) float64 {
+func NextBucketWholeNumber(b *bbolt.Bucket) float64 {
 	var maxNum float64
 	_ = b.ForEachBucket(func(k []byte) error {
 		if n, err := utils.BytesToFloat64(k); err == nil {
