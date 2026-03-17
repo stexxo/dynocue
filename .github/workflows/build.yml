@@ -1,4 +1,4 @@
-name: Build Application
+name: Build DynoCue
 
 on:
   push:
@@ -6,8 +6,6 @@ on:
   pull_request:
     branches: [ main, dev ]
   workflow_dispatch:
-
-
 
 jobs:
   build:
