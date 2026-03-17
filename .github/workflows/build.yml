@@ -48,9 +48,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/go/bin
-          key: ${{ runner.os }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
           restore-keys: |
-            ${{ runner.os }}-go-tools-
+            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
