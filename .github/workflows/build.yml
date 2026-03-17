@@ -12,7 +12,7 @@ env:
 
 jobs:
   build:
-    name: Build (${{ matrix.os }} - ${{ matrix.arch }})
+    name: Build (${{ matrix.osName }} - ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,10 +20,22 @@ jobs:
         include:
           - os: ubuntu-24.04
             arch: amd64
+            osName: linux
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            osName: linux
           - os: windows-2025
             arch: amd64
+            osName: windows
+          - os: windows-11-arm
+            arch: arm64
+            osName: windows
           - os: macos-26
             arch: arm64
+            osName: mac
+          - os: macos-26-intel
+            arch: arm64
+            osName: mac
 
     steps:
       - name: Checkout code
@@ -37,15 +49,13 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Cache Go Binaries
+        id: cache-go-bin
         uses: actions/cache@v5
         with:
-          path: |
-            ~/go/bin
-            /go/bin
-            C:\Users\runneradmin\go\bin
-          key: ${{ runner.os }}-go-bin-${{ hashFiles('go.sum') }}
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
           restore-keys: |
-            ${{ runner.os }}-go-bin-
+            ${{ runner.os }}-go-tools-
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -58,6 +68,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Task
+        if: steps.cache-go-bin.outputs.cache-hit != 'true'
         run: go install github.com/go-task/task/v3/cmd/task@latest
 
       - name: Install Linux dependencies
@@ -67,6 +78,7 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev
 
       - name: Install Wails v3 CLI
+        if: steps.cache-go-bin.outputs.cache-hit != 'true'
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 
       - name: Build Application
@@ -76,5 +88,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}-binary
+          name: ${{ matrix.osName }}-${{ matrix.arch }}-binary
           path: out/bin/
