@@ -31,7 +31,7 @@ jobs:
             arch: arm64
             osName: mac
           - os: macos-26-intel
-            arch: amd64
+            arch: x86_64
             osName: mac
 
     steps:
