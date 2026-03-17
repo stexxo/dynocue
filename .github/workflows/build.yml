@@ -7,8 +7,7 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 
 jobs:
   build:
@@ -33,7 +32,8 @@ jobs:
           - os: macos-26-intel
             arch: amd64
             osName: mac
-
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
