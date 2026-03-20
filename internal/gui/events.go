@@ -17,11 +17,11 @@ import (
 func (c *Commands) SubscribeToAll() error {
 	return errors.Join(
 		subscribe(c, cues.EventNewCueList, emitEventHandler[*cues.NewCueListEvent](c)),
-		subscribe(c, cues.EventUpdateCueList, emitEventHandler[*cues.UpdateCueListMetadataEvent](c)),
+		subscribe(c, cues.EventUpdateCueList, emitEventHandler[*cues.UpdateCueListEvent](c)),
 		subscribe(c, cues.EventDeleteCueList, emitEventHandler[*cues.DeleteCueListEvent](c)),
 
 		subscribe(c, cues.EventNewCue, emitEventHandler[*cues.NewCueEvent](c)),
-		subscribe(c, cues.EventUpdateCue, emitEventHandler[*cues.UpdateCueMetadataEvent](c)),
+		subscribe(c, cues.EventUpdateCue, emitEventHandler[*cues.UpdateCueEvent](c)),
 		subscribe(c, cues.EventDeleteCue, emitEventHandler[*cues.DeleteCueEvent](c)),
 
 		subscribe(c, cues.EventNewAction, emitEventHandler[*cues.NewActionEvent](c)),

@@ -44,8 +44,10 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 
 	if err = apibus.Publish(c.conn, apicues.EventNewCue, apicues.NewCueEvent{
 		CueListNumber: in.CueListNumber,
-		CueNumber:     outNum,
-		Label:         md.Label,
+		Cue: apicues.Cue{
+			CueNumber: outNum,
+			Label:     md.Label,
+		},
 	}); err != nil {
 		slog.Error("failed to publish change event for new cue", slog.String("err", err.Error()))
 	}
@@ -58,8 +60,8 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 	}, nil
 }
 
-// UpdateCueMetadata updates the metadata fields of an existing cue.
-func (c *CueSystem) UpdateCueMetadata(sub string, in apicues.UpdateCueMetadataInput) (*apibus.MessageResponse[apicues.UpdateCueMetadataOutput], error) {
+// UpdateCue updates the metadata fields of an existing cue.
+func (c *CueSystem) UpdateCue(sub string, in apicues.UpdateCueInput) (*apibus.MessageResponse[apicues.UpdateCueOutput], error) {
 	var outMetadata *CueMetadataDbModel
 	err := c.db.Update(func(tx *bbolt.Tx) error {
 		b, err := data.GetBucketFromRoot(tx, false, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey, data.NewFloatBucketKey(in.CueNumber, false))
@@ -70,25 +72,27 @@ func (c *CueSystem) UpdateCueMetadata(sub string, in apicues.UpdateCueMetadataIn
 		return err
 	})
 	if err != nil {
-		slog.Error("failed to update cue metdata", "err", err.Error(), "cue", in.CueNumber, "cueList", in.CueListNumber)
-		return apibus.NewMessageResponse[apicues.UpdateCueMetadataOutput](nil, apibus.NewMessageError("failed to update cue")), nil
+		slog.Error("failed to update cue", "err", err.Error(), "cue", in.CueNumber, "cueList", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.UpdateCueOutput](nil, apibus.NewMessageError("failed to update cue")), nil
 	}
 
-	if err = apibus.Publish(c.conn, apicues.EventUpdateCue, apicues.UpdateCueMetadataEvent{
+	if err = apibus.Publish(c.conn, apicues.EventUpdateCue, apicues.UpdateCueEvent{
 		CueListNumber: in.CueListNumber,
-		CueNumber:     in.CueNumber,
-		Label:         outMetadata.Label,
+		Cue: apicues.Cue{
+			CueNumber: in.CueNumber,
+			Label:     outMetadata.Label,
+		},
 	}); err != nil {
-		slog.Error("failed to publish change event for update cue metadata", slog.String("err", err.Error()))
+		slog.Error("failed to publish change event for update cue", slog.String("err", err.Error()))
 	}
 
-	return &apibus.MessageResponse[apicues.UpdateCueMetadataOutput]{
-		ResponseValue: &apicues.UpdateCueMetadataOutput{},
+	return &apibus.MessageResponse[apicues.UpdateCueOutput]{
+		ResponseValue: &apicues.UpdateCueOutput{},
 	}, nil
 }
 
-// GetCueMetadata retrieves the metadata for a specific cue.
-func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (*apibus.MessageResponse[apicues.GetCueMetadataOutput], error) {
+// GetCue retrieves a specific cue.
+func (c *CueSystem) GetCue(sub string, in apicues.GetCueInput) (*apibus.MessageResponse[apicues.GetCueOutput], error) {
 	var md *CueMetadataDbModel
 	err := c.db.View(func(tx *bbolt.Tx) error {
 		b, err := data.GetBucketFromRoot(tx, true, BucketCueListKey, data.NewFloatBucketKey(in.CueListNumber, false), BucketCuesKey, data.NewFloatBucketKey(in.CueNumber, false))
@@ -100,15 +104,17 @@ func (c *CueSystem) GetCueMetadata(sub string, in apicues.GetCueMetadataInput) (
 	})
 
 	if err != nil {
-		slog.Error("failed to get cue metadata", "err", err.Error(), "cue", in.CueNumber, "cueList", in.CueListNumber)
-		return apibus.NewMessageResponse[apicues.GetCueMetadataOutput](nil, apibus.NewMessageError("failed to retrieve cue metadata")), nil
+		slog.Error("failed to get cue", "err", err.Error(), "cue", in.CueNumber, "cueList", in.CueListNumber)
+		return apibus.NewMessageResponse[apicues.GetCueOutput](nil, apibus.NewMessageError("failed to retrieve cue")), nil
 	}
 
-	return &apibus.MessageResponse[apicues.GetCueMetadataOutput]{
-		ResponseValue: &apicues.GetCueMetadataOutput{
+	return &apibus.MessageResponse[apicues.GetCueOutput]{
+		ResponseValue: &apicues.GetCueOutput{
 			CueListNumber: in.CueListNumber,
-			CueNumber:     in.CueNumber,
-			Label:         md.Label,
+			Cue: apicues.Cue{
+				CueNumber: in.CueNumber,
+				Label:     md.Label,
+			},
 		},
 	}, nil
 }
@@ -138,20 +144,22 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 		return apibus.NewMessageResponse[apicues.EnumerateCueOutput](nil, apibus.NewMessageError("failed to enumerate cues")), nil
 	}
 
-	out := make([]apicues.GetCueMetadataOutput, 0, len(values))
+	out := make([]apicues.GetCueOutput, 0, len(values))
 	for k, v := range values {
-		i, _ := slices.BinarySearchFunc(out, k, func(a apicues.GetCueMetadataOutput, b float64) int {
-			if a.CueNumber < b {
+		i, _ := slices.BinarySearchFunc(out, k, func(a apicues.GetCueOutput, b float64) int {
+			if a.Cue.CueNumber < b {
 				return -1
-			} else if a.CueNumber > b {
+			} else if a.Cue.CueNumber > b {
 				return 1
 			}
 			return 0
 		})
-		out = slices.Insert(out, i, apicues.GetCueMetadataOutput{
+		out = slices.Insert(out, i, apicues.GetCueOutput{
 			CueListNumber: in.CueListNumber,
-			CueNumber:     k,
-			Label:         v.Label,
+			Cue: apicues.Cue{
+				CueNumber: k,
+				Label:     v.Label,
+			},
 		})
 	}
 
@@ -238,8 +246,10 @@ func (c *CueSystem) MoveCue(sub string, in apicues.MoveCueInput) (*apibus.Messag
 
 	if err = apibus.Publish(c.conn, apicues.EventNewCue, apicues.NewCueEvent{
 		CueListNumber: in.CueListNumber,
-		CueNumber:     in.NewCueNumber,
-		Label:         outMetadata.Label,
+		Cue: apicues.Cue{
+			CueNumber: in.NewCueNumber,
+			Label:     outMetadata.Label,
+		},
 	}); err != nil {
 		slog.Error("failed to publish create event for move cue", slog.String("err", err.Error()))
 	}

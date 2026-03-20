@@ -31,10 +31,10 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	if _, err := apibus.Reply(conn, apicues.RequestCreateCueList, c.NewCueList); err != nil {
 		return nil, err
 	}
-	if _, err := apibus.Reply(conn, apicues.RequestUpdateCueListMetadata, c.UpdateCueListMetadata); err != nil {
+	if _, err := apibus.Reply(conn, apicues.RequestUpdateCueList, c.UpdateCueList); err != nil {
 		return nil, err
 	}
-	if _, err := apibus.Reply(conn, apicues.RequestGetCueListMetadata, c.GetCueListMetadata); err != nil {
+	if _, err := apibus.Reply(conn, apicues.RequestGetCueList, c.GetCueList); err != nil {
 		return nil, err
 	}
 	if _, err := apibus.Reply(conn, apicues.RequestEnumerateCueList, c.EnumerateCueList); err != nil {
@@ -49,10 +49,10 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	if _, err := apibus.Reply(conn, apicues.RequestCreateCue, c.NewCue); err != nil {
 		return nil, err
 	}
-	if _, err := apibus.Reply(conn, apicues.RequestUpdateCueMetadata, c.UpdateCueMetadata); err != nil {
+	if _, err := apibus.Reply(conn, apicues.RequestUpdateCue, c.UpdateCue); err != nil {
 		return nil, err
 	}
-	if _, err := apibus.Reply(conn, apicues.RequestGetCueMetadata, c.GetCueMetadata); err != nil {
+	if _, err := apibus.Reply(conn, apicues.RequestGetCue, c.GetCue); err != nil {
 		return nil, err
 	}
 	if _, err := apibus.Reply(conn, apicues.RequestEnumerateCue, c.EnumerateCue); err != nil {

@@ -14,12 +14,12 @@ func (c *Commands) CreateCueList(input cues.CreateCueListInput) (*cues.CreateCue
 	return makeRequest[cues.CreateCueListInput, cues.CreateCueListOutput](c, cues.RequestCreateCueList, input)
 }
 
-func (c *Commands) UpdateCueListMetadata(input cues.UpdateCueListMetadataInput) (*cues.UpdateCueListMetadataOutput, error) {
-	return makeRequest[cues.UpdateCueListMetadataInput, cues.UpdateCueListMetadataOutput](c, cues.RequestUpdateCueListMetadata, input)
+func (c *Commands) UpdateCueList(input cues.UpdateCueListInput) (*cues.UpdateCueListOutput, error) {
+	return makeRequest[cues.UpdateCueListInput, cues.UpdateCueListOutput](c, cues.RequestUpdateCueList, input)
 }
 
-func (c *Commands) GetCueListMetadata(input cues.GetCueListMetadataInput) (*cues.GetCueListMetadataOutput, error) {
-	return makeRequest[cues.GetCueListMetadataInput, cues.GetCueListMetadataOutput](c, cues.RequestGetCueListMetadata, input)
+func (c *Commands) GetCueList(input cues.GetCueListInput) (*cues.GetCueListOutput, error) {
+	return makeRequest[cues.GetCueListInput, cues.GetCueListOutput](c, cues.RequestGetCueList, input)
 }
 
 func (c *Commands) EnumerateCueList(input cues.EnumerateCueListInput) (*cues.EnumerateCueListOutput, error) {

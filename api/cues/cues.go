@@ -7,12 +7,12 @@
 package cues
 
 const (
-	RequestCreateCue         = "request.cue.create"
-	RequestUpdateCueMetadata = "request.cue.metadata.update"
-	RequestGetCueMetadata    = "request.cue.metadata.get"
-	RequestEnumerateCue      = "request.cue.enumerate"
-	RequestDeleteCue         = "request.cue.delete"
-	RequestMoveCue           = "request.cue.move"
+	RequestCreateCue    = "request.cue.create"
+	RequestUpdateCue    = "request.cue.update"
+	RequestGetCue       = "request.cue.get"
+	RequestEnumerateCue = "request.cue.enumerate"
+	RequestDeleteCue    = "request.cue.delete"
+	RequestMoveCue      = "request.cue.move"
 
 	EventNewCue    = "event.cue.created"
 	EventUpdateCue = "event.cue.updated"
@@ -29,36 +29,38 @@ type CreateCueOutput struct {
 	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber"`
 }
 
-type NewCueEvent struct {
-	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber"`
-	Label         string  `json:"label" msgpack:"label"`
+type Cue struct {
+	CueNumber float64 `json:"cueNumber" msgpack:"cueNumber"`
+	Label     string  `json:"label" msgpack:"label"`
 }
 
-type UpdateCueMetadataInput struct {
+type NewCueEvent struct {
+	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
+	Cue           Cue     `json:"cue" msgpack:"cue"`
+}
+
+type UpdateCueInput struct {
 	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber" validate:"gt=0"`
 	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber" validate:"gt=0"`
 	Key           string  `json:"key" msgpack:"key" validate:"required"`
 	Value         string  `json:"value" msgpack:"value"`
 }
 
-type UpdateCueMetadataOutput struct{}
+type UpdateCueOutput struct{}
 
-type UpdateCueMetadataEvent struct {
+type UpdateCueEvent struct {
 	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber"`
-	Label         string  `json:"label" msgpack:"label"`
+	Cue           Cue     `json:"cue" msgpack:"cue"`
 }
 
-type GetCueMetadataInput struct {
+type GetCueInput struct {
 	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber" validate:"gt=0"`
 	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber" validate:"gt=0"`
 }
 
-type GetCueMetadataOutput struct {
+type GetCueOutput struct {
 	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber"`
-	Label         string  `json:"label" msgpack:"label"`
+	Cue           Cue     `json:"cue" msgpack:"cue"`
 }
 
 type EnumerateCueInput struct {
@@ -66,8 +68,8 @@ type EnumerateCueInput struct {
 }
 
 type EnumerateCueOutput struct {
-	CueListNumber float64                `json:"cueListNumber" msgpack:"cueListNumber"`
-	Cues          []GetCueMetadataOutput `json:"cues" msgpack:"cues"`
+	CueListNumber float64        `json:"cueListNumber" msgpack:"cueListNumber"`
+	Cues          []GetCueOutput `json:"cues" msgpack:"cues"`
 }
 
 type DeleteCueInput struct {

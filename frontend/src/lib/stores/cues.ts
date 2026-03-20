@@ -24,7 +24,7 @@ function createCueStore() {
         try {
             const result = await Commands.EnumerateCue({ cueListNumber });
             if (result && result.cues) {
-                set(result.cues);
+                set(result.cues.map((c: any) => c.cue));
             } else {
                 set([]);
             }
@@ -36,9 +36,9 @@ function createCueStore() {
     async function updateMetadata(cueNumber: number, key: string, value: string) {
         if (currentCueListNumber === null) return;
         try {
-            await Commands.UpdateCueMetadata({ cueListNumber: currentCueListNumber, cueNumber, key, value });
+            await Commands.UpdateCue({ cueListNumber: currentCueListNumber, cueNumber, key, value });
         } catch (err) {
-            console.error(`Failed to update cue ${cueNumber} metadata:`, err);
+            console.error(`Failed to update cue ${cueNumber}:`, err);
         }
     }
 
@@ -71,21 +71,21 @@ function createCueStore() {
 
     // Subscribe to backend events
     Events.On('event.cue.created', (event: any) => {
-        const { cueListNumber, cueNumber, label } = event.data;
+        const { cueListNumber, cue } = event.data;
         if (cueListNumber !== currentCueListNumber) return;
 
         update(cues => {
-            const newCues = [...cues, { cueNumber, label }];
+            const newCues = [...cues, cue];
             return newCues.sort((a, b) => a.cueNumber - b.cueNumber);
         });
     });
 
     Events.On('event.cue.updated', (event: any) => {
-        const { cueListNumber, cueNumber, label } = event.data;
+        const { cueListNumber, cue } = event.data;
         if (cueListNumber !== currentCueListNumber) return;
 
-        update(cues => cues.map(cue => 
-            cue.cueNumber === cueNumber ? { ...cue, label } : cue
+        update(cues => cues.map(c => 
+            c.cueNumber === cue.cueNumber ? { ...c, label: cue.label } : c
         ));
     });
 
