@@ -16,6 +16,19 @@
         pageTitle.set(`Cue List: ${page.params.number}`);
     });
 
+    let editingCue = $state<Cue | null>(null);
+    let modalOpen = $state(false);
+
+    function openEditModal(cue: Cue) {
+        editingCue = cue;
+        modalOpen = true;
+    }
+
+    function closeEditModal() {
+        modalOpen = false;
+        editingCue = null;
+    }
+
     const columns: ColumnConfig<Cue>[] = [
         { 
             key: 'cueNumber', 
@@ -90,7 +103,7 @@
 {/snippet}
 
 {#snippet rowEnd(cue)}
-    <button class="btn btn-ghost btn-xs btn-square">
+    <button class="btn btn-ghost btn-xs btn-square" onclick={() => openEditModal(cue)}>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0l1.514-1.515" />
         </svg>
@@ -104,3 +117,20 @@
         {toolbar}
     />
 </div>
+
+{#if modalOpen && editingCue}
+    <div class="modal modal-open">
+        <div class="modal-box w-[98vw] max-w-none h-[98vh] max-h-none flex flex-col relative">
+            <button class="btn btn-lg btn-circle btn-ghost absolute right-2 top-2 text-2xl" onclick={closeEditModal}>✕</button>
+            <h3 class="font-bold text-lg">Edit Cue: {editingCue.label || `Cue ${editingCue.cueNumber}`}</h3>
+            <div class="flex-grow py-4 overflow-auto">
+                <p>Content in this modal for now.</p>
+            </div>
+            <div class="modal-action">
+            </div>
+        </div>
+        <div class="modal-backdrop" onclick={closeEditModal}>
+            <button class="cursor-default">close</button>
+        </div>
+    </div>
+{/if}
