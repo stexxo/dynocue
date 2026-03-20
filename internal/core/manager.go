@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-package show
+package core
 
 import (
 	"errors"
@@ -14,17 +14,17 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	ibus "gitlab.com/stexxo/dynocue/internal/bus"
-	"gitlab.com/stexxo/dynocue/internal/show/cues"
+	"gitlab.com/stexxo/dynocue/internal/core/cues"
 	"go.etcd.io/bbolt"
 )
 
-// Subsystem defines an interface for all show components that require
+// Subsystem defines an interface for all core components that require
 // lifecycle management and cleanup.
 type Subsystem interface {
 	Close() error
 }
 
-// Show represents a show session, managing the database, message bus,
+// Show represents a core session, managing the database, message bus,
 // and all active subsystems.
 type Show struct {
 	db       *bbolt.DB
@@ -34,7 +34,7 @@ type Show struct {
 	subsystem []Subsystem
 }
 
-// NewShow initializes a new show session at the given directory path,
+// NewShow initializes a new core session at the given directory path,
 // starting the message bus, database, and all required subsystems.
 func NewShow(path string) (s *Show, err error) {
 	fi, err := os.Stat(path)
@@ -85,12 +85,12 @@ func NewShow(path string) (s *Show, err error) {
 	return
 }
 
-// GetConn returns a NATS connection for communicating with the show's internal bus.
+// GetConn returns a NATS connection for communicating with the core's internal bus.
 func (s *Show) GetConn() (*nats.Conn, error) {
 	return ibus.GetInProcessConn(s.bus)
 }
 
-// Close shuts down the show session, closing all subsystems, the message bus,
+// Close shuts down the core session, closing all subsystems, the message bus,
 // and the database.
 func (s *Show) Close() error {
 	for _, subsystem := range s.subsystem {

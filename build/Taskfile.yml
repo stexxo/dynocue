@@ -97,7 +97,7 @@ tasks:
       - "**/*.go"
       - go.mod
       - go.sum
-      - internal/show/gui
+      - internal/core/gui
     generates:
       - frontend/bindings/**/*
     cmds:

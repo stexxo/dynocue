@@ -14,16 +14,16 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"gitlab.com/stexxo/dynocue/internal/show"
+	"gitlab.com/stexxo/dynocue/internal/core"
 	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
 )
 
 // Commands handles backend operations exposed to the frontend,
-// including show management and communication with the NATS bus.
+// including core management and communication with the NATS bus.
 type Commands struct {
 	app *application.App
 
-	show          *show.Show
+	show          *core.Show
 	conn          *nats.Conn
 	subscriptions []*nats.Subscription
 }
@@ -38,7 +38,7 @@ func (c *Commands) SetApplication(app *application.App) {
 	c.app = app
 }
 
-// OpenShow opens a show file at the given path, initializing the show
+// OpenShow opens a core file at the given path, initializing the core
 // system and subscribing to relevant events.
 func (c *Commands) OpenShow(path string) (string, bool) {
 	if path == "" {
@@ -52,7 +52,7 @@ func (c *Commands) OpenShow(path string) (string, bool) {
 	if c.show != nil {
 		c.show.Close()
 	}
-	s, err := show.NewShow(path)
+	s, err := core.NewShow(path)
 	if err != nil {
 		return "", false
 	}
@@ -71,7 +71,7 @@ func (c *Commands) OpenShow(path string) (string, bool) {
 	return path, true
 }
 
-// CloseShow closes the currently open show and cleans up resources.
+// CloseShow closes the currently open core and cleans up resources.
 func (c *Commands) CloseShow() {
 	if c.show != nil {
 		c.conn.Close()
@@ -83,7 +83,7 @@ func (c *Commands) CloseShow() {
 
 func makeRequest[T any, E any](c *Commands, subject string, input T) (*E, error) {
 	if c.show == nil || c.conn == nil {
-		return nil, errors.New("show closed")
+		return nil, errors.New("core closed")
 	}
 
 	res, err := apibus.Request[T, E](c.conn, subject, input)
