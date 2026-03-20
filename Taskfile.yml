@@ -56,7 +56,7 @@ tasks:
     cmds:
       - task: lint
       - task: test
-      - task: build
+      - task: buil
 
   dev:
     summary: Runs the application in development mode

@@ -120,7 +120,7 @@
 
 {#if modalOpen && editingCue}
     <div class="modal modal-open">
-        <div class="modal-box w-[98vw] max-w-none h-[98vh] max-h-none flex flex-col relative">
+        <div class="modal-box w-[90vw] max-w-none h-[90vh] max-h-none flex flex-col relative">
             <button class="btn btn-lg btn-circle btn-ghost absolute right-2 top-2 text-2xl" onclick={closeEditModal}>✕</button>
             <h3 class="font-bold text-lg">Edit Cue: {editingCue.label || `Cue ${editingCue.cueNumber}`}</h3>
             <div class="flex-grow py-4 overflow-auto">
