@@ -3,7 +3,9 @@
     import { page } from '$app/state';
     import { pageTitle } from '$lib/stores/header';
     import DataTable, { type ToolbarButton, type ColumnConfig } from '$lib/components/DataTable.svelte';
-    import { cues, type Cue } from '$lib/stores/cues';
+    import EditCueModal from './EditCueModal.svelte';
+    import { cues } from '$lib/stores/cues';
+    import type { Cue } from '../../../bindings/gitlab.com/stexxo/dynocue/api/cues/models';
     import { goto } from '$app/navigation';
 
     const cueListNumber = parseFloat(page.params.number || '0');
@@ -17,15 +19,12 @@
     });
 
     let editingCue = $state<Cue | null>(null);
-    let modalOpen = $state(false);
 
     function openEditModal(cue: Cue) {
         editingCue = cue;
-        modalOpen = true;
     }
 
     function closeEditModal() {
-        modalOpen = false;
         editingCue = null;
     }
 
@@ -103,14 +102,14 @@
 {/snippet}
 
 {#snippet rowEnd(cue)}
-    <button class="btn btn-ghost btn-xs btn-square" onclick={() => openEditModal(cue)}>
+    <button class="btn btn-ghost btn-xs btn-square" onclick={() => openEditModal(cue)} aria-label="Edit Cue">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0l1.514-1.515" />
         </svg>
     </button>
 {/snippet}
 
-<div class="flex flex-col h-[calc(100vh-theme(spacing.12)-theme(spacing.10))]">
+<div class="flex flex-col h-[calc(100vh-(--spacing(12))-(--spacing(10)))]">
     <DataTable
         items={$cues}
         {columns}
@@ -118,19 +117,4 @@
     />
 </div>
 
-{#if modalOpen && editingCue}
-    <div class="modal modal-open">
-        <div class="modal-box w-[90vw] max-w-none h-[90vh] max-h-none flex flex-col relative">
-            <button class="btn btn-lg btn-circle btn-ghost absolute right-2 top-2 text-2xl" onclick={closeEditModal}>✕</button>
-            <h3 class="font-bold text-lg">Edit Cue: {editingCue.label || `Cue ${editingCue.cueNumber}`}</h3>
-            <div class="flex-grow py-4 overflow-auto">
-                <p>Content in this modal for now.</p>
-            </div>
-            <div class="modal-action">
-            </div>
-        </div>
-        <div class="modal-backdrop" onclick={closeEditModal}>
-            <button class="cursor-default">close</button>
-        </div>
-    </div>
-{/if}
+<EditCueModal cue={editingCue} onClose={closeEditModal} />

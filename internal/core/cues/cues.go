@@ -45,8 +45,9 @@ func (c *CueSystem) NewCue(sub string, in apicues.CreateCueInput) (*apibus.Messa
 	if err = apibus.Publish(c.conn, apicues.EventNewCue, apicues.NewCueEvent{
 		CueListNumber: in.CueListNumber,
 		Cue: apicues.Cue{
-			CueNumber: outNum,
-			Label:     md.Label,
+			CueNumber:   outNum,
+			Label:       md.Label,
+			Description: md.Description,
 		},
 	}); err != nil {
 		slog.Error("failed to publish change event for new cue", slog.String("err", err.Error()))
@@ -79,8 +80,9 @@ func (c *CueSystem) UpdateCue(sub string, in apicues.UpdateCueInput) (*apibus.Me
 	if err = apibus.Publish(c.conn, apicues.EventUpdateCue, apicues.UpdateCueEvent{
 		CueListNumber: in.CueListNumber,
 		Cue: apicues.Cue{
-			CueNumber: in.CueNumber,
-			Label:     outMetadata.Label,
+			CueNumber:   in.CueNumber,
+			Label:       outMetadata.Label,
+			Description: outMetadata.Description,
 		},
 	}); err != nil {
 		slog.Error("failed to publish change event for update cue", slog.String("err", err.Error()))
@@ -112,8 +114,9 @@ func (c *CueSystem) GetCue(sub string, in apicues.GetCueInput) (*apibus.MessageR
 		ResponseValue: &apicues.GetCueOutput{
 			CueListNumber: in.CueListNumber,
 			Cue: apicues.Cue{
-				CueNumber: in.CueNumber,
-				Label:     md.Label,
+				CueNumber:   in.CueNumber,
+				Label:       md.Label,
+				Description: md.Description,
 			},
 		},
 	}, nil
@@ -157,8 +160,9 @@ func (c *CueSystem) EnumerateCue(sub string, in apicues.EnumerateCueInput) (*api
 		out = slices.Insert(out, i, apicues.GetCueOutput{
 			CueListNumber: in.CueListNumber,
 			Cue: apicues.Cue{
-				CueNumber: k,
-				Label:     v.Label,
+				CueNumber:   k,
+				Label:       v.Label,
+				Description: v.Description,
 			},
 		})
 	}

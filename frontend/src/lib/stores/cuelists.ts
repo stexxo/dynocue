@@ -8,13 +8,8 @@
 
 import { writable } from 'svelte/store';
 import * as Commands from '../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands';
+import { CueList } from '../../../bindings/gitlab.com/stexxo/dynocue/api/cues';
 import { Events } from '@wailsio/runtime';
-
-export interface CueList {
-    cueListNumber: number;
-    label: string;
-    listType: string;
-}
 
 function createCueListStore() {
     const { subscribe, set, update } = writable<CueList[]>([]);
@@ -76,9 +71,9 @@ function createCueListStore() {
     });
 
     Events.On('event.cuelist.updated', (event: any) => {
-        const { cueListNumber, label, listType } = event.data.cueList;
+        const { cueList } = event.data;
         update(lists => lists.map(list => 
-            list.cueListNumber === cueListNumber ? { ...list, label: label, listType: listType } : list
+            list.cueListNumber === cueList.cueListNumber ? cueList : list
         ));
     });
 

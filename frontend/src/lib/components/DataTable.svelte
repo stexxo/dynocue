@@ -182,7 +182,7 @@
                                             bind:value={editValue}
                                             onkeydown={(e) => handleKeyDown(e, item, column)}
                                             onblur={() => saveEdit(item, column)}
-                                            autofocus
+                                            use={(node) => node.focus()}
                                         />
                                     {:else if column.snippet}
                                         {@render column.snippet(item)}

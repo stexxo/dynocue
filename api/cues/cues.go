@@ -30,8 +30,9 @@ type CreateCueOutput struct {
 }
 
 type Cue struct {
-	CueNumber float64 `json:"cueNumber" msgpack:"cueNumber"`
-	Label     string  `json:"label" msgpack:"label"`
+	CueNumber   float64 `json:"cueNumber" msgpack:"cueNumber"`
+	Label       string  `json:"label" msgpack:"label"`
+	Description string  `json:"description" msgpack:"description"`
 }
 
 type NewCueEvent struct {

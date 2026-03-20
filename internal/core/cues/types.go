@@ -22,7 +22,8 @@ type CueListMetadataDbModel struct {
 }
 
 type CueMetadataDbModel struct {
-	Label string `msgpack:"label"`
+	Label       string `msgpack:"label"`
+	Description string `msgpack:"description"`
 }
 
 type ActionDbModel struct {
