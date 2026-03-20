@@ -10,14 +10,14 @@
 
     const columns: ColumnConfig<CueList>[] = [
         { 
-            key: 'number', 
+            key: 'cueListNumber', 
             label: '#', 
             width: 'w-24', 
             editable: true,
             onSave: (item: CueList, newValue: string) => {
                 const newNum = parseFloat(newValue);
                 if (!isNaN(newNum) && newNum > 0) {
-                    return cueLists.move(item.number, newNum);
+                    return cueLists.move(item.cueListNumber, newNum);
                 }
             }
         },
@@ -26,7 +26,7 @@
             label: 'Label', 
             minWidth: 'min-w-50', 
             editable: true,
-            onSave: (item: CueList, newValue: string) => cueLists.updateMetadata(item.number, 'label', newValue)
+            onSave: (item: CueList, newValue: string) => cueLists.updateMetadata(item.cueListNumber, 'label', newValue)
         },
         {
             label: '',
@@ -48,7 +48,7 @@
             class: 'btn-error btn-outline',
             icon: deleteIcon,
             disabled: (selected) => selected.length === 0,
-            onclick: (selected) => Promise.all(selected.map(item => cueLists.remove(item.number)))
+            onclick: (selected) => Promise.all(selected.map(item => cueLists.remove(item.cueListNumber)))
         }
     ];
 </script>
@@ -66,7 +66,7 @@
 {/snippet}
 
 {#snippet rowEnd(list)}
-    <a href="/show/cues/{list.number}" class="btn btn-ghost btn-xs btn-square" aria-label="Go to Cue List {list.number}">
+    <a href="/show/cues/{list.cueListNumber}" class="btn btn-ghost btn-xs btn-square" aria-label="Go to Cue List {list.cueListNumber}">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
         </svg>

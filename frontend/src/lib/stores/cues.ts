@@ -11,7 +11,7 @@ import * as Commands from '../../../bindings/gitlab.com/stexxo/dynocue/internal/
 import { Events } from '@wailsio/runtime';
 
 export interface Cue {
-    number: number;
+    cueNumber: number;
     label: string;
 }
 
@@ -33,67 +33,67 @@ function createCueStore() {
         }
     }
 
-    async function updateMetadata(number: number, key: string, value: string) {
+    async function updateMetadata(cueNumber: number, key: string, value: string) {
         if (currentCueListNumber === null) return;
         try {
-            await Commands.UpdateCueMetadata({ cueListNumber: currentCueListNumber, number, key, value });
+            await Commands.UpdateCueMetadata({ cueListNumber: currentCueListNumber, cueNumber, key, value });
         } catch (err) {
-            console.error(`Failed to update cue ${number} metadata:`, err);
+            console.error(`Failed to update cue ${cueNumber} metadata:`, err);
         }
     }
 
-    async function create(number: number = 0) {
+    async function create(cueNumber: number = 0) {
         if (currentCueListNumber === null) return;
         try {
-            await Commands.CreateCue({ cueListNumber: currentCueListNumber, number });
+            await Commands.CreateCue({ cueListNumber: currentCueListNumber, cueNumber });
         } catch (err) {
             console.error('Failed to create cue:', err);
         }
     }
 
-    async function remove(number: number) {
+    async function remove(cueNumber: number) {
         if (currentCueListNumber === null) return;
         try {
-            await Commands.DeleteCue({ cueListNumber: currentCueListNumber, number });
+            await Commands.DeleteCue({ cueListNumber: currentCueListNumber, cueNumber });
         } catch (err) {
-            console.error(`Failed to delete cue ${number}:`, err);
+            console.error(`Failed to delete cue ${cueNumber}:`, err);
         }
     }
 
-    async function move(originalNumber: number, newNumber: number) {
+    async function move(originalCueNumber: number, newCueNumber: number) {
         if (currentCueListNumber === null) return;
         try {
-            await Commands.MoveCue({ cueListNumber: currentCueListNumber, originalNumber, newNumber });
+            await Commands.MoveCue({ cueListNumber: currentCueListNumber, originalCueNumber, newCueNumber });
         } catch (err) {
-            console.error(`Failed to move cue ${originalNumber} to ${newNumber}:`, err);
+            console.error(`Failed to move cue ${originalCueNumber} to ${newCueNumber}:`, err);
         }
     }
 
     // Subscribe to backend events
     Events.On('event.cue.created', (event: any) => {
-        const { cueListNumber, number, label } = event.data;
+        const { cueListNumber, cueNumber, label } = event.data;
         if (cueListNumber !== currentCueListNumber) return;
 
         update(cues => {
-            const newCues = [...cues, { number, label }];
-            return newCues.sort((a, b) => a.number - b.number);
+            const newCues = [...cues, { cueNumber, label }];
+            return newCues.sort((a, b) => a.cueNumber - b.cueNumber);
         });
     });
 
     Events.On('event.cue.updated', (event: any) => {
-        const { cueListNumber, number, label } = event.data;
+        const { cueListNumber, cueNumber, label } = event.data;
         if (cueListNumber !== currentCueListNumber) return;
 
         update(cues => cues.map(cue => 
-            cue.number === number ? { ...cue, label } : cue
+            cue.cueNumber === cueNumber ? { ...cue, label } : cue
         ));
     });
 
     Events.On('event.cue.deleted', (event: any) => {
-        const { cueListNumber, number } = event.data;
+        const { cueListNumber, cueNumber } = event.data;
         if (cueListNumber !== currentCueListNumber) return;
 
-        update(cues => cues.filter(cue => cue.number !== number));
+        update(cues => cues.filter(cue => cue.cueNumber !== cueNumber));
     });
 
     return {

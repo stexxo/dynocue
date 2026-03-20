@@ -23,6 +23,10 @@ func (c *Commands) SubscribeToAll() error {
 		subscribe(c, cues.EventNewCue, emitEventHandler[*cues.NewCueEvent](c)),
 		subscribe(c, cues.EventUpdateCue, emitEventHandler[*cues.UpdateCueMetadataEvent](c)),
 		subscribe(c, cues.EventDeleteCue, emitEventHandler[*cues.DeleteCueEvent](c)),
+
+		subscribe(c, cues.EventNewAction, emitEventHandler[*cues.NewActionEvent](c)),
+		subscribe(c, cues.EventUpdateAction, emitEventHandler[*cues.UpdateActionEvent](c)),
+		subscribe(c, cues.EventDeleteAction, emitEventHandler[*cues.DeleteActionEvent](c)),
 	)
 }
 

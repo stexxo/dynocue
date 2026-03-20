@@ -22,7 +22,7 @@
         align?: 'left' | 'right' | 'center';
     }
 
-    interface Props<T extends { number: number }> {
+    interface Props<T extends { number?: number; cueNumber?: number; cueListNumber?: number; actionNumber?: number }> {
         items: T[];
         columns: ColumnConfig<T>[];
         toolbar?: ToolbarButton<T>[];
@@ -35,6 +35,10 @@
         toolbar = [],
         isActive = () => false
     }: Props<any> = $props();
+
+    function getItemNumber(item: any): number {
+        return item.cueListNumber ?? item.cueNumber ?? item.actionNumber ?? item.number;
+    }
 
     let selectedNumbers = $state(new SvelteSet<number>());
     let editingCell = $state<{ number: number; key: any } | null>(null);
@@ -57,7 +61,7 @@
             selectedNumbers.clear();
         } else {
             for (const item of items) {
-                selectedNumbers.add(item.number);
+                selectedNumbers.add(getItemNumber(item));
             }
         }
     }
@@ -70,7 +74,7 @@
         }
     }
 
-    let selectedItems = $derived(items.filter(item => selectedNumbers.has(item.number)));
+    let selectedItems = $derived(items.filter(item => selectedNumbers.has(getItemNumber(item))));
 
     async function handleToolbarClick(button: ToolbarButton<any>) {
         await button.onclick(selectedItems);
@@ -87,7 +91,7 @@
 
     function startEditing(item: any, column: ColumnConfig<any>) {
         if (!column.editable || !column.key) return;
-        editingCell = { number: item.number, key: column.key };
+        editingCell = { number: getItemNumber(item), key: column.key };
         editValue = String(item[column.key]);
         initialValue = editValue;
     }
@@ -154,17 +158,17 @@
                 </tr>
             </thead>
             <tbody>
-                {#each items as item (item.number)}
-                    <tr class="h-12 {selectedNumbers.has(item.number) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
+                {#each items as item (getItemNumber(item))}
+                    <tr class="h-12 {selectedNumbers.has(getItemNumber(item)) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
                         <td>
                             <label>
                                 <input type="checkbox" class="checkbox checkbox-sm"
-                                       checked={selectedNumbers.has(item.number)}
-                                       onchange={() => toggleSelect(item.number)} />
+                                       checked={selectedNumbers.has(getItemNumber(item))}
+                                       onchange={() => toggleSelect(getItemNumber(item))} />
                             </label>
                         </td>
                         {#each columns as column}
-                            {@const isEditing = column.key && editingCell?.number === item.number && editingCell?.key === column.key}
+                            {@const isEditing = column.key && editingCell?.number === getItemNumber(item) && editingCell?.key === column.key}
                             <td
                                 onclick={() => startEditing(item, column)}
                                 class="p-0 {column.editable ? 'cursor-pointer hover:bg-base-200 transition-colors' : ''}"

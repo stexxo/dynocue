@@ -15,3 +15,16 @@ var (
 
 	KeyMetadata = []byte("metadata")
 )
+
+type CueListMetadataDbModel struct {
+	Label    string `msgpack:"label"`
+	ListType string `msgpack:"listType"`
+}
+
+type CueMetadataDbModel struct {
+	Label string `msgpack:"label"`
+}
+
+type ActionDbModel struct {
+	Label string `msgpack:"label"`
+}

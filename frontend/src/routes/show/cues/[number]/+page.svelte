@@ -18,14 +18,14 @@
 
     const columns: ColumnConfig<Cue>[] = [
         { 
-            key: 'number', 
+            key: 'cueNumber', 
             label: '#', 
             width: 'w-24', 
             editable: true,
             onSave: (item: Cue, newValue: string) => {
                 const newNum = parseFloat(newValue);
                 if (!isNaN(newNum) && newNum > 0) {
-                    return cues.move(item.number, newNum);
+                    return cues.move(item.cueNumber, newNum);
                 }
             }
         },
@@ -34,7 +34,7 @@
             label: 'Label', 
             minWidth: 'min-w-50', 
             editable: true,
-            onSave: (item: Cue, newValue: string) => cues.updateMetadata(item.number, 'label', newValue)
+            onSave: (item: Cue, newValue: string) => cues.updateMetadata(item.cueNumber, 'label', newValue)
         },
         {
             label: '',
@@ -66,7 +66,7 @@
             class: 'btn-error btn-outline',
             icon: deleteIcon,
             disabled: (selected) => selected.length === 0,
-            onclick: (selected) => Promise.all(selected.map(item => cues.remove(item.number)))
+            onclick: (selected) => Promise.all(selected.map(item => cues.remove(item.cueNumber)))
         }
     ];
 </script>

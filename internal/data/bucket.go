@@ -18,7 +18,7 @@ import (
 var ErrNoBucket = errors.New("bucket path does not exist")
 var ErrKeyNotFound = errors.New("key not found")
 
-func GetKey(b *bbolt.Bucket, v any, key []byte) error {
+func GetKey(b *bbolt.Bucket, key []byte, v any) error {
 	val := b.Get(key)
 	if val == nil {
 		return ErrKeyNotFound
@@ -26,7 +26,7 @@ func GetKey(b *bbolt.Bucket, v any, key []byte) error {
 	return msgpack.Unmarshal(val, v)
 }
 
-func PutKey(b *bbolt.Bucket, v any, key []byte) error {
+func PutKey(b *bbolt.Bucket, key []byte, v any) error {
 	md, err := msgpack.Marshal(v)
 	if err != nil {
 		return err
@@ -74,13 +74,13 @@ func GetBucket(bucket *bbolt.Bucket, readOnly bool, keys ...BucketKey) (*bbolt.B
 
 func UpdateAttributeInKeyValuePair[T any](b *bbolt.Bucket, dbKey []byte, attrKey, newValue string) (*T, error) {
 	out := new(T)
-	if err := GetKey(b, out, dbKey); err != nil {
+	if err := GetKey(b, dbKey, out); err != nil {
 		return out, err
 	}
 	if err := utils.SetFieldByTag(out, "msgpack", attrKey, newValue); err != nil {
 		return out, err
 	}
-	if err := PutKey(b, out, dbKey); err != nil {
+	if err := PutKey(b, dbKey, out); err != nil {
 		return out, err
 	}
 	return out, nil
@@ -91,7 +91,7 @@ func EnumerateKeysFromSubBuckets[T comparable, E any](b *bbolt.Bucket, key []byt
 	err := b.ForEachBucket(func(k []byte) error {
 		sb := b.Bucket(k)
 		var md E
-		if err := GetKey(sb, &md, key); err != nil {
+		if err := GetKey(sb, key, &md); err != nil {
 			if errors.Is(err, ErrKeyNotFound) {
 				return fmt.Errorf("could not find key %s", key)
 			}
@@ -101,6 +101,19 @@ func EnumerateKeysFromSubBuckets[T comparable, E any](b *bbolt.Bucket, key []byt
 		return nil
 	})
 	return vals, err
+}
+
+func EnumerateKeys[T any](b *bbolt.Bucket, fn func(key []byte, val *T) error) error {
+	return b.ForEach(func(k, v []byte) error {
+		if v == nil {
+			return nil
+		}
+		md := new(T)
+		if err := msgpack.Unmarshal(v, md); err != nil {
+			return err
+		}
+		return fn(k, md)
+	})
 }
 
 type BucketKey struct {
@@ -155,7 +168,7 @@ func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKe
 	}
 
 	for _, kv := range bootstrap.InitialValues {
-		err = PutKey(b, kv.Value, kv.Key)
+		err = PutKey(b, kv.Key, kv.Value)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -169,6 +182,24 @@ func AddIncrementedSubBucket(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKe
 	}
 
 	return b, key, nil
+}
+
+func AddIncrementedKey(tx *bbolt.Tx, rootBucket BucketKey, path []BucketKey, key float64, value any) (float64, error) {
+	b, err := GetBucketFromRoot(tx, false, rootBucket, path...)
+	if err != nil {
+		return 0, err
+	}
+
+	if key == 0 {
+		key = NextBucketKeyWholeNumber(b)
+	}
+
+	err = PutKey(b, utils.Float64ToBytes(key), value)
+	if err != nil {
+		return 0, err
+	}
+
+	return key, nil
 }
 
 func DeleteBucketByPath(tx *bbolt.Tx, key []byte, rootKey BucketKey, path ...BucketKey) error {
@@ -238,6 +269,27 @@ func CopyBucket(src, dst *bbolt.Bucket) error {
 		}
 		return CopyBucket(subSrc, subDst)
 	})
+}
+
+var ErrKeyExists = errors.New("key already exists")
+var ErrNoKey = errors.New("key does not exist")
+
+// MoveKey copies a value from an old key to a new key and deletes the old key.
+func MoveKey(b *bbolt.Bucket, oldKey, newKey []byte) error {
+	v := b.Get(oldKey)
+	if v == nil {
+		return ErrNoKey
+	}
+
+	if b.Get(newKey) != nil {
+		return ErrKeyExists
+	}
+
+	if err := b.Put(newKey, v); err != nil {
+		return err
+	}
+
+	return b.Delete(oldKey)
 }
 
 var ErrBucketExists = errors.New("bucket already exists")

@@ -11,7 +11,7 @@ import * as Commands from '../../../bindings/gitlab.com/stexxo/dynocue/internal/
 import { Events } from '@wailsio/runtime';
 
 export interface CueList {
-    number: number;
+    cueListNumber: number;
     label: string;
     listType: string;
 }
@@ -30,66 +30,66 @@ function createCueListStore() {
         }
     }
 
-    async function updateMetadata(number: number, key: string, value: string) {
+    async function updateMetadata(cueListNumber: number, key: string, value: string) {
         try {
-            await Commands.UpdateCueListMetadata({ number: number, key: key, value: value });
+            await Commands.UpdateCueListMetadata({ cueListNumber: cueListNumber, key: key, value: value });
             // The store will be updated by the event handler
         } catch (err) {
-            console.error(`Failed to update cue list ${number} metadata:`, err);
+            console.error(`Failed to update cue list ${cueListNumber} metadata:`, err);
         }
     }
 
-    async function create(number: number = 0) {
+    async function create(cueListNumber: number = 0) {
         try {
-            await Commands.CreateCueList({ number: number });
+            await Commands.CreateCueList({ cueListNumber: cueListNumber });
             // The store will be updated by the event handler
         } catch (err) {
             console.error('Failed to create cue list:', err);
         }
     }
 
-    async function remove(number: number) {
+    async function remove(cueListNumber: number) {
         try {
-            await Commands.DeleteCueList({ number: number });
+            await Commands.DeleteCueList({ cueListNumber: cueListNumber });
             // The store will be updated by the event handler
         } catch (err) {
-            console.error(`Failed to delete cue list ${number}:`, err);
+            console.error(`Failed to delete cue list ${cueListNumber}:`, err);
         }
     }
 
-    async function move(originalNumber: number, newNumber: number) {
+    async function move(originalCueListNumber: number, newCueListNumber: number) {
         try {
-            await Commands.MoveCueList({ originalNumber: originalNumber, newNumber: newNumber });
+            await Commands.MoveCueList({ originalCueListNumber: originalCueListNumber, newCueListNumber: newCueListNumber });
             // The store will be updated by the event handlers (delete old, create new)
         } catch (err) {
-            console.error(`Failed to move cue list ${originalNumber} to ${newNumber}:`, err);
+            console.error(`Failed to move cue list ${originalCueListNumber} to ${newCueListNumber}:`, err);
         }
     }
 
     // Subscribe to backend events
     Events.On('event.cuelist.created', (event: any) => {
-        const { number, label, listType } = event.data;
+        const { cueListNumber, label, listType } = event.data;
         const result: CueList = {
-            number: number,
+            cueListNumber: cueListNumber,
             label: label,
             listType: listType
         };
         update(lists => {
             const newList = [...lists, result];
-            return newList.sort((a, b) => a.number - b.number);
+            return newList.sort((a, b) => a.cueListNumber - b.cueListNumber);
         });
     });
 
     Events.On('event.cuelist.updated', (event: any) => {
-        const { number, label, listType } = event.data;
+        const { cueListNumber, label, listType } = event.data;
         update(lists => lists.map(list => 
-            list.number === number ? { ...list, label: label, listType: listType } : list
+            list.cueListNumber === cueListNumber ? { ...list, label: label, listType: listType } : list
         ));
     });
 
     Events.On('event.cuelist.deleted', (event: any) => {
-        const number = event.data.number;
-        update(lists => lists.filter(list => list.number !== number));
+        const cueListNumber = event.data.cueListNumber;
+        update(lists => lists.filter(list => list.cueListNumber !== cueListNumber));
     });
 
     return {

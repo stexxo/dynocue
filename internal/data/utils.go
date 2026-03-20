@@ -26,3 +26,20 @@ func NextBucketWholeNumber(b *bbolt.Bucket) float64 {
 
 	return math.Floor(maxNum) + 1
 }
+
+func NextBucketKeyWholeNumber(b *bbolt.Bucket) float64 {
+	var maxNum float64
+	_ = b.ForEach(func(k, v []byte) error {
+		if v == nil {
+			return nil
+		}
+		if n, err := utils.BytesToFloat64(k); err == nil {
+			if n > maxNum {
+				maxNum = n
+			}
+		}
+		return nil
+	})
+
+	return math.Floor(maxNum) + 1
+}
