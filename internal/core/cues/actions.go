@@ -3,10 +3,10 @@ package cues
 import (
 	"log/slog"
 
-	apicues "gitlab.com/stexxo/dynocue/api/cues"
-	"gitlab.com/stexxo/dynocue/internal/data"
-	"gitlab.com/stexxo/dynocue/internal/utils"
-	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
+	apicues "github.com/stexxo/dynocue/api/cues"
+	"github.com/stexxo/dynocue/internal/data"
+	"github.com/stexxo/dynocue/internal/utils"
+	apibus "github.com/stexxo/dynocue/pkg/bus"
 	"go.etcd.io/bbolt"
 )
 
@@ -40,6 +40,9 @@ func (c *CueSystem) NewAction(sub string, in apicues.CreateActionInput) (*apibus
 		Action: apicues.CueAction{
 			ActionNumber: outNum,
 			Label:        md.Label,
+			SourceType:   md.SourceType,
+			Action:       md.Action,
+			Target:       md.Target,
 		},
 	}); err != nil {
 		slog.Error("failed to publish change event for new action", slog.String("err", err.Error()))
@@ -75,6 +78,9 @@ func (c *CueSystem) UpdateAction(sub string, in apicues.UpdateActionInput) (*api
 		Action: apicues.CueAction{
 			ActionNumber: in.ActionNumber,
 			Label:        outMetadata.Label,
+			SourceType:   outMetadata.SourceType,
+			Action:       outMetadata.Action,
+			Target:       outMetadata.Target,
 		},
 	}); err != nil {
 		slog.Error("failed to publish change event for update action", slog.String("err", err.Error()))
@@ -108,6 +114,9 @@ func (c *CueSystem) GetAction(sub string, in apicues.GetActionInput) (*apibus.Me
 			Action: apicues.CueAction{
 				ActionNumber: in.ActionNumber,
 				Label:        md.Label,
+				SourceType:   md.SourceType,
+				Action:       md.Action,
+				Target:       md.Target,
 			},
 		},
 	}, nil
@@ -133,6 +142,9 @@ func (c *CueSystem) EnumerateAction(sub string, in apicues.EnumerateActionInput)
 				Action: apicues.CueAction{
 					ActionNumber: num,
 					Label:        md.Label,
+					SourceType:   md.SourceType,
+					Action:       md.Action,
+					Target:       md.Target,
 				},
 			})
 			return nil

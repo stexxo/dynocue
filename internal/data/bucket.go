@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/stexxo/dynocue/internal/utils"
 	"github.com/vmihailenco/msgpack/v5"
-	"gitlab.com/stexxo/dynocue/internal/utils"
 	"go.etcd.io/bbolt"
 )
 

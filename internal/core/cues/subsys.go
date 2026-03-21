@@ -8,8 +8,8 @@ package cues
 
 import (
 	"github.com/nats-io/nats.go"
-	apicues "gitlab.com/stexxo/dynocue/api/cues"
-	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
+	apicues "github.com/stexxo/dynocue/api/cues"
+	apibus "github.com/stexxo/dynocue/pkg/bus"
 	"go.etcd.io/bbolt"
 )
 

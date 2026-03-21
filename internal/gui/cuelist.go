@@ -7,7 +7,7 @@
 package gui
 
 import (
-	"gitlab.com/stexxo/dynocue/api/cues"
+	"github.com/stexxo/dynocue/api/cues"
 )
 
 func (c *Commands) CreateCueList(input cues.CreateCueListInput) (*cues.CreateCueListOutput, error) {

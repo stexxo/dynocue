@@ -7,8 +7,8 @@
 package gui
 
 import (
+	"github.com/stexxo/dynocue/frontend"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"gitlab.com/stexxo/dynocue/frontend"
 )
 
 type Gui struct {

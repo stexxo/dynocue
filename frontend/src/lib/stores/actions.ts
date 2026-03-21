@@ -7,52 +7,64 @@
  */
 
 import { writable } from 'svelte/store';
-import * as Commands from '../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands';
-import { CueAction as Action } from '../../../bindings/git lab.com/stexxo/dynocue/api/cues/models';
+import * as Commands from '../../../bindings/github.com/stexxo/dynocue/internal/gui/commands';
+import { CueAction as Action } from '../../../bindings/github.com/stexxo/dynocue/api/cues/models';
 import { Events } from '@wailsio/runtime';
 
 function createActionStore() {
-    const { subscribe, set, update } = writable<Action[]>([]);
-    let currentCueListNumber: number | null = null;
-    let currentCueNumber: number | null = null;
+    const cueActions = new Map<string, {
+        subscribe: (run: (value: Action[]) => void) => () => void;
+        set: (value: Action[]) => void;
+        update: (updater: (value: Action[]) => Action[]) => void;
+    }>();
+
+    function getKey(cueListNumber: number, cueNumber: number) {
+        return `${cueListNumber}:${cueNumber}`;
+    }
+
+    function getStore(cueListNumber: number, cueNumber: number) {
+        const key = getKey(cueListNumber, cueNumber);
+        let store = cueActions.get(key);
+        if (!store) {
+            store = writable<Action[]>([]);
+            cueActions.set(key, store);
+        }
+        return store;
+    }
 
     async function refresh(cueListNumber: number, cueNumber: number) {
-        currentCueListNumber = cueListNumber;
-        currentCueNumber = cueNumber;
+        const store = getStore(cueListNumber, cueNumber);
         try {
             const result = await Commands.EnumerateAction({ cueListNumber, cueNumber });
             if (result && result.actions) {
-                // Backend returns list of GetActionOutput which has Action: CueAction { ActionNumber, Label }
-                set(result.actions.map((a: any) => a.action));
+                store.set(result.actions.map((a: any) => a.action));
             } else {
-                set([]);
+                store.set([]);
             }
         } catch (err) {
             console.error(`Failed to enumerate actions for cue ${cueNumber} in list ${cueListNumber}:`, err);
         }
     }
 
-    async function updateAction(actionNumber: number, key: string, value: string) {
-        if (currentCueListNumber === null || currentCueNumber === null) return;
+    async function updateAction(cueListNumber: number, cueNumber: number, actionNumber: number, key: string, value: string) {
         try {
             await Commands.UpdateAction({ 
-                cueListNumber: currentCueListNumber, 
-                cueNumber: currentCueNumber, 
+                cueListNumber, 
+                cueNumber, 
                 actionNumber, 
                 key, 
                 value 
             });
         } catch (err) {
-            console.error(`Failed to update action ${actionNumber} for cue ${currentCueNumber}:`, err);
+            console.error(`Failed to update action ${actionNumber} for cue ${cueNumber}:`, err);
         }
     }
 
-    async function create(actionNumber: number = 0) {
-        if (currentCueListNumber === null || currentCueNumber === null) return;
+    async function create(cueListNumber: number, cueNumber: number, actionNumber: number = 0) {
         try {
             await Commands.CreateAction({ 
-                cueListNumber: currentCueListNumber, 
-                cueNumber: currentCueNumber, 
+                cueListNumber, 
+                cueNumber, 
                 actionNumber 
             });
         } catch (err) {
@@ -60,12 +72,11 @@ function createActionStore() {
         }
     }
 
-    async function remove(actionNumber: number) {
-        if (currentCueListNumber === null || currentCueNumber === null) return;
+    async function remove(cueListNumber: number, cueNumber: number, actionNumber: number) {
         try {
             await Commands.DeleteAction({ 
-                cueListNumber: currentCueListNumber, 
-                cueNumber: currentCueNumber, 
+                cueListNumber, 
+                cueNumber, 
                 actionNumber 
             });
         } catch (err) {
@@ -73,12 +84,11 @@ function createActionStore() {
         }
     }
 
-    async function move(originalActionNumber: number, newActionNumber: number) {
-        if (currentCueListNumber === null || currentCueNumber === null) return;
+    async function move(cueListNumber: number, cueNumber: number, originalActionNumber: number, newActionNumber: number) {
         try {
             await Commands.MoveAction({ 
-                cueListNumber: currentCueListNumber, 
-                cueNumber: currentCueNumber, 
+                cueListNumber, 
+                cueNumber, 
                 originalActionNumber, 
                 newActionNumber 
             });
@@ -90,9 +100,10 @@ function createActionStore() {
     // Subscribe to backend events
     Events.On('event.action.created', (event: any) => {
         const { cueListNumber, cueNumber, action } = event.data;
-        if (cueListNumber !== currentCueListNumber || cueNumber !== currentCueNumber) return;
+        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        if (!store) return;
 
-        update(actions => {
+        store.update(actions => {
             const newActions = [...actions, action];
             return newActions.sort((a, b) => a.actionNumber - b.actionNumber);
         });
@@ -100,27 +111,34 @@ function createActionStore() {
 
     Events.On('event.action.updated', (event: any) => {
         const { cueListNumber, cueNumber, action } = event.data;
-        if (cueListNumber !== currentCueListNumber || cueNumber !== currentCueNumber) return;
+        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        if (!store) return;
 
-        update(actions => actions.map(a => 
+        store.update(actions => actions.map(a => 
             a.actionNumber === action.actionNumber ? action : a
         ));
     });
 
     Events.On('event.action.deleted', (event: any) => {
         const { cueListNumber, cueNumber, actionNumber } = event.data;
-        if (cueListNumber !== currentCueListNumber || cueNumber !== currentCueNumber) return;
+        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        if (!store) return;
 
-        update(actions => actions.filter(a => a.actionNumber !== actionNumber));
+        store.update(actions => actions.filter(a => a.actionNumber !== actionNumber));
     });
 
     return {
-        subscribe,
-        refresh,
-        updateAction,
-        create,
-        remove,
-        move
+        forCue: (cueListNumber: number, cueNumber: number) => {
+            const store = getStore(cueListNumber, cueNumber);
+            return {
+                subscribe: store.subscribe,
+                refresh: () => refresh(cueListNumber, cueNumber),
+                updateAction: (actionNumber: number, key: string, value: string) => updateAction(cueListNumber, cueNumber, actionNumber, key, value),
+                create: (actionNumber: number = 0) => create(cueListNumber, cueNumber, actionNumber),
+                remove: (actionNumber: number) => remove(cueListNumber, cueNumber, actionNumber),
+                move: (originalActionNumber: number, newActionNumber: number) => move(cueListNumber, cueNumber, originalActionNumber, newActionNumber)
+            };
+        }
     };
 }
 

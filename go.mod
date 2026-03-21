@@ -1,4 +1,4 @@
-module gitlab.com/stexxo/dynocue
+module github.com/stexxo/dynocue
 
 go 1.26
 

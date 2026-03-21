@@ -6,7 +6,7 @@
 
 package cues
 
-import "gitlab.com/stexxo/dynocue/internal/data"
+import "github.com/stexxo/dynocue/internal/data"
 
 var (
 	BucketCueListKey = data.NewStringBucketKey("cuelists", true)
@@ -27,5 +27,8 @@ type CueMetadataDbModel struct {
 }
 
 type ActionDbModel struct {
-	Label string `msgpack:"label"`
+	Label      string  `msgpack:"label"`
+	SourceType string  `msgpack:"sourceType"`
+	Action     string  `msgpack:"action"`
+	Target     float64 `msgpack:"target"`
 }

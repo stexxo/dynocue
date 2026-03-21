@@ -11,10 +11,10 @@ import (
 	"log/slog"
 	"slices"
 
-	apicues "gitlab.com/stexxo/dynocue/api/cues"
-	"gitlab.com/stexxo/dynocue/internal/data"
-	"gitlab.com/stexxo/dynocue/internal/utils"
-	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
+	apicues "github.com/stexxo/dynocue/api/cues"
+	"github.com/stexxo/dynocue/internal/data"
+	"github.com/stexxo/dynocue/internal/utils"
+	apibus "github.com/stexxo/dynocue/pkg/bus"
 	"go.etcd.io/bbolt"
 	berrors "go.etcd.io/bbolt/errors"
 )

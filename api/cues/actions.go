@@ -35,6 +35,9 @@ type CreateActionOutput struct {
 type CueAction struct {
 	ActionNumber float64 `json:"actionNumber" msgpack:"actionNumber"`
 	Label        string  `json:"label" msgpack:"label"`
+	SourceType   string  `json:"sourceType" msgpack:"sourceType"`
+	Action       string  `json:"action" msgpack:"action"`
+	Target       float64 `json:"target" msgpack:"target"`
 }
 
 type NewActionEvent struct {

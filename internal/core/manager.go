@@ -13,8 +13,8 @@ import (
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
-	ibus "gitlab.com/stexxo/dynocue/internal/bus"
-	"gitlab.com/stexxo/dynocue/internal/core/cues"
+	ibus "github.com/stexxo/dynocue/internal/bus"
+	"github.com/stexxo/dynocue/internal/core/cues"
 	"go.etcd.io/bbolt"
 )
 

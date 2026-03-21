@@ -78,6 +78,7 @@
         items={$cueLists}
         {columns}
         {toolbar}
+        rowKey={(item) => item.cueListNumber}
     />
 </div>
 

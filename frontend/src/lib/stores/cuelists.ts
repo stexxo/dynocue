@@ -7,8 +7,8 @@
  */
 
 import { writable } from 'svelte/store';
-import * as Commands from '../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands';
-import { CueList } from '../../../bindings/gitlab.com/stexxo/dynocue/api/cues';
+import * as Commands from '../../../bindings/github.com/stexxo/dynocue/internal/gui/commands';
+import { CueList } from '../../../bindings/github.com/stexxo/dynocue/api/cues';
 import { Events } from '@wailsio/runtime';
 
 function createCueListStore() {

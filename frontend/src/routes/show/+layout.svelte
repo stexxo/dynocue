@@ -4,7 +4,7 @@
 	import { pageTitle } from '$lib/stores/header';
 	let { children } = $props();
 	let loading = $state(false);
-	import {CloseShow, OpenShow} from "../../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands";
+	import {CloseShow, OpenShow} from "../../../bindings/github.com/stexxo/dynocue/internal/gui/commands";
 	import {Dialogs, Window} from "@wailsio/runtime";
 
 	const pages = [

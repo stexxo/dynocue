@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"github.com/nats-io/nats.go"
+	"github.com/stexxo/dynocue/internal/core"
+	apibus "github.com/stexxo/dynocue/pkg/bus"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"gitlab.com/stexxo/dynocue/internal/core"
-	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
 )
 
 // Commands handles backend operations exposed to the frontend,

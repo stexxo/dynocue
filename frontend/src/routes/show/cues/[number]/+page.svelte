@@ -5,13 +5,14 @@
     import DataTable, { type ToolbarButton, type ColumnConfig } from '$lib/components/DataTable.svelte';
     import EditCueModal from './EditCueModal.svelte';
     import { cues } from '$lib/stores/cues';
-    import type { Cue } from '../../../bindings/gitlab.com/stexxo/dynocue/api/cues/models';
+    import type { Cue } from '../../../bindings/github.com/stexxo/dynocue/api/cues/models';
     import { goto } from '$app/navigation';
 
     const cueListNumber = parseFloat(page.params.number || '0');
+    const cueStore = cues.byListNumber(cueListNumber);
 
     onMount(() => {
-        cues.refresh(cueListNumber);
+        cueStore.refresh();
     });
 
     $effect(() => {
@@ -37,7 +38,7 @@
             onSave: (item: Cue, newValue: string) => {
                 const newNum = parseFloat(newValue);
                 if (!isNaN(newNum) && newNum > 0) {
-                    return cues.move(item.cueNumber, newNum);
+                    return cueStore.move(item.cueNumber, newNum);
                 }
             }
         },
@@ -46,7 +47,7 @@
             label: 'Label', 
             minWidth: 'min-w-50', 
             editable: true,
-            onSave: (item: Cue, newValue: string) => cues.updateMetadata(item.cueNumber, 'label', newValue)
+            onSave: (item: Cue, newValue: string) => cueStore.updateMetadata(item.cueNumber, 'label', newValue)
         },
         {
             label: '',
@@ -71,14 +72,14 @@
             label: 'Add Cue',
             class: 'btn-primary',
             icon: addIcon,
-            onclick: () => cues.create(0)
+            onclick: () => cueStore.create(0)
         },
         {
             label: 'Delete Selected',
             class: 'btn-error btn-outline',
             icon: deleteIcon,
             disabled: (selected) => selected.length === 0,
-            onclick: (selected) => Promise.all(selected.map(item => cues.remove(item.cueNumber)))
+            onclick: (selected) => Promise.all(selected.map(item => cueStore.remove(item.cueNumber)))
         }
     ];
 </script>
@@ -111,10 +112,11 @@
 
 <div class="flex flex-col h-[calc(100vh-(--spacing(12))-(--spacing(10)))]">
     <DataTable
-        items={$cues}
+        items={$cueStore}
         {columns}
         {toolbar}
+        rowKey={(item) => item.cueNumber}
     />
 </div>
 
-<EditCueModal cue={editingCue} onClose={closeEditModal} />
+<EditCueModal cueListNumber={cueListNumber} cue={editingCue} onClose={closeEditModal} />

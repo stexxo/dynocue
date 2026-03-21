@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"os"
 
-	"gitlab.com/stexxo/dynocue/internal/gui"
+	"github.com/stexxo/dynocue/internal/gui"
 )
 
 func main() {

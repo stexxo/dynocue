@@ -22,31 +22,29 @@
         align?: 'left' | 'right' | 'center';
     }
 
-    interface Props<T extends { number?: number; cueNumber?: number; cueListNumber?: number; actionNumber?: number }> {
+    interface Props<T> {
         items: T[];
         columns: ColumnConfig<T>[];
         toolbar?: ToolbarButton<T>[];
         isActive?: (item: T) => boolean;
+        rowKey: (item: T) => string | number;
     }
 
     let {
         items,
         columns,
         toolbar = [],
-        isActive = () => false
+        isActive = () => false,
+        rowKey
     }: Props<any> = $props();
 
-    function getItemNumber(item: any): number {
-        return item.cueListNumber ?? item.cueNumber ?? item.actionNumber ?? item.number;
-    }
-
-    let selectedNumbers = $state(new SvelteSet<number>());
-    let editingCell = $state<{ number: number; key: any } | null>(null);
+    let selectedKeys = $state(new SvelteSet<string | number>());
+    let editingCell = $state<{ key: string | number; columnKey: any } | null>(null);
     let editValue = $state('');
     let initialValue = $state('');
 
-    let allSelected = $derived(items.length > 0 && selectedNumbers.size === items.length);
-    let someSelected = $derived(selectedNumbers.size > 0 && !allSelected);
+    let allSelected = $derived(items.length > 0 && selectedKeys.size === items.length);
+    let someSelected = $derived(selectedKeys.size > 0 && !allSelected);
 
     let selectAllCheckbox = $state<HTMLInputElement | null>(null);
 
@@ -58,40 +56,34 @@
 
     function toggleSelectAll() {
         if (allSelected) {
-            selectedNumbers.clear();
+            selectedKeys.clear();
         } else {
             for (const item of items) {
-                selectedNumbers.add(getItemNumber(item));
+                selectedKeys.add(rowKey(item));
             }
         }
     }
 
-    function toggleSelect(number: number) {
-        if (selectedNumbers.has(number)) {
-            selectedNumbers.delete(number);
+    function toggleSelect(key: string | number) {
+        if (selectedKeys.has(key)) {
+            selectedKeys.delete(key);
         } else {
-            selectedNumbers.add(number);
+            selectedKeys.add(key);
         }
     }
 
-    let selectedItems = $derived(items.filter(item => selectedNumbers.has(getItemNumber(item))));
+    let selectedItems = $derived(items.filter(item => selectedKeys.has(rowKey(item))));
 
     async function handleToolbarClick(button: ToolbarButton<any>) {
         await button.onclick(selectedItems);
-        // If the action was likely a deletion or something that should clear selection, 
-        // we should probably clear selection if the items are no longer in 'items'
-        // but for now let's just let the caller handle it or we can clear if they want.
-        // Usually, if you delete selected, you want the selection cleared.
-        // We'll clear it if the number of selected items changes significantly or just always clear?
-        // Actually, let's just clear it to be safe if it's a multi-item action.
-        if (selectedNumbers.size > 0) {
-            selectedNumbers.clear();
+        if (selectedKeys.size > 0) {
+            selectedKeys.clear();
         }
     }
 
     function startEditing(item: any, column: ColumnConfig<any>) {
         if (!column.editable || !column.key) return;
-        editingCell = { number: getItemNumber(item), key: column.key };
+        editingCell = { key: rowKey(item), columnKey: column.key };
         editValue = String(item[column.key]);
         initialValue = editValue;
     }
@@ -158,17 +150,17 @@
                 </tr>
             </thead>
             <tbody>
-                {#each items as item (getItemNumber(item))}
-                    <tr class="h-12 {selectedNumbers.has(getItemNumber(item)) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
+                {#each items as item (rowKey(item))}
+                    <tr class="h-12 {selectedKeys.has(rowKey(item)) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
                         <td>
                             <label>
                                 <input type="checkbox" class="checkbox checkbox-sm"
-                                       checked={selectedNumbers.has(getItemNumber(item))}
-                                       onchange={() => toggleSelect(getItemNumber(item))} />
+                                       checked={selectedKeys.has(rowKey(item))}
+                                       onchange={() => toggleSelect(rowKey(item))} />
                             </label>
                         </td>
                         {#each columns as column}
-                            {@const isEditing = column.key && editingCell?.number === getItemNumber(item) && editingCell?.key === column.key}
+                            {@const isEditing = column.key && editingCell?.key === rowKey(item) && editingCell?.columnKey === column.key}
                             <td
                                 onclick={() => startEditing(item, column)}
                                 class="p-0 {column.editable ? 'cursor-pointer hover:bg-base-200 transition-colors' : ''}"

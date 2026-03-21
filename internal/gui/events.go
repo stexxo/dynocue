@@ -10,8 +10,8 @@ import (
 	"errors"
 	"log/slog"
 
-	"gitlab.com/stexxo/dynocue/api/cues"
-	apibus "gitlab.com/stexxo/dynocue/pkg/bus"
+	"github.com/stexxo/dynocue/api/cues"
+	apibus "github.com/stexxo/dynocue/pkg/bus"
 )
 
 func (c *Commands) SubscribeToAll() error {

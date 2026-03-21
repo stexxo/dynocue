@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Dialogs } from "@wailsio/runtime";
 	import {Window} from "@wailsio/runtime";
-	import {OpenShow} from "../../bindings/gitlab.com/stexxo/dynocue/internal/gui/commands";
+	import {OpenShow} from "../../bindings/github.com/stexxo/dynocue/internal/gui/commands";
 	import { goto } from '$app/navigation';
 
 	let menuPage = "main"

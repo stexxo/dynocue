@@ -9,11 +9,11 @@ package utils
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 // SetFieldByTag updates a field in a struct based on its tag and value.
 // It searches for a field with the given tagName and value, and sets it to newVal.
-// Only string fields are supported for now as per current requirements.
 func SetFieldByTag(obj any, tagName string, tagValue string, newVal string) error {
 	v := reflect.ValueOf(obj)
 	if v.Kind() != reflect.Ptr || v.Elem().Kind() != reflect.Struct {
@@ -28,11 +28,20 @@ func SetFieldByTag(obj any, tagName string, tagValue string, newVal string) erro
 		tag := f.Tag.Get(tagName)
 		if tag == tagValue {
 			fieldVal := v.Field(i)
-			if fieldVal.Kind() == reflect.String {
+			switch fieldVal.Kind() {
+			case reflect.String:
 				fieldVal.SetString(newVal)
 				return nil
+			case reflect.Float64:
+				val, err := strconv.ParseFloat(newVal, 64)
+				if err != nil {
+					return fmt.Errorf("failed to parse float: %w", err)
+				}
+				fieldVal.SetFloat(val)
+				return nil
+			default:
+				return fmt.Errorf("field type %s is not supported", fieldVal.Kind())
 			}
-			return fmt.Errorf("field %s is not a string", tagValue)
 		}
 	}
 
