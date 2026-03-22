@@ -128,7 +128,7 @@ function createActionStore() {
     });
 
     return {
-        forCue: (cueListNumber: number, cueNumber: number) => {
+        byCue: (cueListNumber: number, cueNumber: number) => {
             const store = getStore(cueListNumber, cueNumber);
             return {
                 subscribe: store.subscribe,

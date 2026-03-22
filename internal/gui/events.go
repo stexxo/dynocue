@@ -41,7 +41,7 @@ func subscribe[T any](c *Commands, subject string, handler apibus.SubscribeHandl
 
 func emitEventHandler[T any](c *Commands) apibus.SubscribeHandler[T] {
 	return func(s string, t T) {
-		slog.Info("got event " + s)
+		slog.Debug("got event " + s)
 		c.app.Event.Emit(s, t)
 	}
 }

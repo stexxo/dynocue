@@ -104,7 +104,7 @@ function createCueStore() {
     });
 
     return {
-        byListNumber: (cueListNumber: number) => {
+        byCueList: (cueListNumber: number) => {
             const store = getStore(cueListNumber);
             return {
                 subscribe: store.subscribe,

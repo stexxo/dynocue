@@ -9,7 +9,7 @@
     import { goto } from '$app/navigation';
 
     const cueListNumber = parseFloat(page.params.number || '0');
-    const cueStore = cues.byListNumber(cueListNumber);
+    const cueStore = cues.byCueList(cueListNumber);
 
     onMount(() => {
         cueStore.refresh();
@@ -33,7 +33,7 @@
         { 
             key: 'cueNumber', 
             label: '#', 
-            width: 'w-24', 
+            class: 'w-10',
             editable: true,
             onSave: (item: Cue, newValue: string) => {
                 const newNum = parseFloat(newValue);
@@ -44,15 +44,14 @@
         },
         { 
             key: 'label', 
-            label: 'Label', 
-            minWidth: 'min-w-50', 
+            label: 'Label',
+            class: 'min-w-60',
             editable: true,
             onSave: (item: Cue, newValue: string) => cueStore.updateMetadata(item.cueNumber, 'label', newValue)
         },
         {
             label: '',
-            width: 'w-10',
-            align: 'right',
+            class: 'w-50',
             snippet: rowEnd
         }
     ];
@@ -103,10 +102,11 @@
 {/snippet}
 
 {#snippet rowEnd(cue)}
-    <button class="btn btn-ghost btn-xs btn-square" onclick={() => openEditModal(cue)} aria-label="Edit Cue">
+    <button class="btn btn-ghost" onclick={() => openEditModal(cue)} aria-label="Edit Cue">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0l1.514-1.515" />
         </svg>
+        Edit Actions
     </button>
 {/snippet}
 
@@ -115,6 +115,7 @@
         items={$cueStore}
         {columns}
         {toolbar}
+        activeKey={1}
         rowKey={(item) => item.cueNumber}
     />
 </div>

@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { cueLists } from '$lib/stores/cuelists';
     import DataTable, { type ToolbarButton, type ColumnConfig } from '$lib/components/DataTable.svelte';
-    import type { CueList } from '$lib/stores/cuelists';
+    import type { CueList } from "../../../../bindings/github.com/stexxo/dynocue/api/cues";
 
     onMount(() => {
         cueLists.refresh();
@@ -11,8 +11,8 @@
     const columns: ColumnConfig<CueList>[] = [
         { 
             key: 'cueListNumber', 
-            label: '#', 
-            width: 'w-24', 
+            label: '#',
+            class: 'w-24',
             editable: true,
             onSave: (item: CueList, newValue: string) => {
                 const newNum = parseFloat(newValue);
@@ -23,15 +23,14 @@
         },
         { 
             key: 'label', 
-            label: 'Label', 
-            minWidth: 'min-w-50', 
+            label: 'Label',
+            class: 'min-w-50',
             editable: true,
             onSave: (item: CueList, newValue: string) => cueLists.updateMetadata(item.cueListNumber, 'label', newValue)
         },
         {
             label: '',
-            width: 'w-10',
-            align: 'right',
+            class: 'w-10',
             snippet: rowEnd
         }
     ];
@@ -73,7 +72,7 @@
     </a>
 {/snippet}
 
-<div class="flex flex-col h-[calc(100vh-theme(spacing.12)-theme(spacing.10))]">
+<div class="flex flex-col h-[calc(100vh-(--spacing(12))-(--spacing(10)))]">
     <DataTable
         items={$cueLists}
         {columns}

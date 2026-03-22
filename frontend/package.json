@@ -32,6 +32,7 @@
 		"vite": "^8.0.0"
 	},
 	"dependencies": {
+		"@svar-ui/svelte-grid": "^2.6.0",
 		"@wailsio/runtime": "^3.0.0-alpha.78"
 	}
 }

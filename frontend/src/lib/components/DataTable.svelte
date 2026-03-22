@@ -14,19 +14,17 @@
     export interface ColumnConfig<T> {
         key?: keyof T;
         label: string;
-        width?: string;
-        minWidth?: string;
+        class?: string;
         editable?: boolean;
         onSave?: (item: T, newValue: string) => Promise<any> | any;
         snippet?: Snippet<[T]>;
-        align?: 'left' | 'right' | 'center';
     }
 
     interface Props<T> {
         items: T[];
         columns: ColumnConfig<T>[];
         toolbar?: ToolbarButton<T>[];
-        isActive?: (item: T) => boolean;
+        activeKey: string | number;
         rowKey: (item: T) => string | number;
     }
 
@@ -34,9 +32,9 @@
         items,
         columns,
         toolbar = [],
-        isActive = () => false,
+        activeKey,
         rowKey
-    }: Props<any> = $props();
+    }: Props<T> = $props();
 
     let selectedKeys = $state(new SvelteSet<string | number>());
     let editingCell = $state<{ key: string | number; columnKey: any } | null>(null);
@@ -110,6 +108,7 @@
             cancelEdit();
         }
     }
+
 </script>
 
 <div class="flex flex-col h-full">
@@ -145,13 +144,13 @@
                         </label>
                     </th>
                     {#each columns as column}
-                        <th class="{column.width} {column.minWidth} {column.align === 'right' ? 'text-right' : ''} {column.align === 'center' ? 'text-center' : ''}">{column.label}</th>
+                        <th class="{column.class}">{column.label}</th>
                     {/each}
                 </tr>
             </thead>
             <tbody>
                 {#each items as item (rowKey(item))}
-                    <tr class="h-12 {selectedKeys.has(rowKey(item)) ? 'bg-base-300' : ''} {isActive(item) ? 'bg-primary text-primary-content' : ''}">
+                    <tr class="h-12 {selectedKeys.has(rowKey(item)) ? 'bg-base-300' : ''} {activeKey === rowKey(item) ? 'bg-primary text-primary-content' : ''}">
                         <td>
                             <label>
                                 <input type="checkbox" class="checkbox checkbox-sm"
@@ -166,7 +165,7 @@
                                 class="p-0 {column.editable ? 'cursor-pointer hover:bg-base-200 transition-colors' : ''}"
                                 title={column.editable ? `Click to edit ${column.label.toLowerCase()}` : ''}
                             >
-                                <div class="flex items-center h-full px-4 {column.align === 'right' ? 'justify-end' : ''} {column.align === 'center' ? 'justify-center' : ''}">
+                                <div class="flex items-center h-full px-4">
                                     {#if isEditing && column.key}
                                         <input
                                             type="text"
