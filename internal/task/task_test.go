@@ -4,7 +4,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-package engine
+package task
 
 import (
 	"sync/atomic"

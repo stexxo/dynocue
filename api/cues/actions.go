@@ -33,17 +33,17 @@ type CreateActionOutput struct {
 }
 
 type CueAction struct {
-	ActionNumber float64 `json:"actionNumber" msgpack:"actionNumber"`
-	Label        string  `json:"label" msgpack:"label"`
-	SourceType   string  `json:"sourceType" msgpack:"sourceType"`
-	Action       string  `json:"action" msgpack:"action"`
-	Target       float64 `json:"target" msgpack:"target"`
+	CueListNumber float64 `json:"cueListNumber" msgpack:"cueListNumber"`
+	CueNumber     float64 `json:"cueNumber" msgpack:"cueNumber"`
+	ActionNumber  float64 `json:"actionNumber" msgpack:"actionNumber"`
+	Label         string  `json:"label" msgpack:"label"`
+	SourceType    string  `json:"sourceType" msgpack:"sourceType"`
+	Action        string  `json:"action" msgpack:"action"`
+	Target        float64 `json:"target" msgpack:"target"`
 }
 
 type NewActionEvent struct {
-	CueListNumber float64   `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64   `json:"cueNumber" msgpack:"cueNumber"`
-	Action        CueAction `json:"action" msgpack:"action"`
+	Action CueAction `json:"action" msgpack:"action"`
 }
 
 type UpdateActionInput struct {
@@ -57,9 +57,7 @@ type UpdateActionInput struct {
 type UpdateActionOutput struct{}
 
 type UpdateActionEvent struct {
-	CueListNumber float64   `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64   `json:"cueNumber" msgpack:"cueNumber"`
-	Action        CueAction `json:"action" msgpack:"action"`
+	Action CueAction `json:"action" msgpack:"action"`
 }
 
 type GetActionInput struct {
@@ -69,9 +67,7 @@ type GetActionInput struct {
 }
 
 type GetActionOutput struct {
-	CueListNumber float64   `json:"cueListNumber" msgpack:"cueListNumber"`
-	CueNumber     float64   `json:"cueNumber" msgpack:"cueNumber"`
-	Action        CueAction `json:"action" msgpack:"action"`
+	Action CueAction `json:"action" msgpack:"action"`
 }
 
 type EnumerateActionInput struct {

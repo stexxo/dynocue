@@ -7,8 +7,11 @@
 package cues
 
 import (
+	"time"
+
 	"github.com/nats-io/nats.go"
 	apicues "github.com/stexxo/dynocue/api/cues"
+	"github.com/stexxo/dynocue/internal/task"
 	apibus "github.com/stexxo/dynocue/pkg/bus"
 	"go.etcd.io/bbolt"
 )
@@ -16,16 +19,20 @@ import (
 // CueSystem manages the cue and cue list operations, handling communication
 // between the NATS messaging bus and the bbolt database.
 type CueSystem struct {
-	conn *nats.Conn
-	db   *bbolt.DB
+	conn     *nats.Conn
+	db       *bbolt.DB
+	engine   *task.Engine
+	playback *PlaybackManager
 }
 
 // NewCues initializes a new CueSystem, setting up NATS responders for all
 // cue and cue list related requests.
 func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	c := &CueSystem{
-		conn: conn,
-		db:   db,
+		conn:     conn,
+		db:       db,
+		engine:   task.NewEngine(10 * time.Millisecond),
+		playback: &PlaybackManager{},
 	}
 
 	if _, err := apibus.Reply(conn, apicues.RequestCreateCueList, c.NewCueList); err != nil {
@@ -82,6 +89,11 @@ func NewCues(conn *nats.Conn, db *bbolt.DB) (*CueSystem, error) {
 	if _, err := apibus.Reply(conn, apicues.RequestMoveAction, c.MoveAction); err != nil {
 		return nil, err
 	}
+	if _, err := apibus.Reply(conn, apicues.RequestPlaybackExecute, c.ExecuteCue); err != nil {
+		return nil, err
+	}
+
+	c.engine.Start()
 
 	return c, nil
 }

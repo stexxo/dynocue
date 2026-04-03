@@ -99,8 +99,8 @@ function createActionStore() {
 
     // Subscribe to backend events
     Events.On('event.action.created', (event: any) => {
-        const { cueListNumber, cueNumber, action } = event.data;
-        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        const { action } = event.data;
+        const store = cueActions.get(getKey(action.cueListNumber, action.cueNumber));
         if (!store) return;
 
         store.update(actions => {
@@ -110,8 +110,8 @@ function createActionStore() {
     });
 
     Events.On('event.action.updated', (event: any) => {
-        const { cueListNumber, cueNumber, action } = event.data;
-        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        const { action } = event.data;
+        const store = cueActions.get(getKey(action.cueListNumber, action.cueNumber));
         if (!store) return;
 
         store.update(actions => actions.map(a => 
@@ -120,11 +120,11 @@ function createActionStore() {
     });
 
     Events.On('event.action.deleted', (event: any) => {
-        const { cueListNumber, cueNumber, actionNumber } = event.data;
-        const store = cueActions.get(getKey(cueListNumber, cueNumber));
+        const { action } = event.data;
+        const store = cueActions.get(getKey(action.cueListNumber, action.cueNumber));
         if (!store) return;
 
-        store.update(actions => actions.filter(a => a.actionNumber !== actionNumber));
+        store.update(actions => actions.filter(a => a.actionNumber !== action.actionNumber));
     });
 
     return {
