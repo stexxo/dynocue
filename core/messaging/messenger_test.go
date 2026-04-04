@@ -1,6 +1,7 @@
 package messaging
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -106,5 +107,113 @@ func TestPublishSubscribe(t *testing.T) {
 		subs, ok := messenger.GetSubscriptions("test.test")
 		assert.True(t, ok)
 		assert.Len(t, subs, 1)
+	})
+}
+
+func TestRequestReply(t *testing.T) {
+	t.Parallel()
+	s, nc := testServer()
+	defer nc.Close()
+	defer s.Shutdown()
+
+	t.Run("Request-Reply Success", func(t *testing.T) {
+		messenger := NewMessenger(&MessengerCfg{Conn: nc})
+
+		err := Reply(messenger, false, "test.request", func(s string, req string) (*string, error) {
+			assert.Equal(t, "test.request", s)
+			assert.Equal(t, "ping", req)
+			resp := "pong"
+			return &resp, nil
+		})
+		assert.NoError(t, err)
+
+		resp, err := Request[string](messenger, "test.request", "ping")
+		assert.NoError(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "pong", *resp.Response)
+		assert.Empty(t, resp.Error)
+	})
+
+	t.Run("Request-Reply with validation success", func(t *testing.T) {
+		messenger := NewMessenger(&MessengerCfg{Conn: nc})
+
+		type ReqResp struct {
+			Data string `validate:"required"`
+		}
+
+		err := Reply(messenger, true, "test.validate", func(s string, req ReqResp) (*ReqResp, error) {
+			return &ReqResp{Data: "Received: " + req.Data}, nil
+		})
+		assert.NoError(t, err)
+
+		resp, err := Request[ReqResp](messenger, "test.validate", ReqResp{Data: "hello"})
+		assert.NoError(t, err)
+		assert.True(t, resp.Success)
+		assert.Equal(t, "Received: hello", resp.Response.Data)
+	})
+
+	t.Run("Request-Reply with validation failure", func(t *testing.T) {
+		messenger := NewMessenger(&MessengerCfg{Conn: nc})
+
+		type ReqResp struct {
+			Data string `validate:"required"`
+		}
+
+		err := Reply(messenger, true, "test.validate.fail", func(s string, req ReqResp) (*ReqResp, error) {
+			res := ReqResp{Data: "should not reach"}
+			return &res, nil
+		})
+		assert.NoError(t, err)
+
+		resp, err := Request[ReqResp](messenger, "test.validate.fail", ReqResp{Data: ""})
+		assert.NoError(t, err)
+		assert.False(t, resp.Success)
+		assert.Contains(t, resp.Error, "Request body in invalid.")
+	})
+
+	t.Run("Request-Reply with FriendlyError including internal error", func(t *testing.T) {
+		messenger := NewMessenger(&MessengerCfg{Conn: nc})
+
+		internalErr := errors.New("database connection failed")
+		err := Reply(messenger, false, "test.friendly.internal", func(s string, req string) (*string, error) {
+			return nil, &FriendlyError{
+				Err:         internalErr,
+				FriendlyErr: "Could not save data.",
+			}
+		})
+		assert.NoError(t, err)
+
+		resp, err := Request[string](messenger, "test.friendly.internal", "ping")
+		assert.NoError(t, err)
+		assert.False(t, resp.Success)
+		assert.Equal(t, "Could not save data.", resp.Error)
+	})
+
+	t.Run("Request-Reply with unexpected error", func(t *testing.T) {
+		messenger := NewMessenger(&MessengerCfg{Conn: nc})
+
+		err := Reply(messenger, false, "test.unexpected", func(s string, req string) (*string, error) {
+			return nil, errors.New("something went wrong")
+		})
+		assert.NoError(t, err)
+
+		resp, err := Request[string](messenger, "test.unexpected", "ping")
+		assert.NoError(t, err)
+		assert.False(t, resp.Success)
+		assert.Equal(t, "Encountered unexpected error while processing request.", resp.Error)
+	})
+
+	t.Run("FriendlyError formatting", func(t *testing.T) {
+		fe := &FriendlyError{
+			Err:         errors.New("internal"),
+			FriendlyErr: "friendly",
+		}
+		assert.Equal(t, "friendly: internal", fe.Error())
+		assert.Equal(t, "internal", fe.Unwrap().Error())
+
+		fe2 := &FriendlyError{
+			FriendlyErr: "only friendly",
+		}
+		assert.Equal(t, "only friendly", fe2.Error())
 	})
 }
