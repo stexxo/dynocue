@@ -9,11 +9,15 @@ package main
 import (
 	"log/slog"
 	"os"
+
+	"github.com/stexxo/dynocue/gui"
 )
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 
+	g := gui.NewGui()
+	g.Run()
 	slog.Info("DynoCue has shutdown")
 }
