@@ -67,6 +67,6 @@ tasks:
     desc: "Cleanup build artifacts"
     cmds:
       - rm -rf out/
-      - rm -rf frontend/dist/
-      - rm -rf frontend/bindings
-      - rm -rf frontend/bindings
+      - rm -rf gui/frontend/dist/
+      - rm -rf gui/frontend/bindings
+      - rm -rf gui/frontend/bindings

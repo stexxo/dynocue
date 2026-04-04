@@ -2,8 +2,8 @@
 out
 .task
 bin
-frontend/dist
-frontend/node_modules
+gui/frontend/dist
+gui/frontend/node_modules
 build/linux/appimage/build
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
-frontend/bindings
+gui/frontend/bindings
