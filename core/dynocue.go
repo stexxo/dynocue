@@ -7,6 +7,7 @@ package core
 import (
 	"cmp"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -35,7 +36,12 @@ type DynoCue struct {
 }
 
 func NewDynoCue(cfg *Config) (*DynoCue, error) {
-	s, err := server.NewServer(&server.Options{})
+	s, err := server.NewServer(&server.Options{
+		JetStream:  true,
+		ServerName: "DynoCue",
+		StoreDir:   os.TempDir() + "/dynocue",
+		MaxPayload: 1024 * 1024 * 64,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +58,14 @@ func NewDynoCue(cfg *Config) (*DynoCue, error) {
 func (d *DynoCue) Start() error {
 	if d.started.Load() {
 		return nil
+	}
+
+	d.server.Start()
+	for range 10 {
+		if !d.server.Running() {
+			time.Sleep(50 * time.Millisecond)
+		}
+		break
 	}
 
 	execgroup := errgroup.Group{}
@@ -71,7 +85,7 @@ func (d *DynoCue) Start() error {
 		return err
 	}
 
-	d.server.Start()
+	d.started.Store(true)
 
 	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"os"
 
 	"github.com/stexxo/dynocue/core"
+	"github.com/stexxo/dynocue/core/components/show"
+	"github.com/stexxo/dynocue/core/components/system"
 	"github.com/stexxo/dynocue/gui"
 )
 
@@ -18,8 +20,11 @@ func main() {
 
 	// Build Core
 	d, err := core.NewDynoCue(&core.Config{
-		Logger:     logger,
-		Subsystems: []core.Subsystem{},
+		Logger: logger,
+		Subsystems: []core.Subsystem{
+			system.NewPersistence(logger),
+			show.NewShow(logger),
+		},
 	})
 	if err != nil {
 		slog.Error("Failed to start DynoCue core", "error", err)
