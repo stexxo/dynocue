@@ -123,12 +123,14 @@ type PersistenceSaveResponse struct{}
 
 const PersistenceSaveRequestSubject = "request.system.persistence.save"
 
+// SaveRequest handles a persistence save request by orchestrating the saving of all registered subsystems
+// and then atomically updating the project's zip file.
 func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*PersistenceSaveResponse, error) {
 	if in.Location == "" && p.savePath == "" {
 		return nil, &messaging.FriendlyError{FriendlyErr: "No location provided to save to"}
 	}
 
-	// Ask all Subsystems to Save
+	// Trigger a save across all registered subsystems.
 	p.Logger().Debug("asking subsystems to save to stores")
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
@@ -141,119 +143,148 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 
 	p.Logger().Debug("waiting for subsystem replies")
 	if err := execgroup.Wait(); err != nil {
+		p.Logger().Error("subsystems failed to save", "error", err)
 		return nil, err
 	}
+	p.Logger().Debug("subsystems saved successfully")
 
 	p.savePath = cmp.Or(in.Location, p.savePath)
 
-	// 2. Prepare the Atomic Swap (Temp file)
+	// Prepare for an atomic swap by writing to a temporary file.
 	tempPath := p.savePath + ".tmp"
 	newFile, err := os.Create(tempPath)
 	if err != nil {
+		p.Logger().Error("failed to create temporary file for saving", "path", tempPath, "error", err)
 		return nil, &messaging.FriendlyError{FriendlyErr: "failed to create file for saving", Err: err}
 	}
-	// We'll close this manually, but defer a cleanup in case of panic/early return
+	// Ensure the temporary file is removed if the function exits early.
 	defer os.Remove(tempPath)
 
 	writer := zip.NewWriter(newFile)
 
-	// 3. Open the OLD zip for incremental comparison
-	// If it doesn't exist (New Project), we proceed with oldZip as nil
+	// Open the existing zip file for reconciliation if it exists.
 	oldZip, _ := zip.OpenReader(p.savePath)
 
-	// 4. Access Live NATS Inventory (The Source of Truth)
+	// Access the current state from the NATS inventory.
 	kv := p.kvStore
 	obs := p.objectStore
 
-	// Get maps of what is currently in NATS
+	// Retrieve all current keys from the Key-Value store.
 	liveKeys := make(map[string]jetstream.KeyValueEntry)
 	keys, _ := kv.ListKeys(context.Background())
 	if keys != nil {
 		for entry := range keys.Keys() {
 			liveKeys[entry], err = kv.Get(context.Background(), entry)
 			if err != nil {
+				p.Logger().Error("failed to retrieve key from Key Value Store", "key", entry, "error", err)
 				return nil, &messaging.FriendlyError{FriendlyErr: "Failed to retrieve keys from Key Value Store.", Err: err}
 			}
 		}
 	}
 
+	// Map all current objects in the object store.
 	liveBlobs := make(map[string]*jetstream.ObjectInfo)
 	blobs, _ := obs.List(context.Background())
 	for _, info := range blobs {
 		liveBlobs[info.Name] = info
 	}
 
-	// 5. RECONCILIATION: Copy existing valid data from the old Zip
+	// Reconciliation: Reuse valid data from the existing zip file if possible.
 	if oldZip != nil {
 		for _, f := range oldZip.File {
 			if strings.HasPrefix(f.Name, "kv/") {
 				key := strings.TrimPrefix(f.Name, "kv/")
 				if entry, exists := liveKeys[key]; exists {
-					// Check if Revision matches the Zip Comment
+					// Verify if the revision matches the zip entry's comment.
 					if f.Comment == fmt.Sprintf("%d", entry.Revision()) {
-						writer.Copy(f) // Fast byte-copy
+						if err := writer.Copy(f); err != nil {
+							p.Logger().Error("failed to copy file from old zip to new zip", "file", f.Name, "error", err)
+							return nil, err
+						}
 						delete(liveKeys, key)
 					}
 				}
 			} else if strings.HasPrefix(f.Name, "blobs/") {
 				name := strings.TrimPrefix(f.Name, "blobs/")
 				if info, exists := liveBlobs[name]; exists {
-					// Check if SHA-256 Digest matches the Zip Comment
+					// Verify if the SHA-256 digest matches the zip entry's comment.
 					if f.Comment == info.Digest {
-						writer.Copy(f) // Fast byte-copy
+						if err := writer.Copy(f); err != nil {
+							p.Logger().Error("failed to copy blob from old zip to new zip", "file", f.Name, "error", err)
+							return nil, err
+						}
 						delete(liveBlobs, name)
 					}
 				}
 			}
 		}
 		oldZip.Close()
+		p.Logger().Debug("reconciliation complete: reused existing valid data from old zip")
 	}
 
-	// 6. SHEPHERD: Add remaining (New or Dirty) items to the Zip
-	// Shepherd Key-Value Pairs
+	// Append any remaining new or modified items to the new zip file.
+	// Process Key-Value pairs.
 	for key, entry := range liveKeys {
 		header := &zip.FileHeader{
 			Name:    "kv/" + key,
 			Comment: fmt.Sprintf("%d", entry.Revision()),
 		}
-		zf, _ := writer.CreateHeader(header)
-		zf.Write(entry.Value())
+		zf, err := writer.CreateHeader(header)
+		if err != nil {
+			p.Logger().Error("failed to create zip header for key", "key", key, "error", err)
+			return nil, err
+		}
+		if _, err := zf.Write(entry.Value()); err != nil {
+			p.Logger().Error("failed to write key value to zip", "key", key, "error", err)
+			return nil, err
+		}
 	}
 
-	// Shepherd Large Blobs (100MB chunks)
+	// Process large blobs, streaming them directly from NATS.
 	for name, info := range liveBlobs {
 		header := &zip.FileHeader{
 			Name:    "blobs/" + name,
-			Method:  zip.Store,   // Speed over compression for binary blobs
-			Comment: info.Digest, // Crucial for next sync
+			Method:  zip.Store,   // Optimization: Skip compression for binary blobs.
+			Comment: info.Digest, // Used for reconciliation in subsequent saves.
 		}
-		zf, _ := writer.CreateHeader(header)
+		zf, err := writer.CreateHeader(header)
+		if err != nil {
+			p.Logger().Error("failed to create zip header for blob", "name", name, "error", err)
+			return nil, err
+		}
 
-		// Stream directly from NATS to Zip to keep memory flat
+		// Stream content directly from the object store to minimize memory usage.
 		stream, err := obs.Get(context.Background(), name)
 		if err != nil {
+			p.Logger().Error("failed to get stream from object store", "name", name, "error", err)
 			return nil, err
 		}
 		_, err = io.Copy(zf, stream)
 		stream.Close()
 		if err != nil {
+			p.Logger().Error("failed to copy stream to zip", "name", name, "error", err)
 			return nil, err
 		}
 	}
+	p.Logger().Debug("all new or dirty items added to zip")
 
-	// 7. FINALIZE: Close Zip and Swap
+	// Finalize the archive and perform the atomic file swap.
 	if err := writer.Close(); err != nil {
+		p.Logger().Error("failed to close zip writer", "error", err)
 		return nil, err
 	}
 	if err := newFile.Close(); err != nil {
+		p.Logger().Error("failed to close new file", "path", tempPath, "error", err)
 		return nil, err
 	}
 
-	// The Atomic Swap: This ensures the project file is never in a "half-written" state
+	// Renaming the temporary file to the final destination ensures a consistent state.
 	err = os.Rename(tempPath, p.savePath)
 	if err != nil {
+		p.Logger().Error("failed to rename temp file to save path", "tempPath", tempPath, "savePath", p.savePath, "error", err)
 		return nil, err
 	}
+	p.Logger().Debug("save completed successfully", "path", p.savePath)
 	return &PersistenceSaveResponse{}, nil
 }
 
