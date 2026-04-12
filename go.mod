@@ -9,6 +9,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.74
+	golang.org/x/sync v0.20.0
 )
 
 require (

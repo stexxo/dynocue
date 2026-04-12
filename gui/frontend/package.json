@@ -28,11 +28,10 @@
 		"svelte": "^5.53.12",
 		"svelte-check": "^4.4.5",
 		"tailwindcss": "^4.2.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.2",
 		"vite": "^8.0.8"
 	},
 	"dependencies": {
-		"@svar-ui/svelte-grid": "^2.6.0",
 		"@wailsio/runtime": "^3.0.0-alpha.78"
 	}
 }

@@ -7,6 +7,7 @@
 package gui
 
 import (
+	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/gui/frontend"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -15,11 +16,11 @@ type Gui struct {
 	app *application.App
 }
 
-func NewGui() *Gui {
+func NewGui(core *core.DynoCue) *Gui {
 	g := &Gui{}
 
 	g.app = application.New(application.Options{
-		Name: "DynoCue",
+		Name:     "DynoCue",
 		Services: []application.Service{},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(frontend.Assets),
