@@ -47,3 +47,11 @@ tasks:
       GOOS: windows
       CGO_ENABLED: '{{.CGO_ENABLED | default "0"}}'
       GOARCH: '{{.ARCH | default ARCH}}'
+
+  generate:syso:
+    summary: Generates Windows `.syso` file
+    dir: build
+    cmds:
+      - wails3 generate syso -arch {{.ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH}}.syso
+    vars:
+      ARCH: '{{.ARCH | default ARCH}}'

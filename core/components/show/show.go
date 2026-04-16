@@ -46,11 +46,6 @@ func (p *Show) onStart() error {
 		return err
 	}
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		messaging.Request[system.PersistenceSaveResponse](p.Messenger(), system.PersistenceSaveRequestSubject, &system.PersistenceSaveRequest{Location: "/media/benjamin-dow/hermes/test.dyno"})
-	}()
-
 	return nil
 }
 
