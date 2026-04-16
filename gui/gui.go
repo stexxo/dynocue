@@ -5,25 +5,31 @@
 package gui
 
 import (
-	"github.com/stexxo/dynocue/core"
+	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/gui/frontend"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type Gui struct {
-	app *application.App
+	app           *application.App
+	logger        logging.Logger
+	clientManager *ClientManager
 }
 
-func NewGui(core *core.DynoCue) *Gui {
-	g := &Gui{}
+func NewGui(logger logging.Logger) *Gui {
+	g := &Gui{
+		clientManager: NewClientManager(logger),
+		logger:        logger,
+	}
 
 	g.app = application.New(application.Options{
-		Name:     "DynoCue",
-		Services: []application.Service{},
+		Name: "DynoCue",
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(frontend.Assets),
 		},
 	})
+
+	g.app.RegisterService(application.NewService(NewSelector(g.clientManager, g.app, g.logger)))
 
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:     1280,

@@ -8,41 +8,18 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/stexxo/dynocue/core"
-	"github.com/stexxo/dynocue/core/components/show"
-	"github.com/stexxo/dynocue/core/components/system"
 	"github.com/stexxo/dynocue/gui"
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}))
 	slog.SetDefault(logger)
 
-	// Build Core
-	d, err := core.NewDynoCue(&core.Config{
-		Logger: logger,
-		Subsystems: []core.Subsystem{
-			system.NewPersistence(logger),
-			show.NewShow(logger),
-		},
-	})
-	if err != nil {
-		slog.Error("Failed to start DynoCue core", "error", err)
-		return
-	}
-
-	// Start Core
-	err = d.Start()
-	if err != nil {
-		slog.Error("Failed to start DynoCue core", "error", err)
-		return
-	}
-
 	// Build and Run GUI
-	g := gui.NewGui(d)
-	err = g.Run()
+	g := gui.NewGui(logger)
+	err := g.Run()
 	if err != nil {
-		slog.Error("Failed to start DynoCue core", "error", err)
+		slog.Error("Failed to start DynoCue GUI", "error", err)
 	}
 
 	slog.Info("DynoCue has shutdown")

@@ -49,6 +49,8 @@ func NewDynoCue(cfg *Config) (*DynoCue, error) {
 	subs := make([]Subsystem, len(cfg.Subsystems))
 	copy(subs, cfg.Subsystems)
 
+	cfg.Logger.Debug(fmt.Sprintf("dynocue initialized with %d subsystems", len(subs)))
+
 	return &DynoCue{
 		server:    s,
 		subsystem: subs,
@@ -60,6 +62,7 @@ func (d *DynoCue) Start() error {
 		return nil
 	}
 
+	d.logger.Debug("starting nats")
 	d.server.Start()
 	for range 10 {
 		if !d.server.Running() {
@@ -68,14 +71,31 @@ func (d *DynoCue) Start() error {
 		break
 	}
 
+	if !d.server.Running() {
+		d.logger.Error("dynocue failed to start due to nats server startup timing out")
+		return fmt.Errorf("dynocue failed to start nats server")
+	}
+
+	d.logger.Debug("nats server started")
+
+	d.logger.Debug("starting subsystems")
 	execgroup := errgroup.Group{}
 	for _, sub := range d.subsystem {
 		execgroup.Go(func() error {
-			nc, err := nats.Connect("", nats.InProcessServer(d.server), nats.MaxReconnects(-1), nats.Name(sub.Name()), nats.ReconnectWait(1*time.Second))
+			d.logger.Debug(fmt.Sprintf("starting subsystem %s", sub.Name()))
+			nc, err := d.GetInProcessConn(sub.Name())
 			if err != nil {
+				d.logger.Error(fmt.Sprintf("failed to create in process connection to nats server for subsystem %s", sub.Name()), "error", err)
 				return fmt.Errorf("\nfailed to create in process connection to nats server for subsystem %s: %w\n", sub.Name(), err)
 			}
-			return sub.Start(nc)
+
+			err = sub.Start(nc)
+			if err != nil {
+				return fmt.Errorf("failed to start subsystem %s: %w", sub.Name(), err)
+			}
+
+			d.logger.Debug(fmt.Sprintf("started subsystem %s", sub.Name()))
+			return nil
 		})
 	}
 
@@ -85,7 +105,15 @@ func (d *DynoCue) Start() error {
 		return err
 	}
 
+	d.logger.Debug("subsystems started")
+
 	d.started.Store(true)
 
+	d.logger.Debug("dynocue started")
+
 	return nil
+}
+
+func (d *DynoCue) GetInProcessConn(name string) (*nats.Conn, error) {
+	return nats.Connect("", nats.InProcessServer(d.server), nats.MaxReconnects(-1), nats.Name(name), nats.ReconnectWait(1*time.Second))
 }

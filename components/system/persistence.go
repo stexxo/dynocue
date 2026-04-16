@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/stexxo/dynocue/core/components"
+	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +28,7 @@ const PersistenceKeyValueBucketName = "working-kv"
 const PersistenceObjectBucketName = "working-object"
 
 type Persistence struct {
-	*components.BaseComponent
+	*core.SubsystemCore
 
 	// Persistence Management
 	registeredSubsystems map[string]registeredSubsystem
@@ -43,7 +43,7 @@ func NewPersistence(logger logging.Logger) *Persistence {
 	p := &Persistence{
 		registeredSubsystems: make(map[string]registeredSubsystem),
 	}
-	p.BaseComponent = components.NewBaseComponent("persistence", logger, p.onStart)
+	p.SubsystemCore = core.NewSubsystemCore("persistence", logger, p.onStart)
 	return p
 }
 

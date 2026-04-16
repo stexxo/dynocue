@@ -5,21 +5,21 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/stexxo/dynocue/core/components"
-	"github.com/stexxo/dynocue/core/components/system"
+	"github.com/stexxo/dynocue/components/system"
+	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
 )
 
 type Show struct {
-	*components.BaseComponent
+	*core.SubsystemCore
 	kvStore     jetstream.KeyValue
 	objectStore jetstream.ObjectStore
 }
 
 func NewShow(logger logging.Logger) *Show {
 	p := &Show{}
-	p.BaseComponent = components.NewBaseComponent("show", logger, p.onStart)
+	p.SubsystemCore = core.NewSubsystemCore("show", logger, p.onStart)
 	return p
 }
 

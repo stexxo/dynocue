@@ -1,4 +1,4 @@
-package components
+package core
 
 import (
 	"sync/atomic"
@@ -10,7 +10,7 @@ import (
 	"github.com/stexxo/dynocue/core/messaging"
 )
 
-type BaseComponent struct {
+type SubsystemCore struct {
 	started   atomic.Bool
 	messenger *messaging.Messenger
 	logger    logging.Logger
@@ -19,15 +19,15 @@ type BaseComponent struct {
 	startFn func() error
 }
 
-func NewBaseComponent(name string, logger logging.Logger, onStart func() error) *BaseComponent {
-	return &BaseComponent{
+func NewSubsystemCore(name string, logger logging.Logger, onStart func() error) *SubsystemCore {
+	return &SubsystemCore{
 		logger:  logger,
 		name:    name,
 		startFn: onStart,
 	}
 }
 
-func (b *BaseComponent) Start(conn *nats.Conn) error {
+func (b *SubsystemCore) Start(conn *nats.Conn) error {
 	if b.started.Load() {
 		return nil
 	}
@@ -43,25 +43,25 @@ func (b *BaseComponent) Start(conn *nats.Conn) error {
 		return err
 	}
 
-	b.logger.Debug("started subsystem " + b.name)
+	b.logger.Debug("subsystem  " + b.name + " has started successfully")
 
 	b.started.Store(true)
 	return nil
 }
 
-func (b *BaseComponent) Messenger() *messaging.Messenger {
+func (b *SubsystemCore) Messenger() *messaging.Messenger {
 	return b.messenger
 }
 
-func (b *BaseComponent) Logger() logging.Logger {
+func (b *SubsystemCore) Logger() logging.Logger {
 	return b.logger
 }
 
-func (b *BaseComponent) Name() string {
+func (b *SubsystemCore) Name() string {
 	return b.name
 }
 
-func (b *BaseComponent) Stop() error {
+func (b *SubsystemCore) Stop() error {
 	if !b.started.Load() {
 		return nil
 	}

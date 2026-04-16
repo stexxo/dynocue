@@ -8,5 +8,5 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui' {
-	themes: dark --default;
+	themes: business --default;
 }
