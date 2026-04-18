@@ -123,11 +123,17 @@ type PersistenceSaveResponse struct{}
 
 const PersistenceSaveRequestSubject = "request.system.persistence.save"
 
+const NoSaveLocation string = "No Save Location Provided."
+
 // SaveRequest handles a persistence save request by orchestrating the saving of all registered subsystems
 // and then atomically updating the project's zip file.
 func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*PersistenceSaveResponse, error) {
 	if in.Location == "" && p.savePath == "" {
-		return nil, &messaging.FriendlyError{FriendlyErr: "No location provided to save to"}
+		return nil, &messaging.FriendlyError{FriendlyErr: NoSaveLocation}
+	}
+
+	if !strings.HasSuffix(in.Location, ".dyno") {
+		in.Location = in.Location + ".dyno"
 	}
 
 	// Trigger a save across all registered subsystems.
@@ -152,18 +158,40 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 
 	// Prepare for an atomic swap by writing to a temporary file.
 	tempPath := p.savePath + ".tmp"
+	defer func() {
+		err := os.Remove(tempPath)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			p.Logger().Error("failed to remove temp file", "error", err)
+		}
+	}()
+
 	newFile, err := os.Create(tempPath)
 	if err != nil {
 		p.Logger().Error("failed to create temporary file for saving", "path", tempPath, "error", err)
 		return nil, &messaging.FriendlyError{FriendlyErr: "failed to create file for saving", Err: err}
 	}
-	// Ensure the temporary file is removed if the function exits early.
-	defer os.Remove(tempPath)
+	defer func() {
+		if err := newFile.Close(); err != nil {
+			p.Logger().Error("failed to close new file", "path", tempPath, "error", err)
+		}
+	}()
 
 	writer := zip.NewWriter(newFile)
+	defer func() {
+		if err := writer.Close(); err != nil {
+			p.Logger().Error("failed to close zip writer", "error", err)
+		}
+	}()
 
 	// Open the existing zip file for reconciliation if it exists.
 	oldZip, _ := zip.OpenReader(p.savePath)
+	defer func() {
+		if oldZip != nil {
+			if err := oldZip.Close(); err != nil {
+				p.Logger().Error("failed to close old zip", "path", p.savePath, "error", err)
+			}
+		}
+	}()
 
 	// Access the current state from the NATS inventory.
 	kv := p.kvStore
@@ -218,7 +246,6 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 				}
 			}
 		}
-		oldZip.Close()
 		p.Logger().Debug("reconciliation complete: reused existing valid data from old zip")
 	}
 
@@ -260,23 +287,18 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 			return nil, err
 		}
 		_, err = io.Copy(zf, stream)
-		stream.Close()
+
+		if err := stream.Close(); err != nil {
+			p.Logger().Error("failed to close stream", "name", name, "error", err)
+			return nil, err
+		}
+
 		if err != nil {
 			p.Logger().Error("failed to copy stream to zip", "name", name, "error", err)
 			return nil, err
 		}
 	}
 	p.Logger().Debug("all new or dirty items added to zip")
-
-	// Finalize the archive and perform the atomic file swap.
-	if err := writer.Close(); err != nil {
-		p.Logger().Error("failed to close zip writer", "error", err)
-		return nil, err
-	}
-	if err := newFile.Close(); err != nil {
-		p.Logger().Error("failed to close new file", "path", tempPath, "error", err)
-		return nil, err
-	}
 
 	// Renaming the temporary file to the final destination ensures a consistent state.
 	err = os.Rename(tempPath, p.savePath)
@@ -285,6 +307,7 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 		return nil, err
 	}
 	p.Logger().Debug("save completed successfully", "path", p.savePath)
+
 	return &PersistenceSaveResponse{}, nil
 }
 

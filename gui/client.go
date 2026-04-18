@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -11,6 +12,7 @@ import (
 )
 
 type ClientManager struct {
+	mu        sync.RWMutex
 	connected bool
 	remote    bool
 	client    *client.Client
@@ -23,21 +25,29 @@ func NewClientManager(logger logging.Logger) *ClientManager {
 }
 
 func (cm *ClientManager) Connected() bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 	return cm.connected
 }
 
 func (cm *ClientManager) Remote() bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 	return cm.remote
 }
 
-func (cm *ClientManager) Client() (*client.Client, error) {
+func (cm *ClientManager) WithClient(fn func(*client.Client) error) error {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 	if cm.client == nil {
-		return nil, errors.New("client not connected")
+		return errors.New("client not connected")
 	}
-	return cm.client, nil
+	return fn(cm.client)
 }
 
 func (cm *ClientManager) Core() (*core.DynoCue, error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 	if cm.core == nil {
 		return nil, errors.New("not connected or not local")
 	}
@@ -45,6 +55,8 @@ func (cm *ClientManager) Core() (*core.DynoCue, error) {
 }
 
 func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 	conn, err := core.GetInProcessConn("local-client")
 	if err != nil {
 		return err
@@ -61,6 +73,8 @@ func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
 }
 
 func (cm *ClientManager) ConnectRemote(addr string) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 	conn, err := nats.Connect(addr, nats.MaxReconnects(-1), nats.ReconnectWait(1*time.Second))
 	if err != nil {
 		return err
@@ -73,6 +87,8 @@ func (cm *ClientManager) ConnectRemote(addr string) error {
 }
 
 func (cm *ClientManager) Disconnect() error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 	if !cm.connected {
 		return nil
 	}

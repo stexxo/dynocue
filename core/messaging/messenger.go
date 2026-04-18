@@ -130,20 +130,25 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 		// Defer ensure response is always sent
 		resp := new(ResponseEnvelope[Resp])
 		defer func() {
+			m.logger.Debug("marshaling response", "subject", msg.Subject)
 			outBytes, err := msgpack.Marshal(resp)
 			if err != nil {
 				m.logger.Error("failed to marshal response with msgpack", "subject", subject, "error", err)
 				return
 			}
 
+			m.logger.Debug("sending response", "subject", msg.Subject)
 			err = msg.Respond(outBytes)
 			if err != nil {
 				m.logger.Error("failed to respond message with msgpack", "subject", subject, "error", err)
 				return
 			}
+
+			m.logger.Debug("sent response successfully", "subject", msg.Subject, "error", resp.Error)
 		}()
 
 		// Parse Request
+		m.logger.Debug("unmarshaling request", "subject", msg.Subject)
 		req := new(Req)
 		err := msgpack.Unmarshal(msg.Data, req)
 		if err != nil {
@@ -155,6 +160,7 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 
 		// Validate Request If Configured
 		if structValidation {
+			m.logger.Debug("validating request", "subject", msg.Subject)
 			err = m.validator.Struct(req)
 			if err != nil {
 				m.logger.Error("failed to validate message body", "subject", subject, "error", err)
@@ -165,6 +171,7 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 		}
 
 		// Execute Handler and Handle Error
+		m.logger.Debug("executing request handler", "subject", msg.Subject)
 		out, err := handler(subject, req)
 		if err != nil {
 			m.logger.Error("failed to handle request", "subject", subject, "error", err)
@@ -177,6 +184,8 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 			}
 			return
 		}
+
+		m.logger.Debug("request was successful", "subject", msg.Subject)
 
 		// Set Response
 		resp.Success = true
