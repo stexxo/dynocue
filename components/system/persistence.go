@@ -48,11 +48,6 @@ func NewPersistence(logger logging.Logger) *Persistence {
 }
 
 func (p *Persistence) onStart() error {
-	err := errors.Join(
-		messaging.Reply[PersistenceRegistrationRequest, PersistenceRegistrationResponse](p.Messenger(), false, PersistenceRegistrationRequestSubject, p.RegisterRequest),
-		messaging.Reply[PersistenceSaveRequest, PersistenceSaveResponse](p.Messenger(), false, PersistenceSaveRequestSubject, p.SaveRequest),
-	)
-
 	// Build Object Store and Key Value Store to be used for persistence management
 	kv, err := p.Messenger().JetStream().CreateKeyValue(context.Background(), jetstream.KeyValueConfig{
 		Bucket:  PersistenceKeyValueBucketName,
@@ -71,6 +66,11 @@ func (p *Persistence) onStart() error {
 		return err
 	}
 	p.objectStore = object
+
+	err = errors.Join(
+		messaging.Reply[PersistenceRegistrationRequest, PersistenceRegistrationResponse](p.Messenger(), false, PersistenceRegistrationRequestSubject, p.RegisterRequest),
+		messaging.Reply[PersistenceSaveRequest, PersistenceSaveResponse](p.Messenger(), false, PersistenceSaveRequestSubject, p.SaveRequest),
+	)
 
 	return nil
 }

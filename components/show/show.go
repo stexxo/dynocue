@@ -26,7 +26,7 @@ func NewShow(logger logging.Logger) *Show {
 func (p *Show) onStart() error {
 
 	p.Logger().Debug("attempting to register show subsystem with persistence")
-	resp, err := messaging.RequestRetry[system.PersistenceRegistrationResponse](p.Messenger(), system.PersistenceRegistrationRequestSubject, system.PersistenceRegistrationRequest{SubsystemName: "show", SaveSubject: "request.show.persistence.save"}, 3, 100*time.Millisecond)
+	resp, err := messaging.RequestRetry[system.PersistenceRegistrationResponse](p.Messenger(), system.PersistenceRegistrationRequestSubject, system.PersistenceRegistrationRequest{SubsystemName: "show", SaveSubject: "request.show.persistence.save"}, 10, 500*time.Millisecond)
 	if err != nil {
 		return err
 	}
