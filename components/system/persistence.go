@@ -67,6 +67,11 @@ func (p *Persistence) onStart() error {
 	}
 	p.objectStore = object
 
+	err = p.softClear()
+	if err != nil {
+		return err
+	}
+
 	err = errors.Join(
 		messaging.Reply[PersistenceRegistrationRequest, PersistenceRegistrationResponse](p.Messenger(), false, PersistenceRegistrationRequestSubject, p.RegisterRequest),
 		messaging.Reply[PersistenceSaveRequest, PersistenceSaveResponse](p.Messenger(), false, PersistenceSaveRequestSubject, p.SaveRequest),
@@ -75,12 +80,35 @@ func (p *Persistence) onStart() error {
 	return nil
 }
 
+func (p *Persistence) softClear() error {
+	keys, _ := p.kvStore.ListKeys(context.Background())
+	if keys != nil {
+		for entry := range keys.Keys() {
+			err := p.kvStore.Delete(context.Background(), entry)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	objs, _ := p.objectStore.List(context.Background())
+	for _, info := range objs {
+		err := p.objectStore.Delete(context.Background(), info.Name)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+const PersistenceNewShowLoadedEventSubject = "event.system.persistence.loaded"
+
 const PersistenceRegistrationRequestSubject = "request.system.persistence.register"
 
 type PersistenceRegistrationRequest struct {
 	SubsystemName string `json:"subsystemName" msgpack:"subsystemName"`
 	SaveSubject   string `json:"saveSubject" msgpack:"saveSubject"`
-	CloseSubject  string `json:"closeSubject" msgpack:"closeSubject"`
 	OpenSubject   string `json:"openSubject" msgpack:"openSubject"`
 }
 
@@ -90,7 +118,7 @@ type PersistenceRegistrationResponse struct {
 }
 
 func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationRequest) (*PersistenceRegistrationResponse, error) {
-	p.registeredSubsystems[sub] = registeredSubsystem{Name: in.SubsystemName, Open: in.OpenSubject, Close: in.CloseSubject, Save: in.SaveSubject}
+	p.registeredSubsystems[sub] = registeredSubsystem{Name: in.SubsystemName, Open: in.OpenSubject, Save: in.SaveSubject}
 	p.Logger().Debug("registered subsystem for persistence", "subsystem", in.SubsystemName)
 	return &PersistenceRegistrationResponse{
 		ObjectStoreName:   PersistenceObjectBucketName,
@@ -98,12 +126,78 @@ func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationReq
 	}, nil
 }
 
-type PersistenceOpenRequest struct{}
+type PersistenceOpenRequest struct {
+	Location string `json:"location" msgpack:"location"`
+}
 type PersistenceOpenResponse struct{}
 
 func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*PersistenceOpenResponse, error) {
-	if p.showOpen {
-		return nil, &messaging.FriendlyError{FriendlyErr: "Cannot Open Show when another is already open. Please close current show before opening"}
+	if _, err := os.Stat(in.Location); os.IsNotExist(err) {
+		return nil, &messaging.FriendlyError{FriendlyErr: "Provided show location does not exist."}
+	}
+
+	err := p.softClear()
+	if err != nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: "failed to clear object and key value store"}
+	}
+
+	zr, err := zip.OpenReader(in.Location)
+	if err != nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: "failed to open archive"}
+	}
+	defer func() {
+		err := zr.Close()
+		if err != nil {
+			p.Logger().Error("failed to close archive reader", "error", err)
+		}
+	}()
+
+	for _, f := range zr.File {
+		// Skip directories or unrelated files
+		if f.FileInfo().IsDir() {
+			continue
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return nil, err
+		}
+
+		if strings.HasPrefix(f.Name, "kv/") {
+			key := strings.TrimPrefix(f.Name, "kv/")
+			data, _ := io.ReadAll(rc)
+			_, err = p.kvStore.Put(context.Background(), key, data)
+		} else if strings.HasPrefix(f.Name, "blobs/") {
+			name := strings.TrimPrefix(f.Name, "blobs/")
+			_, err = p.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: name}, rc)
+		}
+
+		closeErr := rc.Close()
+		if closeErr != nil {
+			p.Logger().Error("failed to close archive reader", "error", err)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to rehydrate %s: %w", f.Name, err)
+		}
+	}
+
+	p.showOpen = true
+	p.savePath = in.Location
+
+	p.Logger().Debug("asking subsystems to reload stores")
+	execgroup := errgroup.Group{}
+	for _, subsystem := range p.registeredSubsystems {
+		subsystem := subsystem
+		execgroup.Go(func() error {
+			_, err := messaging.Request[string](p.Messenger(), subsystem.Open, "")
+			return err
+		})
+	}
+
+	err = messaging.Publish(p.Messenger(), PersistenceNewShowLoadedEventSubject, "")
+	if err != nil {
+		return nil, err
 	}
 
 	return &PersistenceOpenResponse{}, nil
@@ -113,7 +207,27 @@ type PersistenceNewRequest struct{}
 type PersistenceNewResponse struct{}
 
 func (p *Persistence) NewRequest(sub string, in *PersistenceNewRequest) (*PersistenceNewResponse, error) {
-	return nil, nil
+	err := p.softClear()
+	if err != nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: "failed to clear object"}
+	}
+
+	p.Logger().Debug("asking subsystems to reload store")
+	execgroup := errgroup.Group{}
+	for _, subsystem := range p.registeredSubsystems {
+		subsystem := subsystem
+		execgroup.Go(func() error {
+			_, err := messaging.Request[string](p.Messenger(), subsystem.Open, "")
+			return err
+		})
+	}
+
+	err = messaging.Publish(p.Messenger(), PersistenceNewShowLoadedEventSubject, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &PersistenceNewResponse{}, nil
 }
 
 type PersistenceSaveRequest struct {
@@ -309,11 +423,4 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	p.Logger().Debug("save completed successfully", "path", p.savePath)
 
 	return &PersistenceSaveResponse{}, nil
-}
-
-type PersistenceCloseRequest struct{}
-type PersistenceCloseResponse struct{}
-
-func (p *Persistence) CloseRequest(sub string, in *PersistenceCloseRequest) (*PersistenceCloseResponse, error) {
-	return &PersistenceCloseResponse{}, nil
 }
