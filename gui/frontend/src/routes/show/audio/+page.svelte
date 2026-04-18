@@ -4,5 +4,5 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 -->
 
-<h1 class="text-3xl font-bold mb-4">Audio</h1>
+<h1 class="mb-4 text-3xl font-bold">Audio</h1>
 <p>Management of audio tracks and output routing.</p>

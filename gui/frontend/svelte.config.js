@@ -28,8 +28,9 @@ const config = {
 		}),
 		prerender: {
 			// Crawl all pages to prerender them
-			crawl: true,
-			entries: [] // Do not prerender any routes by default, let them be handled at runtime
+			crawl: false,
+			entries: ["*"], // Do not prerender any routes by default, let them be handled at runtime
+			handleUnseenRoutes: "warn"
 		}
 	}
 };

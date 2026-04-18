@@ -5,33 +5,44 @@
 -->
 
 <script>
-	import {NewShow} from "../../bindings/github.com/stexxo/dynocue/gui/selector.js"
-	import {withLoading, createLoadingState} from "$lib/loading.svelte"
+	import { NewShow, OpenShow } from '../../bindings/github.com/stexxo/dynocue/gui/selector.js';
+	import { withLoading, createLoadingState } from '$lib/loading.svelte';
 
 	const loadingState = createLoadingState();
 	const handleNewShow = withLoading(loadingState, NewShow);
+	const handleOpen = withLoading(loadingState, OpenShow);
 </script>
 
 <div class="hero min-h-screen bg-base-200">
 	{#if loadingState.isLoading}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-			<span class="loading loading-spinner loading-lg text-primary"></span>
+			<span class="loading loading-lg loading-spinner text-primary"></span>
 		</div>
 	{/if}
 	<div class="hero-content text-center">
 		<div class="w-md">
 			<h1 class="text-5xl font-bold">DynoCue</h1>
-			<div class="flex flex-col gap-4 mt-8">
-				<button 
-					class="btn btn-primary rounded-md" 
+			<div class="mt-8 flex flex-col gap-4">
+				<button
+					class="btn rounded-md btn-primary"
 					onclick={handleNewShow}
 					disabled={loadingState.isLoading}
 				>
 					New Local Show
 				</button>
-				<button class="btn btn-secondary rounded-md" disabled={loadingState.isLoading}>Open Existing Local Show</button>
-				<button class="btn btn-accent rounded-md" disabled={loadingState.isLoading}>Connect to Remote Show</button>
-				<button class="btn btn-outline rounded-md" disabled={loadingState.isLoading}>Settings</button>
+				<button
+					class="btn rounded-md btn-secondary"
+					disabled={loadingState.isLoading}
+					onclick={handleOpen}
+				>
+					Open Existing Local Show</button
+				>
+				<button class="btn rounded-md btn-accent" disabled={loadingState.isLoading}
+					>Connect to Remote Show</button
+				>
+				<button class="btn rounded-md btn-outline" disabled={loadingState.isLoading}
+					>Settings</button
+				>
 			</div>
 		</div>
 	</div>

@@ -5,6 +5,6 @@
 -->
 
 <div class="p-8 pb-24">
-	<h1 class="text-3xl font-bold mb-4">Dashboard</h1>
+	<h1 class="mb-4 text-3xl font-bold">Dashboard</h1>
 	<p>This is the dashboard page.</p>
 </div>

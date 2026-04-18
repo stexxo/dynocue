@@ -25,10 +25,7 @@ func NewSelector(manager *ClientManager, app *application.App, logger logging.Lo
 	}
 }
 
-func (s *Selector) NewShow() bool {
-	s.logger.Debug("creating new local show")
-
-	s.logger.Debug("initializing dynocue core")
+func (s *Selector) localConn() error {
 	c, err := core.NewDynoCue(&core.Config{
 		Subsystems: []core.Subsystem{
 			system.NewPersistence(s.logger),
@@ -37,21 +34,44 @@ func (s *Selector) NewShow() bool {
 		Logger: s.logger,
 	})
 	if err != nil {
-		s.logger.Warn("Failed to initialize DynoCue: ", err)
-		return false
+		s.logger.Error("Failed to initialize DynoCue: ", "err", err)
+		return err
 	}
 
 	s.logger.Debug("starting dynocue core")
 	err = c.Start()
 	if err != nil {
-		s.logger.Warn("Failed to start DynoCue: ", err)
-		return false
+		s.logger.Error("Failed to start DynoCue: ", "err", err)
+		return err
 	}
 
 	s.logger.Debug("connecting to dynocue core in process")
 	err = s.clientManager.ConnectLocal(c)
 	if err != nil {
-		s.logger.Warn("Failed to connect to DynoCue: ", err)
+		s.logger.Error("Failed to connect to DynoCue: ", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Selector) NewShow() bool {
+	s.logger.Debug("creating new local show")
+
+	if !s.clientManager.Connected() || s.clientManager.Remote() {
+		s.logger.Debug("initializing dynocue core")
+
+		err := s.localConn()
+		if err != nil {
+			s.logger.Warn("Failed to initialize DynoCue core: ", "err", err)
+			return false
+		}
+	}
+
+	err := s.clientManager.WithClient(func(c *client.Client) error {
+		return c.NewShow()
+	})
+	if err != nil {
 		return false
 	}
 
@@ -60,8 +80,8 @@ func (s *Selector) NewShow() bool {
 		w.SetURL("/show/dashboard")
 	}
 
-	s.logger.Debug("new show initialized successfully")
 	return true
+
 }
 
 func (s *Selector) saveDialog() (string, error) {
@@ -124,6 +144,63 @@ func (s *Selector) SaveShowAs() bool {
 	}
 
 	s.logger.Debug("saved show successfully")
+
+	return true
+}
+
+func (s *Selector) OpenShow() bool {
+	dia := s.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{})
+	res, err := dia.PromptForSingleSelection()
+	if err != nil {
+		s.logger.Error("open show failed", "err", err.Error())
+		return true
+	}
+
+	if res == "" {
+		return true
+	}
+
+	if !s.clientManager.Connected() || s.clientManager.Remote() {
+		s.logger.Debug("initializing dynocue core")
+
+		err := s.localConn()
+		if err != nil {
+			s.logger.Warn("Failed to initialize DynoCue core: ", "err", err)
+			return false
+		}
+	}
+
+	s.logger.Debug("opening local show")
+	err = s.clientManager.WithClient(func(c *client.Client) error {
+		return c.OpenShow(res)
+	})
+
+	if err != nil {
+		s.logger.Warn("Failed to open show ", err)
+		return false
+	}
+
+	s.logger.Debug("navigating windows to dashboard")
+	for _, w := range s.app.Window.GetAll() {
+		w.SetURL("/show/dashboard")
+	}
+
+	s.logger.Debug("opened show successfully")
+	return true
+}
+
+func (s *Selector) CloseShow() bool {
+	s.logger.Debug("closing show")
+	s.logger.Debug("navigating windows to dashboard")
+	for _, w := range s.app.Window.GetAll() {
+		w.SetURL("/")
+	}
+
+	err := s.clientManager.Disconnect()
+	if err != nil {
+		s.logger.Warn("Failed to close DynoCue core: ", "err", err)
+		return false
+	}
 
 	return true
 }

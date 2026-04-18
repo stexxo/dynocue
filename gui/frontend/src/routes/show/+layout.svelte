@@ -6,32 +6,39 @@
 
 <script lang="ts">
 	import { page } from '$app/state';
-	import { NewShow, SaveShow, SaveShowAs } from '../../../bindings/github.com/stexxo/dynocue/gui/selector.js';
+	import { goto } from '$app/navigation';
+	import {
+		NewShow,
+		SaveShow,
+		SaveShowAs,
+		OpenShow,
+		CloseShow
+	} from '../../../bindings/github.com/stexxo/dynocue/gui/selector.js';
 	import { withLoading, createLoadingState } from '$lib/loading.svelte';
 
 	let { children } = $props();
 
 	const loadingState = createLoadingState();
 	const handleNewShow = withLoading(loadingState, NewShow);
-	const handleSave = withLoading(loadingState, SaveShow)
-	const handleSaveAs = withLoading(loadingState, SaveShowAs)
+	const handleSave = withLoading(loadingState, SaveShow);
+	const handleSaveAs = withLoading(loadingState, SaveShowAs);
+	const handleOpen = withLoading(loadingState, OpenShow);
+	const handleClose = withLoading(loadingState, CloseShow);
 
-	function handleOpen() {
-		console.log('Open');
-	}
 </script>
 
-<div class="navbar bg-base-100 border-b border-base-300 px-4 min-h-12 h-12">
+<div class="navbar h-12 min-h-12 border-b border-base-300 bg-base-100 px-4">
 	<div class="flex-none">
 		<ul class="menu menu-horizontal p-0">
 			<li>
 				<details>
-					<summary class="py-1 px-3">File</summary>
-					<ul class="bg-base-100 rounded-md border border-base-300 z-50 p-2 shadow-lg w-56">
+					<summary class="px-3 py-1">File</summary>
+					<ul class="z-50 w-56 rounded-md border border-base-300 bg-base-100 p-2 shadow-lg">
 						<li><button onclick={handleNewShow}>New</button></li>
 						<li><button onclick={handleSave}>Save</button></li>
 						<li><button onclick={handleSaveAs}>Save As</button></li>
 						<li><button onclick={handleOpen}>Open</button></li>
+						<li><button onclick={handleClose}>Close</button></li>
 					</ul>
 				</details>
 			</li>
@@ -41,7 +48,7 @@
 
 {#if loadingState.isLoading}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-		<span class="loading loading-spinner loading-lg text-primary"></span>
+		<span class="loading loading-lg loading-spinner text-primary"></span>
 	</div>
 {/if}
 
@@ -49,23 +56,47 @@
 	{@render children()}
 </main>
 
-<div class="dock dock-bottom">
-	<a href="/show/dashboard" class="dock-item" class:dock-active={page.url.pathname === '/show/dashboard'}>
+<div class="dock-bottom dock">
+	<button
+		onclick={() => goto('/show/dashboard')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/dashboard'}
+	>
 		<span class="dock-label">Dashboard</span>
-	</a>
-	<a href="/show/cues" class="dock-item" class:dock-active={page.url.pathname === '/show/cues'}>
+	</button>
+	<button
+		onclick={() => goto('/show/cues')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/cues'}
+	>
 		<span class="dock-label">Cues</span>
-	</a>
-	<a href="/show/audio" class="dock-item" class:dock-active={page.url.pathname === '/show/audio'}>
+	</button>
+	<button
+		onclick={() => goto('/show/audio')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/audio'}
+	>
 		<span class="dock-label">Audio</span>
-	</a>
-	<a href="/show/video" class="dock-item" class:dock-active={page.url.pathname === '/show/video'}>
+	</button>
+	<button
+		onclick={() => goto('/show/video')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/video'}
+	>
 		<span class="dock-label">Video</span>
-	</a>
-	<a href="/show/lighting" class="dock-item" class:dock-active={page.url.pathname === '/show/lighting'}>
+	</button>
+	<button
+		onclick={() => goto('/show/lighting')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/lighting'}
+	>
 		<span class="dock-label">Lighting</span>
-	</a>
-	<a href="/show/settings" class="dock-item" class:dock-active={page.url.pathname === '/show/settings'}>
+	</button>
+	<button
+		onclick={() => goto('/show/settings')}
+		class="dock-item"
+		class:dock-active={page.url.pathname === '/show/settings'}
+	>
 		<span class="dock-label">Settings</span>
-	</a>
+	</button>
 </div>

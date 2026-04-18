@@ -75,6 +75,8 @@ func (p *Persistence) onStart() error {
 	err = errors.Join(
 		messaging.Reply[PersistenceRegistrationRequest, PersistenceRegistrationResponse](p.Messenger(), false, PersistenceRegistrationRequestSubject, p.RegisterRequest),
 		messaging.Reply[PersistenceSaveRequest, PersistenceSaveResponse](p.Messenger(), false, PersistenceSaveRequestSubject, p.SaveRequest),
+		messaging.Reply[PersistenceOpenRequest, PersistenceOpenResponse](p.Messenger(), false, PersistenceOpenShowRequestSubject, p.OpenRequest),
+		messaging.Reply[PersistenceNewRequest, PersistenceNewResponse](p.Messenger(), false, PersistenceNewShowRequestSubject, p.NewRequest),
 	)
 
 	return nil
@@ -102,7 +104,8 @@ func (p *Persistence) softClear() error {
 	return nil
 }
 
-const PersistenceNewShowLoadedEventSubject = "event.system.persistence.loaded"
+const PersistenceShowLoadedEventSubject = "event.system.persistence.loaded"
+const PersistenceShowSavedEventSubject = "event.system.persistence.saved"
 
 const PersistenceRegistrationRequestSubject = "request.system.persistence.register"
 
@@ -125,6 +128,8 @@ func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationReq
 		KeyValueStoreName: PersistenceKeyValueBucketName,
 	}, nil
 }
+
+const PersistenceOpenShowRequestSubject = "event.system.persistence.open"
 
 type PersistenceOpenRequest struct {
 	Location string `json:"location" msgpack:"location"`
@@ -195,13 +200,15 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 		})
 	}
 
-	err = messaging.Publish(p.Messenger(), PersistenceNewShowLoadedEventSubject, "")
+	err = messaging.Publish(p.Messenger(), PersistenceShowLoadedEventSubject, "")
 	if err != nil {
 		return nil, err
 	}
 
 	return &PersistenceOpenResponse{}, nil
 }
+
+const PersistenceNewShowRequestSubject = "event.system.persistence.new"
 
 type PersistenceNewRequest struct{}
 type PersistenceNewResponse struct{}
@@ -222,7 +229,7 @@ func (p *Persistence) NewRequest(sub string, in *PersistenceNewRequest) (*Persis
 		})
 	}
 
-	err = messaging.Publish(p.Messenger(), PersistenceNewShowLoadedEventSubject, "")
+	err = messaging.Publish(p.Messenger(), PersistenceShowLoadedEventSubject, "")
 	if err != nil {
 		return nil, err
 	}
@@ -420,6 +427,12 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 		p.Logger().Error("failed to rename temp file to save path", "tempPath", tempPath, "savePath", p.savePath, "error", err)
 		return nil, err
 	}
+
+	err = messaging.Publish[string](p.Messenger(), PersistenceShowSavedEventSubject, p.savePath)
+	if err != nil {
+		p.Logger().Error("failed to publish saved event", "error", err)
+	}
+
 	p.Logger().Debug("save completed successfully", "path", p.savePath)
 
 	return &PersistenceSaveResponse{}, nil

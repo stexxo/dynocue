@@ -5,17 +5,17 @@
 -->
 
 <script>
-	let showName = $state("New Show");
+	let showName = $state('New Show');
 
 	function handleSubmit(event) {
 		event.preventDefault();
 		// TODO: Implement save logic
-		console.log("Saving show name:", showName);
+		console.log('Saving show name:', showName);
 	}
 </script>
 
-<div class="p-8 pb-24 max-w-2xl mx-auto">
-	<div class="card bg-base-100 shadow-xl border border-base-300">
+<div class="mx-auto max-w-2xl p-8 pb-24">
+	<div class="card border border-base-300 bg-base-100 shadow-xl">
 		<div class="card-body gap-6">
 			<h2 class="card-title text-2xl font-bold">Show Settings</h2>
 			<div class="divider my-0"></div>
@@ -30,15 +30,17 @@
 						type="text"
 						bind:value={showName}
 						placeholder="Enter show name"
-						class="input input-bordered w-full rounded-md"
+						class="input-bordered input w-full rounded-md"
 					/>
 					<div class="label">
-						<span class="label-text-alt text-base-content/60">This name will be displayed in the application header and dashboard.</span>
+						<span class="label-text-alt text-base-content/60"
+							>This name will be displayed in the application header and dashboard.</span
+						>
 					</div>
 				</div>
 
-				<div class="card-actions justify-end mt-4">
-					<button type="submit" class="btn btn-primary rounded-md px-8"> Save Changes </button>
+				<div class="mt-4 card-actions justify-end">
+					<button type="submit" class="btn rounded-md px-8 btn-primary"> Save Changes </button>
 				</div>
 			</form>
 		</div>
