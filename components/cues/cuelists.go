@@ -4,7 +4,12 @@
 
 package cues
 
-import "github.com/stexxo/dynocue/core/messaging"
+import (
+	"slices"
+
+	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/stexxo/dynocue/core/messaging"
+)
 
 const CreateCueListRequestSubject = "request.cueing.cuelists.create"
 const CueListCreatedEventSubject = "event.cueing.cuelists.created"
@@ -19,28 +24,29 @@ type CreateCueListResponse struct {
 }
 
 type CueListCreatedEvent struct {
-	Number      float64 `msgpack:"number" json:"number" validate:"required, gt=0"`
-	Label       string  `msgpack:"label" json:"label"`
-	CueListType string  `msgpack:"cueListType" json:"cueListType" validate:"required, oneOf=SEQUENTIAL"`
+	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
 }
 
+const CueListNumberExists = "Cue List Number Already Exists"
+
 func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*CreateCueListResponse, error) {
-	c := p.model.CueLists.create(request.Number, request.CueListType)
-	if c == nil {
-		return nil, &messaging.FriendlyError{FriendlyErr: "cuelist number already exists"}
+	cPtr := p.model.CueLists.Add(request.Number)
+	if cPtr == nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: CueListNumberExists}
 	}
+	c := *cPtr
+
+	c.Metadata.Label = request.CueListType
 
 	err := messaging.Publish(p.Messenger(), CueListCreatedEventSubject, &CueListCreatedEvent{
-		Number:      c.Number,
-		Label:       request.CueListType,
-		CueListType: request.CueListType,
+		CueListMetadata: c.Metadata,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &CreateCueListResponse{
-		Number: c.Number,
+		Number: c.Num(),
 	}, nil
 }
 
@@ -48,7 +54,7 @@ const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
 
 type EnumerateCueListsRequest struct{}
 type EnumerateCueListsResponse struct {
-	CueLists []CueListEnumeration `msgpack:"cueLists" json:"cueLists"`
+	CueLists []types.CueListMetadata `msgpack:"cueLists" json:"cueLists"`
 }
 type CueListEnumeration struct {
 	Number      float64 `msgpack:"number" json:"number"`
@@ -57,14 +63,33 @@ type CueListEnumeration struct {
 }
 
 func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest) (*EnumerateCueListsResponse, error) {
-	out := make([]CueListEnumeration, 0, p.model.CueLists.Len())
-	for _, c := range p.model.CueLists {
-		out = append(out, CueListEnumeration{
-			Number:      c.Number,
-			Label:       c.Label,
-			CueListType: c.CueListType,
-		})
+	out := make([]types.CueListMetadata, 0, p.model.CueLists.Len())
+	for c := range slices.Values(p.model.CueLists.Data) {
+		out = append(out, c.Metadata)
 	}
 
 	return &EnumerateCueListsResponse{CueLists: out}, nil
+}
+
+const GetCueListRequestSubject = "request.cueing.cuelists.get"
+
+type GetCueListRequest struct {
+	Number float64 `msgpack:"number" json:"number" validate:"required, gt=0"`
+}
+
+type GetCueListResponse struct {
+	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
+}
+
+const CueListNotFound = "Cue List Not Found."
+
+func (p *Cueing) GetCueList(sub string, request *GetCueListRequest) (*GetCueListResponse, error) {
+	out := p.model.CueLists.Get(request.Number)
+	if out == nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
+	}
+
+	return &GetCueListResponse{
+		CueListMetadata: (*out).Metadata,
+	}, nil
 }

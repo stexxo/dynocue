@@ -1,0 +1,62 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+package client
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/stexxo/dynocue/core/messaging"
+)
+
+var ErrCueListExists = errors.New("cue list with provided number already exists")
+var ErrCueListNotFound = errors.New("cue list not found")
+
+func (c *Client) CreateCueList(num float64) (float64, error) {
+	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: num})
+	if err != nil {
+		return -1, err
+	}
+	if resp.Success {
+		return resp.Response.Number, nil
+	}
+
+	if resp.Error == cues.CueListNumberExists {
+		return -1, ErrCueListExists
+	}
+
+	return -1, fmt.Errorf("failed to create cue list: %s", resp.Error)
+}
+
+func (c *Client) EnumerateCueLists() ([]types.CueListMetadata, error) {
+	resp, err := messaging.Request[cues.EnumerateCueListsResponse](c.messenger, cues.EnumerateCueListsRequestSubject, &cues.EnumerateCueListsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.CueLists, nil
+	}
+
+	return nil, fmt.Errorf("failed to enumerate cue lists: %s", resp.Error)
+}
+
+func (c *Client) GetCueList(number float64) (*types.CueListMetadata, error) {
+	resp, err := messaging.Request[cues.GetCueListResponse](c.messenger, cues.GetCueListRequestSubject, &cues.GetCueListRequest{Number: number})
+	if err != nil {
+		return nil, err
+	}
+	if resp.Success {
+		return &resp.Response.CueListMetadata, nil
+	}
+
+	if resp.Error == cues.CueListNotFound {
+		return nil, ErrCueListNotFound
+	}
+
+	return nil, fmt.Errorf("failed to get cue list: %s", resp.Error)
+}

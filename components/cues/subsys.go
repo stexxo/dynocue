@@ -7,6 +7,7 @@ package cues
 import (
 	"errors"
 
+	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -17,11 +18,11 @@ type Cueing struct {
 	*core.SubsystemCore
 	persistence *system.PersistenceManager
 
-	model *CueingModel
+	model *types.CueingModel
 }
 
 func New(logger logging.Logger) *Cueing {
-	p := &Cueing{model: &CueingModel{}}
+	p := &Cueing{model: &types.CueingModel{}}
 	p.SubsystemCore = core.NewSubsystemCore("cueing", logger, p.onStart)
 	return p
 }
@@ -39,6 +40,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load),
 		messaging.Reply[CreateCueListRequest, CreateCueListResponse](p.Messenger(), true, CreateCueListRequestSubject, p.CreateCueList),
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
+		messaging.Reply[GetCueListRequest, GetCueListResponse](p.Messenger(), true, GetCueListRequestSubject, p.GetCueList),
 	)
 
 	return err
@@ -62,7 +64,7 @@ const LoadNotifyEventSubject = "event.cueing.persistence.loaded"
 
 func (p *Cueing) Load(sub string, in *string) (*string, error) {
 	p.Logger().Debug("attempting to load contents of subsystem cueing to stores")
-	model := &CueingModel{}
+	model := &types.CueingModel{}
 	err := p.persistence.ReadFromObjectStore("model", model)
 	if err != nil {
 		return nil, err
