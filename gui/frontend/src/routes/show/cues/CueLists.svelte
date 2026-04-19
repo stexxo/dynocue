@@ -1,3 +1,1 @@
-<div class="h-full bg-blue-100">
-
-</div>
+<div class="h-full bg-blue-100"></div>

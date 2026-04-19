@@ -19,7 +19,7 @@
 				{#if tab.closable}
 					<button
 						type="button"
-						class="btn btn-circle btn-xs z-10"
+						class="btn z-10 btn-circle btn-xs"
 						onclick={(e) => {
 							e.stopPropagation();
 							props.tabState.closeTab(tab.id);
@@ -32,7 +32,9 @@
 		{/each}
 	</div>
 
-	<div class="rounded-b-box border-base-300 bg-base-100 -mt-[var(--tab-border)] flex-1 overflow-auto border p-6">
+	<div
+		class="-mt-[var(--tab-border)] flex-1 overflow-auto rounded-b-box border border-base-300 bg-base-100 p-6"
+	>
 		{#if activeTab?.content}
 			{@const Content = activeTab.content}
 			<Content {...activeTab?.props} />

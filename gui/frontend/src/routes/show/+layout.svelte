@@ -26,8 +26,8 @@
 	const handleClose = withLoading(loadingState, CloseShow);
 </script>
 
-<div class="flex flex-col h-screen overflow-hidden">
-	<div class="navbar h-12 min-h-12 border-b border-base-300 bg-base-100 px-4 flex-none">
+<div class="flex h-screen flex-col overflow-hidden">
+	<div class="navbar h-12 min-h-12 flex-none border-b border-base-300 bg-base-100 px-4">
 		<div class="flex-none">
 			<ul class="menu menu-horizontal p-0">
 				<li>
