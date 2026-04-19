@@ -22,3 +22,5 @@ func NewClient(conn *nats.Conn, logger logging.Logger) *Client {
 		}),
 	}
 }
+
+type EventCallback[T any] func(string, *T)

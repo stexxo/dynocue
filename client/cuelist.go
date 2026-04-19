@@ -60,3 +60,13 @@ func (c *Client) GetCueList(number float64) (*types.CueListMetadata, error) {
 
 	return nil, fmt.Errorf("failed to get cue list: %s", resp.Error)
 }
+
+func (c *Client) OnCueListCreated(handler EventCallback[types.CueListMetadata]) error {
+	err := messaging.Subscribe[cues.CueListCreatedEvent](c.messenger, false, cues.CueListCreatedEventSubject, func(s string, c *cues.CueListCreatedEvent) {
+		handler(s, &c.CueListMetadata)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to cue list creation events: %w", err)
+	}
+	return nil
+}

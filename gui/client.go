@@ -16,12 +16,13 @@ import (
 )
 
 type ClientManager struct {
-	mu        sync.RWMutex
-	connected bool
-	remote    bool
-	client    *client.Client
-	core      *core.DynoCue
-	logger    logging.Logger
+	mu             sync.RWMutex
+	connected      bool
+	remote         bool
+	client         *client.Client
+	core           *core.DynoCue
+	logger         logging.Logger
+	onNewClientFns []func(*client.Client) error
 }
 
 func NewClientManager(logger logging.Logger) *ClientManager {
@@ -71,6 +72,12 @@ func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
 	cm.client = c
 	cm.core = core
 
+	for _, fn := range cm.onNewClientFns {
+		if err := fn(cm.client); err != nil {
+			return err
+		}
+	}
+
 	cm.connected = true
 	cm.remote = false
 	return nil
@@ -85,6 +92,14 @@ func (cm *ClientManager) ConnectRemote(addr string) error {
 	}
 	c := client.NewClient(conn, cm.logger)
 	cm.client = c
+	cm.core = nil
+
+	for _, fn := range cm.onNewClientFns {
+		if err := fn(cm.client); err != nil {
+			return err
+		}
+	}
+
 	cm.connected = true
 	cm.remote = true
 	return nil
@@ -101,4 +116,10 @@ func (cm *ClientManager) Disconnect() error {
 	cm.connected = false
 	cm.remote = false
 	return nil
+}
+
+func (cm *ClientManager) OnNewClient(fn func(*client.Client) error) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.onNewClientFns = append(cm.onNewClientFns, fn)
 }

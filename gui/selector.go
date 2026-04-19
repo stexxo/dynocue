@@ -16,21 +16,21 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-type Selector struct {
+type SelectorService struct {
 	clientManager *ClientManager
 	app           *application.App
 	logger        logging.Logger
 }
 
-func NewSelector(manager *ClientManager, app *application.App, logger logging.Logger) *Selector {
-	return &Selector{
+func NewSelectorService(manager *ClientManager, app *application.App, logger logging.Logger) *SelectorService {
+	return &SelectorService{
 		clientManager: manager,
 		app:           app,
 		logger:        logger,
 	}
 }
 
-func (s *Selector) localConn() error {
+func (s *SelectorService) localConn() error {
 	c, err := core.NewDynoCue(&core.Config{
 		Subsystems: []core.Subsystem{
 			system.NewPersistence(s.logger),
@@ -61,7 +61,7 @@ func (s *Selector) localConn() error {
 	return nil
 }
 
-func (s *Selector) NewShow() bool {
+func (s *SelectorService) NewShow() bool {
 	s.logger.Debug("creating new local show")
 
 	if !s.clientManager.Connected() || s.clientManager.Remote() {
@@ -90,14 +90,14 @@ func (s *Selector) NewShow() bool {
 
 }
 
-func (s *Selector) saveDialog() (string, error) {
+func (s *SelectorService) saveDialog() (string, error) {
 	dia := s.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
 		Title: "Save Cueing",
 	})
 	return dia.PromptForSingleSelection()
 }
 
-func (s *Selector) SaveShow() bool {
+func (s *SelectorService) SaveShow() bool {
 	s.logger.Debug("saving local show")
 
 	err := s.clientManager.WithClient(func(c *client.Client) error {
@@ -128,7 +128,7 @@ func (s *Selector) SaveShow() bool {
 	return true
 }
 
-func (s *Selector) SaveShowAs() bool {
+func (s *SelectorService) SaveShowAs() bool {
 	s.logger.Debug("saving local show as")
 
 	err := s.clientManager.WithClient(func(c *client.Client) error {
@@ -154,7 +154,7 @@ func (s *Selector) SaveShowAs() bool {
 	return true
 }
 
-func (s *Selector) OpenShow() bool {
+func (s *SelectorService) OpenShow() bool {
 	dia := s.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{})
 	res, err := dia.PromptForSingleSelection()
 	if err != nil {
@@ -195,7 +195,7 @@ func (s *Selector) OpenShow() bool {
 	return true
 }
 
-func (s *Selector) CloseShow() bool {
+func (s *SelectorService) CloseShow() bool {
 	s.logger.Debug("closing show")
 	s.logger.Debug("navigating windows to dashboard")
 	for _, w := range s.app.Window.GetAll() {

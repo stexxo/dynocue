@@ -29,7 +29,8 @@ func NewGui(logger logging.Logger) *Gui {
 		},
 	})
 
-	g.app.RegisterService(application.NewService(NewSelector(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(NewSelectorService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(NewCueListsService(g.clientManager, g.app, g.logger)))
 
 	w := g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:           1280,

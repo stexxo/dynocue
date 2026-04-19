@@ -5,7 +5,7 @@
 -->
 
 <script>
-	import { NewShow, OpenShow } from '../../bindings/github.com/stexxo/dynocue/gui/selector.js';
+	import { NewShow, OpenShow } from '../../bindings/github.com/stexxo/dynocue/gui/selectorservice.js';
 	import { withLoading, createLoadingState } from '$lib/loading.svelte';
 
 	const loadingState = createLoadingState();
