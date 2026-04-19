@@ -5,6 +5,8 @@
 package cues
 
 import (
+	"errors"
+
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -32,17 +34,14 @@ func (p *Cueing) onStart() error {
 
 	p.persistence = pm
 
-	err = messaging.Reply[string, string](p.Messenger(), false, SaveRequestSubject, p.Save)
-	if err != nil {
-		return err
-	}
+	err = errors.Join(
+		messaging.Reply[string, string](p.Messenger(), false, SaveRequestSubject, p.Save),
+		messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load),
+		messaging.Reply[CreateCueListRequest, CreateCueListResponse](p.Messenger(), true, CreateCueListRequestSubject, p.CreateCueList),
+		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
+	)
 
-	err = messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 const SaveRequestSubject = "request.cueing.persistence.save"
