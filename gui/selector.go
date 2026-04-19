@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/client"
+	"github.com/stexxo/dynocue/components/cues"
 	"github.com/stexxo/dynocue/components/show"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
@@ -29,7 +30,8 @@ func (s *Selector) localConn() error {
 	c, err := core.NewDynoCue(&core.Config{
 		Subsystems: []core.Subsystem{
 			system.NewPersistence(s.logger),
-			show.NewShow(s.logger),
+			show.New(s.logger),
+			cues.New(s.logger),
 		},
 		Logger: s.logger,
 	})
@@ -86,7 +88,7 @@ func (s *Selector) NewShow() bool {
 
 func (s *Selector) saveDialog() (string, error) {
 	dia := s.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
-		Title: "Save Show",
+		Title: "Save Cueing",
 	})
 	return dia.PromptForSingleSelection()
 }

@@ -112,7 +112,7 @@ const PersistenceRegistrationRequestSubject = "request.system.persistence.regist
 type PersistenceRegistrationRequest struct {
 	SubsystemName string `json:"subsystemName" msgpack:"subsystemName"`
 	SaveSubject   string `json:"saveSubject" msgpack:"saveSubject"`
-	OpenSubject   string `json:"openSubject" msgpack:"openSubject"`
+	LoadSubject   string `json:"loadSubject" msgpack:"loadSubject"`
 }
 
 type PersistenceRegistrationResponse struct {
@@ -121,7 +121,7 @@ type PersistenceRegistrationResponse struct {
 }
 
 func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationRequest) (*PersistenceRegistrationResponse, error) {
-	p.registeredSubsystems[sub] = registeredSubsystem{Name: in.SubsystemName, Open: in.OpenSubject, Save: in.SaveSubject}
+	p.registeredSubsystems[sub] = registeredSubsystem{Name: in.SubsystemName, Open: in.LoadSubject, Save: in.SaveSubject}
 	p.Logger().Debug("registered subsystem for persistence", "subsystem", in.SubsystemName)
 	return &PersistenceRegistrationResponse{
 		ObjectStoreName:   PersistenceObjectBucketName,
