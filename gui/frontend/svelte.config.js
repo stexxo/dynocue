@@ -29,8 +29,8 @@ const config = {
 		prerender: {
 			// Crawl all pages to prerender them
 			crawl: false,
-			entries: ["*"], // Do not prerender any routes by default, let them be handled at runtime
-			handleUnseenRoutes: "warn"
+			entries: ['*'], // Do not prerender any routes by default, let them be handled at runtime
+			handleUnseenRoutes: 'warn'
 		}
 	}
 };

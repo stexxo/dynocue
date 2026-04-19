@@ -24,7 +24,6 @@
 	const handleSaveAs = withLoading(loadingState, SaveShowAs);
 	const handleOpen = withLoading(loadingState, OpenShow);
 	const handleClose = withLoading(loadingState, CloseShow);
-
 </script>
 
 <div class="navbar h-12 min-h-12 border-b border-base-300 bg-base-100 px-4">
@@ -52,11 +51,11 @@
 	</div>
 {/if}
 
-<main class="pb-24">
+<main class="h-full">
 	{@render children()}
 </main>
 
-<div class="dock-bottom dock">
+<div class="dock">
 	<button
 		onclick={() => goto('/show/dashboard')}
 		class="dock-item"
