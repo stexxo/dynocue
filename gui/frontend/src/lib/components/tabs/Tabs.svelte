@@ -1,43 +1,41 @@
 <script lang="ts">
-	import { type TabProps } from '$lib/components/tabTypes.svelte';
+	import { type TabProps } from './tabTypes.svelte';
 	let props: TabProps = $props();
 
 	let activeTab = $derived(props.tabState.getActive());
 </script>
 
-<div role="tablist" class="tabs-lift tabs">
-	{#each props.tabState.items as tab}
-		<div
-			role="tab"
-			tabindex="0"
-			class="tab gap-2 {tab.id === props.tabState.activeId ? 'tab-active' : ''}"
-			onclick={(e)=>{
-				  if (e.target !== e.currentTarget) return;
-				props.tabState.select(tab.id)}}
-			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && props.tabState.select(tab.id)}
-		>
-			{tab.label}
+<div class="flex h-full flex-col">
+	<div role="tablist" class="tabs-lifted tabs flex-none">
+		{#each props.tabState.items as tab}
+			<button
+				type="button"
+				role="tab"
+				class="tab gap-2 {tab.id === props.tabState.activeId ? 'tab-active' : ''}"
+				onclick={() => props.tabState.select(tab.id)}
+			>
+				{tab.label}
 
-			{#if tab.closable}
-				<button
-					type="button"
-					class="btn relative z-10 btn-circle btn-xs"
-					onclick={(e) => {
-						e.stopPropagation();
-						props.tabState.closeTab(tab.id);
-					}}
-				>
-					✕
-				</button>
-			{/if}
-		</div>
-		<!--   <button class="tab {tab.id === props.tabState.activeId ? 'tab-active' : ''}" onclick="{() => props.tabState.select(tab.id)}">{tab.label}</button> -->
-	{/each}
-</div>
+				{#if tab.closable}
+					<button
+						type="button"
+						class="btn btn-circle btn-xs z-10"
+						onclick={(e) => {
+							e.stopPropagation();
+							props.tabState.closeTab(tab.id);
+						}}
+					>
+						✕
+					</button>
+				{/if}
+			</button>
+		{/each}
+	</div>
 
-<div class="p-6 bg-base-100 border border-base-300 rounded-b-box h-full">
-	{#if activeTab?.content}
-		{@const Content = activeTab.content}
-		<Content {...activeTab?.props} />
-	{/if}
+	<div class="rounded-b-box border-base-300 bg-base-100 -mt-[var(--tab-border)] flex-1 overflow-auto border p-6">
+		{#if activeTab?.content}
+			{@const Content = activeTab.content}
+			<Content {...activeTab?.props} />
+		{/if}
+	</div>
 </div>
