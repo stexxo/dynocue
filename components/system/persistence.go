@@ -19,7 +19,7 @@ import (
 
 type registeredSubsystem struct {
 	Name  string
-	Open  string
+	Load  string
 	Close string
 	Save  string
 }
@@ -31,7 +31,7 @@ type Persistence struct {
 	*core.SubsystemCore
 
 	// Persistence Management
-	registeredSubsystems map[string]registeredSubsystem
+	registeredSubsystems []registeredSubsystem
 	kvStore              jetstream.KeyValue
 	objectStore          jetstream.ObjectStore
 
@@ -40,9 +40,7 @@ type Persistence struct {
 }
 
 func NewPersistence(logger logging.Logger) *Persistence {
-	p := &Persistence{
-		registeredSubsystems: make(map[string]registeredSubsystem),
-	}
+	p := &Persistence{}
 	p.SubsystemCore = core.NewSubsystemCore("persistence", logger, p.onStart)
 	return p
 }
@@ -121,7 +119,7 @@ type PersistenceRegistrationResponse struct {
 }
 
 func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationRequest) (*PersistenceRegistrationResponse, error) {
-	p.registeredSubsystems[sub] = registeredSubsystem{Name: in.SubsystemName, Open: in.LoadSubject, Save: in.SaveSubject}
+	p.registeredSubsystems = append(p.registeredSubsystems, registeredSubsystem{Name: in.SubsystemName, Load: in.LoadSubject, Save: in.SaveSubject})
 	p.Logger().Debug("registered subsystem for persistence", "subsystem", in.SubsystemName)
 	return &PersistenceRegistrationResponse{
 		ObjectStoreName:   PersistenceObjectBucketName,
@@ -193,11 +191,15 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 	p.Logger().Debug("asking subsystems to reload stores")
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
-		subsystem := subsystem
 		execgroup.Go(func() error {
-			_, err := messaging.Request[string](p.Messenger(), subsystem.Open, "")
+			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})
+	}
+
+	err = execgroup.Wait()
+	if err != nil {
+		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), PersistenceShowLoadedEventSubject, "")
@@ -222,11 +224,15 @@ func (p *Persistence) NewRequest(sub string, in *PersistenceNewRequest) (*Persis
 	p.Logger().Debug("asking subsystems to reload store")
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
-		subsystem := subsystem
 		execgroup.Go(func() error {
-			_, err := messaging.Request[string](p.Messenger(), subsystem.Open, "")
+			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})
+	}
+
+	err = execgroup.Wait()
+	if err != nil {
+		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), PersistenceShowLoadedEventSubject, "")
@@ -261,7 +267,6 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	p.Logger().Debug("asking subsystems to save to stores")
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
-		subsystem := subsystem
 		execgroup.Go(func() error {
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Save, "")
 			return err
@@ -304,7 +309,7 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 		}
 	}()
 
-	// Open the existing zip file for reconciliation if it exists.
+	// Load the existing zip file for reconciliation if it exists.
 	oldZip, _ := zip.OpenReader(p.savePath)
 	defer func() {
 		if oldZip != nil {

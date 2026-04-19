@@ -144,7 +144,7 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 				return
 			}
 
-			m.logger.Debug("sent response successfully", "subject", msg.Subject, "error", resp.Error)
+			m.logger.Debug("sent response successfully", "subject", msg.Subject)
 		}()
 
 		// Parse Request

@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -103,6 +104,10 @@ func (pm *PersistenceManager) ReadFromObjectStore(key string, out interface{}) e
 	pm.logger.Info("reading data from store", "key", key, "subsystem", pm.name)
 
 	res, err := pm.objectStore.Get(context.Background(), fmt.Sprintf("%s/%s", pm.name, key))
+	if errors.Is(err, jetstream.ErrObjectNotFound) { // nothing to load
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}

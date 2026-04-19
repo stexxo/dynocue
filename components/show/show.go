@@ -1,8 +1,6 @@
 package show
 
 import (
-	"context"
-
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -32,7 +30,7 @@ func (p *Show) onStart() error {
 		return err
 	}
 
-	err = messaging.Reply[string, string](p.Messenger(), false, LoadEventSubject, p.Save)
+	err = messaging.Reply[string, string](p.Messenger(), false, LoadEventSubject, p.Load)
 	if err != nil {
 		return err
 	}
@@ -45,17 +43,10 @@ const LoadEventSubject = "request.show.persistence.load"
 
 func (p *Show) Save(sub string, in *string) (*string, error) {
 	p.Logger().Debug("attempting to save contents of subsystem show to stores")
-	_, err := p.persistence.KeyValueStore().Put(context.Background(), "show", []byte("test"))
-	if err != nil {
-		p.Logger().Error("failed to save contents of subsystem show to stores")
-		return nil, err
-	}
-
-	return nil, nil
+	return new(""), nil
 }
 
 func (p *Show) Load(sub string, in *string) (*string, error) {
-	p.Logger().Debug("attempting to load contents of subsystem show to stores")
-
-	return nil, nil
+	p.Logger().Debug("attempting to load contents of subsystem show from stores")
+	return new(""), nil
 }

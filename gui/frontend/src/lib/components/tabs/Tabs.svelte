@@ -7,10 +7,10 @@
 
 <div class="flex h-full flex-col">
 	<div role="tablist" class="tabs-lifted tabs flex-none">
-		{#each props.tabState.items as tab}
-			<button
-				type="button"
+		{#each props.tabState.items as tab, i}
+			<div
 				role="tab"
+				tabindex={i}
 				class="tab gap-2 {tab.id === props.tabState.activeId ? 'tab-active' : ''}"
 				onclick={() => props.tabState.select(tab.id)}
 			>
@@ -28,12 +28,12 @@
 						✕
 					</button>
 				{/if}
-			</button>
+			</div>
 		{/each}
 	</div>
 
 	<div
-		class="-mt-[var(--tab-border)] flex-1 overflow-auto rounded-b-box border border-base-300 bg-base-100 p-6"
+		class="-mt-(--tab-border) flex-1 overflow-auto rounded-b-box border border-base-300 bg-base-100 p-6"
 	>
 		{#if activeTab?.content}
 			{@const Content = activeTab.content}
