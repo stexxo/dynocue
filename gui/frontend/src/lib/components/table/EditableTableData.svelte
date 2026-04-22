@@ -20,7 +20,7 @@
     }
 </script>
 
-<td class={props.tdClass} onclick={() => {editing=true}}>
+<td class="relative {props.tdClass}" onclick={() => {editing=true}}>
     {#if editing}
         <div class="flex flex-row w-full gap-2">
             <input

@@ -7,7 +7,7 @@
 
 </script>
 
-<div class="p-4">
+<div class="p-4 h-full flex flex-col">
 	<CueListTable AllowCreation={true} OnOpenCueList={(num) => {
 		const cueList = cuelistsStore.cueList(num)
 		if (cueList){

@@ -9,24 +9,24 @@
 
 </script>
 
-<div class="flex flex-row justify-center w-full">
-	<div class="w-full max-w-7xl">
-		<div class="mb-5 w-full flex flex-row justify-end">
+<div class="flex flex-col items-center w-full h-full overflow-hidden">
+	<div class="w-full max-w-7xl h-full flex flex-col">
+		<div class="mb-5 w-full flex-none flex flex-row justify-end">
 			{#if props.AllowCreation}
 				<button class="btn btn-primary" onclick={() => {cuelistsStore.create(0)}}>Create Cue List</button>
 			{/if}
 		</div>
-		<div class="max-h-full overflow-auto">
+		<div class="flex-1 overflow-auto">
 			<table class="table table-pin-rows">
-				<thead class="sticky">
-					<tr>
+				<thead class="sticky top-0 z-10 bg-base-100">
+					<tr class="bg-base-100">
 						<th class="w-40">#</th>
 						<th class="min-w-50 max-w-200">Label</th>
 						<th class="min-w-50 max-w-100">Type</th>
 						<th class="min-w-50 max-w-100"></th>
 					</tr>
 				</thead>
-				<tbody class="overflow-y-auto">
+				<tbody class="">
 					{#each cuelists as list}
 						<tr>
 							<td>{list.number}</td>

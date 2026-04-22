@@ -33,7 +33,7 @@
 	</div>
 
 	<div
-		class="-mt-(--tab-border) flex-1  h-full rounded-b-box border border-base-300 bg-base-100 p-6"
+		class="-mt-(--tab-border) flex-1 min-h-0 rounded-b-box border border-base-300 bg-base-100 p-6"
 	>
 		{#if activeTab?.content}
 			{@const Content = activeTab.content}
