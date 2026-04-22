@@ -102,7 +102,7 @@ const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
 
 type UpdateCueListLabelRequest struct {
 	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
-	Label  string  `msgpack:"label" json:"label" validate:"required"`
+	Label  string  `msgpack:"label" json:"label"`
 }
 type UpdateCueListLabelResponse struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
