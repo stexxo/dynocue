@@ -28,12 +28,13 @@ func NewCueListsService(manager *ClientManager, app *application.App, logger log
 func (c *CueListsService) onNewClient(client *client.Client) error {
 	return errors.Join(
 		client.OnCueListCreated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
+		client.OnCueListMetadataUpdated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
 	)
 }
 
-func (c *CueListsService) CreateCueList(num float64) bool {
+func (c *CueListsService) CreateCueList(num float64, cueListType string) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		_, err := c.CreateCueList(num)
+		_, err := c.CreateCueList(num, cueListType)
 		return err
 	})
 
@@ -45,7 +46,7 @@ func (c *CueListsService) CreateCueList(num float64) bool {
 	return true
 }
 
-func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, error) {
+func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, bool) {
 	var out *types.CueListMetadata
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.GetCueList(num)
@@ -58,7 +59,39 @@ func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, error
 	})
 	if err != nil {
 		c.logger.Error("failed to get cue list", "err", err)
-		return nil, err
+		return nil, false
 	}
-	return out, nil
+	return out, true
+}
+
+func (c *CueListsService) EnumerateCueLists() ([]types.CueListMetadata, bool) {
+	var out []types.CueListMetadata
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.EnumerateCueLists()
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to enumerate cue lists", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (c *CueListsService) SetCueListLabel(num float64, label string) bool {
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		_, err := c.SetCueListLabel(num, label)
+		return err
+	})
+	if err != nil {
+		c.logger.Error("failed to set cue list label", "err", err)
+		return false
+	}
+
+	return true
 }

@@ -16,8 +16,8 @@ import (
 var ErrCueListExists = errors.New("cue list with provided number already exists")
 var ErrCueListNotFound = errors.New("cue list not found")
 
-func (c *Client) CreateCueList(num float64) (float64, error) {
-	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: num})
+func (c *Client) CreateCueList(num float64, cueListType string) (float64, error) {
+	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: num, CueListType: cueListType})
 	if err != nil {
 		return -1, err
 	}
@@ -61,12 +61,39 @@ func (c *Client) GetCueList(number float64) (*types.CueListMetadata, error) {
 	return nil, fmt.Errorf("failed to get cue list: %s", resp.Error)
 }
 
+func (c *Client) SetCueListLabel(num float64, label string) (*types.CueListMetadata, error) {
+	resp, err := messaging.Request[cues.UpdateCueListLabelResponse](c.messenger, cues.UpdateCueListLabelRequestSubject, &cues.UpdateCueListLabelRequest{Number: num, Label: label})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return &resp.Response.Metadata, nil
+	}
+
+	if resp.Error == cues.CueListNotFound {
+		return nil, ErrCueListNotFound
+	}
+
+	return nil, fmt.Errorf("failed to update cue list label: %s", resp.Error)
+}
+
 func (c *Client) OnCueListCreated(handler EventCallback[types.CueListMetadata]) error {
 	err := messaging.Subscribe[cues.CueListCreatedEvent](c.messenger, false, cues.CueListCreatedEventSubject, func(s string, c *cues.CueListCreatedEvent) {
 		handler(s, &c.CueListMetadata)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue list creation events: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) OnCueListMetadataUpdated(handler EventCallback[types.CueListMetadata]) error {
+	err := messaging.Subscribe[cues.CueListMetadataUpdatedEvent](c.messenger, false, cues.CueListMetadataUpdatedEventSubject, func(s string, c *cues.CueListMetadataUpdatedEvent) {
+		handler(s, &c.Metadata)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to cue list metadata update events: %w", err)
 	}
 	return nil
 }

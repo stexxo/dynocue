@@ -22,7 +22,7 @@ type Cueing struct {
 }
 
 func New(logger logging.Logger) *Cueing {
-	p := &Cueing{model: &types.CueingModel{}}
+	p := &Cueing{model: types.NewCueingModel()}
 	p.SubsystemCore = core.NewSubsystemCore("cueing", logger, p.onStart)
 	return p
 }
@@ -41,6 +41,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[CreateCueListRequest, CreateCueListResponse](p.Messenger(), true, CreateCueListRequestSubject, p.CreateCueList),
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
 		messaging.Reply[GetCueListRequest, GetCueListResponse](p.Messenger(), true, GetCueListRequestSubject, p.GetCueList),
+		messaging.Reply[UpdateCueListLabelRequest, UpdateCueListLabelResponse](p.Messenger(), true, UpdateCueListLabelRequestSubject, p.UpdateCueListLabel),
 	)
 
 	return err
@@ -64,7 +65,7 @@ const LoadNotifyEventSubject = "event.cueing.persistence.loaded"
 
 func (p *Cueing) Load(sub string, in *string) (*string, error) {
 	p.Logger().Debug("attempting to load contents of subsystem cueing to stores")
-	model := &types.CueingModel{}
+	model := types.NewCueingModel()
 	err := p.persistence.ReadFromObjectStore("model", model)
 	if err != nil {
 		return nil, err

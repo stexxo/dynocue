@@ -9,7 +9,15 @@ import (
 )
 
 type CueingModel struct {
-	CueLists util.OrderedArray[*CueList] `msgpack:"cueLists" json:"cueLists"`
+	CueLists *util.OrderedArray[*CueList] `msgpack:"cueLists" json:"cueLists"`
+}
+
+func NewCueingModel() *CueingModel {
+	return &CueingModel{
+		CueLists: &util.OrderedArray[*CueList]{
+			Data: make([]*CueList, 0),
+		},
+	}
 }
 
 type CueList struct {

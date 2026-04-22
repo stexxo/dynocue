@@ -19,35 +19,30 @@ func (cl *OrderedArray[T]) Len() int {
 	return len(cl.Data)
 }
 
-func (cl *OrderedArray[T]) Add(in float64) *T {
+func (cl *OrderedArray[T]) Add(in T) bool {
 	var index int
-	var number float64
 
-	if in == 0 {
+	if in.Num() == 0 {
 		if cl.Len() == 0 {
-			number = 0
+			in.SetNum(1)
 			index = 0
 		} else {
 			c := cl.Data[cl.Len()-1]
-			number = math.Floor(c.Num()) + 1
+			in.SetNum(math.Floor(c.Num()) + 1)
 			index = cl.Len()
 		}
 	} else {
-
-		i, found := slices.BinarySearchFunc(cl.Data, number, func(a T, b float64) int {
+		i, found := slices.BinarySearchFunc(cl.Data, in.Num(), func(a T, b float64) int {
 			return cmp.Compare(a.Num(), b)
 		})
 		if found {
-			return nil
+			return false
 		}
 		index = i
-		number = in
 	}
 
-	cPtr := new(T)
-	(*cPtr).SetNum(number)
-	cl.Data = slices.Insert(cl.Data, index, *cPtr)
-	return cPtr
+	cl.Data = slices.Insert(cl.Data, index, in)
+	return true
 }
 
 func (cl *OrderedArray[T]) Remove(number float64) {
