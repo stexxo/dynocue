@@ -3,7 +3,7 @@ import CueLists from "./CueLists.svelte";
 
 export const cueListTabState = new TabManager(
     [
-        { id: 'cueLists', label: 'Cue Lists', content: CueLists },
+        { id: 'cueLists', content: CueLists, label: "Cue Lists" },
     ],
     "cueLists"
 );

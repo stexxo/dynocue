@@ -29,11 +29,11 @@
 				<tbody class="">
 				{#each cuelists as list}
 					<tr>
-						<EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuelistsStore.renumberCuelist(list.number, v)}} tdClass="w-40"/>
-						<EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuelistsStore.setLabel(list.number, v)}} tdClass="max-w-200"/>
+						<EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuelistsStore.renumberCuelist(list.id, v)}} tdClass="w-40"/>
+						<EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuelistsStore.setLabel(list.id, v)}} tdClass="max-w-200"/>
 						<td>{list.cueListType}</td>
 						<td class="flex flex-row justify-around">
-							<button class="btn btn-outline btn-secondary" onclick={()=>{props.OnOpenCueList(list.number)}}>Open</button>
+							<button class="btn btn-outline btn-secondary" onclick={()=>{props.OnOpenCueList(list.id)}}>Open</button>
 
 							<details class="dropdown">
 								<summary class="btn btn-ghost btn-secondary">
@@ -42,7 +42,7 @@
 									</svg>
 								</summary>
 								<ul class="menu dropdown-content">
-									<li><button  class="btn btn-outline btn-accent" onclick={()=>{cuelistsStore.deleteCueList(list.number)}}>Delete</button></li>
+									<li><button  class="btn btn-outline btn-accent" onclick={()=>{cuelistsStore.deleteCueList(list.id)}}>Delete</button></li>
 								</ul>
 							</details>
 						</td>

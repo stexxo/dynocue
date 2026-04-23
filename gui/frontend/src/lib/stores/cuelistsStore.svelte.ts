@@ -33,8 +33,8 @@ class CuelistsStore {
 		return this.#cuelists;
 	}
 
-	cueList(number:number): CueListMetadata | undefined {
-		return this.#cuelists.find(list => list.number === number);
+	cueList(id:string): CueListMetadata | undefined {
+		return this.#cuelists.find(list => list.id === id);
 	}
 
 	async load() {
@@ -51,24 +51,24 @@ class CuelistsStore {
 		}
 	}
 
-	async setLabel(num: number, label: string) {
-		const ok = await SetCueListLabel(num, label);
+	async setLabel(id: string, label: string) {
+		const ok = await SetCueListLabel(id, label);
 		if (!ok) {
-			console.error("Failed to set cue list label", num, label);
+			console.error("Failed to set cue list label", id, label);
 		}
 	}
 
-	async deleteCueList(num: number) {
-		const ok = await DeleteCueList(num)
+	async deleteCueList(id: string) {
+		const ok = await DeleteCueList(id)
 		if (!ok) {
-			console.error("Failed to delete cue list", num);
+			console.error("Failed to delete cue list", id);
 		}
 	}
 
-	async renumberCuelist(originalNum: number, newNum: number	) {
-		const ok = await RenumberCueList(originalNum, newNum);
+	async renumberCuelist(id: string, newNum: number	) {
+		const ok = await RenumberCueList(id, newNum);
 		if (!ok) {
-			console.error("Failed to renumber cue list", originalNum, newNum);
+			console.error("Failed to renumber cue list", id, newNum);
 		}
 	}
 }

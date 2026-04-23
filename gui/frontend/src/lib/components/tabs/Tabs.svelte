@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { type TabProps } from './tabTypes.svelte';
+	import {type TabProps, TabState} from './tabTypes.svelte';
 	let props: TabProps = $props();
 
-	let activeTab = $derived(props.tabState.getActive());
+	let activeTab = $derived(props.tabManager.getActive());
 </script>
 
 <div class="flex h-full flex-col">
 	<div role="tablist" class="tabs-lifted tabs flex-none">
-		{#each props.tabState.items as tab, i}
+		{#each props.tabManager.items as tab, i}
 			<div
 				role="tab"
 				tabindex={i}
-				class="tab gap-2 {tab.id === props.tabState.activeId ? 'tab-active' : ''}"
-				onclick={() => props.tabState.select(tab.id)}
+				class="tab gap-2 {tab.id === props.tabManager.activeId ? 'tab-active' : ''}"
+				onclick={() => props.tabManager.select(tab.id)}
 			>
-				{tab.label}
+				{new TabState(tab).label}
 
 				{#if tab.closable}
 					<button
@@ -22,7 +22,7 @@
 						class="btn z-10 btn-circle btn-xs"
 						onclick={(e) => {
 							e.stopPropagation();
-							props.tabState.closeTab(tab.id);
+							props.tabManager.closeTab(tab.id);
 						}}
 					>
 						✕
@@ -37,7 +37,7 @@
 	>
 		{#if activeTab?.content}
 			{@const Content = activeTab.content}
-			<Content {...activeTab?.props} />
+			<Content {...activeTab?.props} tabState={new TabState(activeTab)} />
 		{/if}
 	</div>
 </div>

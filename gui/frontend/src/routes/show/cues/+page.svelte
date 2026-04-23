@@ -5,5 +5,5 @@
 </script>
 
 <div class="h-full">
-	<Tabs tabState={cueListTabState}></Tabs>
+	<Tabs tabManager={cueListTabState}></Tabs>
 </div>

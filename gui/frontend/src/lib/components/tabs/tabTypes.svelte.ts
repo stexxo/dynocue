@@ -6,10 +6,31 @@
 
 export interface Tab {
 	id: string;
-	label: string;
-	content?: any; // Can be text, or a reference to a Component
+	content?: any;
 	props?: any;
 	closable?: boolean;
+	label?: string | (() => string);
+}
+
+export interface TabContentProps {
+	tabState: TabState;
+	[key: string]: any;
+}
+
+export class TabState{
+	#tab: Tab;
+	constructor(tab: Tab) {
+		this.#tab = tab;
+	}
+	get label() {
+		if (typeof this.#tab.label === 'function') {
+			return this.#tab.label();
+		}
+		return this.#tab.label ?? this.#tab.id;
+	}
+	setLabel(label: string | (() => string)){
+		this.#tab.label = label;
+	}
 }
 
 export class TabManager {
@@ -22,7 +43,7 @@ export class TabManager {
 	}
 
 	addTab(tab: Tab) {
-		this.items.push(tab);
+		this.items = [...this.items, tab];
 		this.activeId = tab.id; // Switch to new tab
 	}
 
@@ -48,5 +69,5 @@ export class TabManager {
 }
 
 export interface TabProps {
-	tabState: TabManager;
+	tabManager: TabManager;
 }
