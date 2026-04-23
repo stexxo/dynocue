@@ -21,6 +21,7 @@ type CreateCueListRequest struct {
 }
 
 type CreateCueListResponse struct {
+	Id     string  `msgpack:"id" json:"id"`
 	Number float64 `msgpack:"number" json:"number"`
 }
 
@@ -31,7 +32,7 @@ type CueListCreatedEvent struct {
 const CueListNumberExists = "Cue List Number Already Exists"
 
 func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*CreateCueListResponse, error) {
-	c := &types.CueList{Metadata: types.CueListMetadata{Number: request.Number, CueListType: request.CueListType}}
+	c := types.NewCueList(request.Number, request.CueListType)
 	ok := p.model.CueLists.Add(c)
 	if !ok {
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNumberExists}
@@ -46,6 +47,7 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 	}
 
 	return &CreateCueListResponse{
+		Id:     c.Id(),
 		Number: c.Num(),
 	}, nil
 }
@@ -71,27 +73,61 @@ func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest
 	return &EnumerateCueListsResponse{CueLists: out}, nil
 }
 
-const GetCueListRequestSubject = "request.cueing.cuelists.get"
+const GetCueListByNumberRequestSubject = "request.cueing.cuelists.get.number"
 
-type GetCueListRequest struct {
+type GetCueListByNumberRequest struct {
 	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
 }
 
-type GetCueListResponse struct {
+type GetCueListByNumberResponse struct {
 	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
 }
 
 const CueListNotFound = "Cue List Not Found."
 
-func (p *Cueing) GetCueList(sub string, request *GetCueListRequest) (*GetCueListResponse, error) {
-	out := p.model.CueLists.Get(request.Number)
+func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberRequest) (*GetCueListByNumberResponse, error) {
+	out := p.model.CueLists.GetFunc(func(list *types.CueList) bool {
+		return list.Num() == request.Number
+	})
 	if out == nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
 	}
 
-	return &GetCueListResponse{
+	return &GetCueListByNumberResponse{
 		CueListMetadata: (*out).Metadata,
 	}, nil
+}
+
+const GetCueListByIdRequestSubject = "request.cueing.cuelists.get.number"
+
+type GetCueListByIdRequest struct {
+	Id string `msgpack:"id" json:"id" validate:"required`
+}
+
+type GetCueListByIdResponse struct {
+	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
+}
+
+func (p *Cueing) GetCueListById(sub string, request *GetCueListByIdRequest) (*GetCueListByIdResponse, error) {
+	cl, err := p.getCueListById(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetCueListByIdResponse{
+		CueListMetadata: cl.Metadata,
+	}, nil
+}
+
+func (p *Cueing) getCueListById(id string) (*types.CueList, error) {
+	cl := p.model.CueLists.GetFunc(func(list *types.CueList) bool {
+		return list.Id() == id
+	})
+	if cl == nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
+	}
+
+	return *cl, nil
 }
 
 const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
@@ -103,68 +139,71 @@ type CueListMetadataUpdatedEvent struct {
 const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
 
 type UpdateCueListLabelRequest struct {
-	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
-	Label  string  `msgpack:"label" json:"label"`
+	Id    string `msgpack:"id" json:"id" validate:"required"`
+	Label string `msgpack:"label" json:"label"`
 }
 type UpdateCueListLabelResponse struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
 }
 
 func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelRequest) (*UpdateCueListLabelResponse, error) {
-	c := p.model.CueLists.Get(request.Number)
-	if c == nil {
-		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
+	cl, err := p.getCueListById(request.Id)
+	if err != nil {
+		return nil, err
 	}
-	(*c).Metadata.Label = request.Label
 
-	err := messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListCreatedEvent{
-		CueListMetadata: (*c).Metadata,
+	cl.Metadata.Label = request.Label
+
+	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListCreatedEvent{
+		CueListMetadata: cl.Metadata,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue list label", "error", err)
 		return nil, err
 	}
 
-	return &UpdateCueListLabelResponse{Metadata: (*c).Metadata}, nil
+	return &UpdateCueListLabelResponse{Metadata: cl.Metadata}, nil
 }
 
 const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
 const RenumberCueListEventSubject = "event.cueing.cuelists.renumber"
 
 type RenumberCueListsRequest struct {
-	OriginalNumber float64 `msgpack:"originalNumber" json:"originalNumber" validate:"required,gt=0"`
-	NewNumber      float64 `msgpack:"newNumber" json:"newNumber" validate:"required,gt=0"`
+	Id        string  `msgpack:"id" json:"id" validate:"required"`
+	NewNumber float64 `msgpack:"newNumber" json:"newNumber" validate:"required,gt=0"`
 }
 type RenumberCueListsResponse struct{}
 
 type RenumberCueListEvent struct {
-	OriginalNumber float64 `msgpack:"originalNumber" json:"originalNumber"`
-	NewNumber      float64 `msgpack:"newNumber" json:"newNumber"`
+	Id        string  `msgpack:"id" json:"id" validate:"required"`
+	NewNumber float64 `msgpack:"newNumber" json:"newNumber"`
 }
 
 func (p *Cueing) RenumberCueList(sub string, request *RenumberCueListsRequest) (*RenumberCueListsResponse, error) {
-	err := p.model.CueLists.Move(request.OriginalNumber, request.NewNumber)
+	err := p.model.CueLists.MoveFunc(func(list *types.CueList) bool {
+		return list.Id() == request.Id
+	}, request.NewNumber)
 	if errors.Is(err, util.ErrNotFound) {
-		p.Logger().Debug("could not renumber cue list because the original cue list does not exist", "err", err, "originalNumber", request.OriginalNumber, "newNumber", request.NewNumber)
+		p.Logger().Debug("could not renumber cue list because the original cue list does not exist", "err", err, "cueListId", request.Id, "newNumber", request.NewNumber)
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
 	}
 
 	if errors.Is(err, util.ErrExists) {
-		p.Logger().Debug("could not renumber cue list because the new number already exists", "err", err, "originalNumber", request.OriginalNumber, "newNumber", request.NewNumber)
+		p.Logger().Debug("could not renumber cue list because the new number already exists", "err", err, "cueListId", request.Id, "newNumber", request.NewNumber)
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNumberExists}
 	}
 
 	if err != nil {
-		p.Logger().Error("Failed to renumber cue list", "err", err, "originalNumber", request.OriginalNumber, "newNumber", request.NewNumber)
+		p.Logger().Error("Failed to renumber cue list", "err", err, "cueListId", request.Id, "newNumber", request.NewNumber)
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), RenumberCueListEventSubject, &RenumberCueListEvent{
-		OriginalNumber: request.OriginalNumber,
-		NewNumber:      request.NewNumber,
+		Id:        request.Id,
+		NewNumber: request.NewNumber,
 	})
 	if err != nil {
-		p.Logger().Error("Failed to publish renumber cue list event", "err", err, "originalNumber", request.OriginalNumber, "newNumber", request.NewNumber)
+		p.Logger().Error("Failed to publish renumber cue list event", "err", err, "cuelistId", request.Id, "newNumber", request.NewNumber)
 		return nil, err
 	}
 
@@ -175,19 +214,21 @@ const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"
 const DeleteCueListEventSubject = "event.cueing.cuelists.deleted"
 
 type DeleteCueListsRequest struct {
-	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
+	Id string `msgpack:"id" json:"id" validate:"required"`
 }
 type DeleteCueListsResponse struct{}
 type CueListDeletedEvent struct {
-	Number float64 `msgpack:"number" json:"number"`
+	Id string `msgpack:"id" json:"id"`
 }
 
 func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*DeleteCueListsResponse, error) {
-	p.model.CueLists.Remove(request.Number)
+	p.model.CueLists.RemoveFunc(func(list *types.CueList) bool {
+		return list.Id() == request.Id
+	})
 
 	err := messaging.Publish(p.Messenger(), DeleteCueListEventSubject, &CueListDeletedEvent{})
 	if err != nil {
-		p.Logger().Error("failed to publish cue list deleted event", "error", err, "number", request.Number)
+		p.Logger().Error("failed to publish cue list deleted event", "error", err, "id", request.Id)
 		return nil, err
 	}
 

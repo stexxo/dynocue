@@ -5,6 +5,7 @@
 package types
 
 import (
+	"github.com/google/uuid"
 	"github.com/stexxo/dynocue/util"
 )
 
@@ -19,11 +20,23 @@ func NewCueingModel() *CueingModel {
 }
 
 type CueList struct {
-	Metadata CueListMetadata          `msgpack:"metadata" json:"metadata"`
-	Cues     util.NumberedSlice[*Cue] `msgpack:"cues" json:"cues"`
+	Metadata CueListMetadata           `msgpack:"metadata" json:"metadata"`
+	Cues     *util.NumberedSlice[*Cue] `msgpack:"cues" json:"cues"`
+}
+
+func NewCueList(num float64, cueListType string) *CueList {
+	return &CueList{
+		Metadata: CueListMetadata{
+			Id:          uuid.NewString(),
+			Number:      num,
+			CueListType: cueListType,
+		},
+		Cues: util.NewNumberedSlice[*Cue](),
+	}
 }
 
 type CueListMetadata struct {
+	Id          string  `msgpack:"id" json:"id"`
 	Number      float64 `msgpack:"number" json:"number"`
 	Label       string  `msgpack:"label" json:"label"`
 	CueListType string  `msgpack:"cueListType" json:"cueListType"`
@@ -35,4 +48,8 @@ func (c *CueList) Num() float64 {
 
 func (c *CueList) SetNum(number float64) {
 	c.Metadata.Number = number
+}
+
+func (c *CueList) Id() string {
+	return c.Metadata.Id
 }

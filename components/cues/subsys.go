@@ -40,7 +40,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load),
 		messaging.Reply[CreateCueListRequest, CreateCueListResponse](p.Messenger(), true, CreateCueListRequestSubject, p.CreateCueList),
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
-		messaging.Reply[GetCueListRequest, GetCueListResponse](p.Messenger(), true, GetCueListRequestSubject, p.GetCueList),
+		messaging.Reply[GetCueListByNumberRequest, GetCueListByNumberResponse](p.Messenger(), true, GetCueListByNumberRequestSubject, p.GetCueListByNumber),
 		messaging.Reply[UpdateCueListLabelRequest, UpdateCueListLabelResponse](p.Messenger(), true, UpdateCueListLabelRequestSubject, p.UpdateCueListLabel),
 		messaging.Reply[RenumberCueListsRequest, RenumberCueListsResponse](p.Messenger(), true, RenumberCueListRequestSubject, p.RenumberCueList),
 		messaging.Reply[DeleteCueListsRequest, DeleteCueListsResponse](p.Messenger(), true, DeleteCueListRequestSubject, p.DeleteCueList),

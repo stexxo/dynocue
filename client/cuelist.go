@@ -46,7 +46,7 @@ func (c *Client) EnumerateCueLists() ([]types.CueListMetadata, error) {
 }
 
 func (c *Client) GetCueList(number float64) (*types.CueListMetadata, error) {
-	resp, err := messaging.Request[cues.GetCueListResponse](c.messenger, cues.GetCueListRequestSubject, &cues.GetCueListRequest{Number: number})
+	resp, err := messaging.Request[cues.GetCueListByNumberResponse](c.messenger, cues.GetCueListByNumberRequestSubject, &cues.GetCueListByNumberRequest{Number: number})
 	if err != nil {
 		return nil, err
 	}

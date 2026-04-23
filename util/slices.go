@@ -78,25 +78,23 @@ func (o *NumberedSlice[T]) Add(in T) bool {
 var ErrNotFound = errors.New("item not found")
 var ErrExists = errors.New("item already exists")
 
-func (o *NumberedSlice[T]) Move(original float64, new float64) error {
+func (o *NumberedSlice[T]) MoveFunc(fn func(T) bool, newNumber float64) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	originalIdx, found := slices.BinarySearchFunc(o.data, original, func(a T, b float64) int {
-		return cmp.Compare(a.Num(), b)
-	})
-	if !found {
+	originalIdx := slices.IndexFunc(o.data, fn)
+	if originalIdx == -1 {
 		return ErrNotFound
 	}
 
-	_, found = slices.BinarySearchFunc(o.data, new, func(a T, b float64) int {
+	_, found := slices.BinarySearchFunc(o.data, newNumber, func(a T, b float64) int {
 		return cmp.Compare(a.Num(), b)
 	})
 	if found {
 		return ErrExists
 	}
 
-	o.data[originalIdx].SetNum(new)
+	o.data[originalIdx].SetNum(newNumber)
 
 	slices.SortFunc(o.data, func(a, b T) int {
 		return cmp.Compare(a.Num(), b.Num())
@@ -105,36 +103,39 @@ func (o *NumberedSlice[T]) Move(original float64, new float64) error {
 	return nil
 }
 
-func (o *NumberedSlice[T]) Remove(number float64) {
+func (o *NumberedSlice[T]) RemoveFunc(fn func(T) bool) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	i, found := slices.BinarySearchFunc(o.data, number, func(a T, b float64) int {
-		return cmp.Compare(a.Num(), b)
-	})
-	if !found {
+	i := slices.IndexFunc(o.data, fn)
+	if i == -1 {
 		return
 	}
 	o.data = slices.Delete(o.data, i, i+1)
 }
 
-func (o *NumberedSlice[T]) Get(number float64) *T {
+func (o *NumberedSlice[T]) GetFunc(fn func(T) bool) *T {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 
-	i, _ := slices.BinarySearchFunc(o.data, number, func(a T, b float64) int {
-		return cmp.Compare(a.Num(), b)
-	})
-	if i >= 0 && i < o.Len() {
-		return &o.data[i]
+	i := slices.IndexFunc(o.data, fn)
+	if i == -1 {
+		return nil
 	}
 
-	return nil
+	return &o.data[i]
 }
+
 func (o *NumberedSlice[T]) ForEach(fn func(T)) {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 	for _, item := range o.data {
 		fn(item)
 	}
+}
+
+func (o *NumberedSlice[T]) WithValues(fn func([]T)) {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+	fn(o.data)
 }
