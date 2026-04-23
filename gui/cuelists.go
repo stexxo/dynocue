@@ -51,7 +51,7 @@ func (c *CueListsService) CreateCueList(num float64, cueListType string) bool {
 func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, bool) {
 	var out *types.CueListMetadata
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		md, err := c.GetCueList(num)
+		md, err := c.GetCueListByNumber(num)
 		if err != nil {
 			return err
 		}
