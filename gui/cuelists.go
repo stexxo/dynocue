@@ -30,7 +30,7 @@ func (c *CueListsService) onNewClient(cl *client.Client) error {
 		cl.OnCueListCreated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
 		cl.OnCueListMetadataUpdated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
 		cl.OnCueListRenumber(func(s string, r *client.RenumberEvent) { c.app.Event.Emit(s, r) }),
-		cl.OnCueListDeleted(func(s string, f *float64) { c.app.Event.Emit(s, *f) }),
+		cl.OnCueListDeleted(func(s string, id *string) { c.app.Event.Emit(s, *id) }),
 	)
 }
 
@@ -85,9 +85,9 @@ func (c *CueListsService) EnumerateCueLists() ([]types.CueListMetadata, bool) {
 	return out, true
 }
 
-func (c *CueListsService) SetCueListLabel(num float64, label string) bool {
+func (c *CueListsService) SetCueListLabel(id string, label string) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		_, err := c.SetCueListLabel(num, label)
+		_, err := c.SetCueListLabel(id, label)
 		return err
 	})
 	if err != nil {
@@ -98,9 +98,9 @@ func (c *CueListsService) SetCueListLabel(num float64, label string) bool {
 	return true
 }
 
-func (c *CueListsService) RenumberCueList(origNum, newNum float64) bool {
+func (c *CueListsService) RenumberCueList(id string, newNum float64) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		return c.RenumberCueList(origNum, newNum)
+		return c.RenumberCueList(id, newNum)
 	})
 	if err != nil {
 		c.logger.Error("failed to renumber cue list", "err", err)
@@ -110,9 +110,9 @@ func (c *CueListsService) RenumberCueList(origNum, newNum float64) bool {
 	return true
 }
 
-func (c *CueListsService) DeleteCueList(num float64) bool {
+func (c *CueListsService) DeleteCueList(id string) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		return c.DeleteCueList(num)
+		return c.DeleteCueList(id)
 	})
 	if err != nil {
 		c.logger.Error("failed to delete cue list", "err", err)
