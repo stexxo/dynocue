@@ -1,4 +1,4 @@
-package gui
+package services
 
 import (
 	"errors"
@@ -10,12 +10,12 @@ import (
 )
 
 type CueListsService struct {
-	clientManager *ClientManager
+	clientManager *client.Manager
 	app           *application.App
 	logger        logging.Logger
 }
 
-func NewCueListsService(manager *ClientManager, app *application.App, logger logging.Logger) *CueListsService {
+func NewCueListsService(manager *client.Manager, app *application.App, logger logging.Logger) *CueListsService {
 	out := &CueListsService{
 		app:           app,
 		logger:        logger,

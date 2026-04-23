@@ -5,20 +5,22 @@
 package gui
 
 import (
+	"github.com/stexxo/dynocue/client"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/gui/frontend"
+	"github.com/stexxo/dynocue/gui/services"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type Gui struct {
 	app           *application.App
 	logger        logging.Logger
-	clientManager *ClientManager
+	clientManager *client.Manager
 }
 
 func NewGui(logger logging.Logger) *Gui {
 	g := &Gui{
-		clientManager: NewClientManager(logger),
+		clientManager: client.NewClientManager(logger),
 		logger:        logger,
 	}
 
@@ -29,8 +31,9 @@ func NewGui(logger logging.Logger) *Gui {
 		},
 	})
 
-	g.app.RegisterService(application.NewService(NewSelectorService(g.clientManager, g.app, g.logger)))
-	g.app.RegisterService(application.NewService(NewCueListsService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(services.NewSelectorService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(services.NewCueListsService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(services.NewCuesService(g.clientManager, g.app, g.logger)))
 
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:     1280,

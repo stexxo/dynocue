@@ -3,7 +3,7 @@ import {
 	CreateCueList,
 	SetCueListLabel,
 	DeleteCueList, RenumberCueList
-} from "../../../bindings/github.com/stexxo/dynocue/gui/cuelistsservice";
+} from "../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice";
 import { CueListMetadata } from "../../../bindings/github.com/stexxo/dynocue/components/cues/types";
 import { Events } from "@wailsio/runtime";
 

@@ -10,19 +10,21 @@ type Cue struct {
 	Metadata CueMetadata `msgpack:"metadata" json:"metadata"`
 }
 
-func NewCue(number float64) *Cue {
+func NewCue(cueListId string, number float64) *Cue {
 	return &Cue{
 		Metadata: CueMetadata{
-			Id:     uuid.NewString(),
-			Number: number,
+			CueListId: cueListId,
+			Id:        uuid.NewString(),
+			Number:    number,
 		},
 	}
 }
 
 type CueMetadata struct {
-	Id     string  `msgpack:"id" json:"id"`
-	Number float64 `msgpack:"number" json:"number"`
-	Label  string  `msgpack:"label" json:"label"`
+	CueListId string  `msgpack:"cueListId" json:"cueListId"`
+	Id        string  `msgpack:"id" json:"id"`
+	Number    float64 `msgpack:"number" json:"number"`
+	Label     string  `msgpack:"label" json:"label"`
 }
 
 func (c *Cue) Num() float64 {

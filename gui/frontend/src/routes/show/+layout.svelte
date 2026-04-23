@@ -13,7 +13,7 @@
 		SaveShowAs,
 		OpenShow,
 		CloseShow
-	} from '../../../bindings/github.com/stexxo/dynocue/gui/selectorservice.js';
+	} from '../../../bindings/github.com/stexxo/dynocue/gui/services/selectorservice.js';
 	import { withLoading, createLoadingState } from '$lib/loading.svelte';
 
 	let { children } = $props();

@@ -37,7 +37,7 @@ type CueCreatedEvent struct {
 }
 
 func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueResponse, error) {
-	cue := types.NewCue(req.CueNumber)
+	cue := types.NewCue(req.CueListId, req.CueNumber)
 
 	cl, err := p.getCueListById(req.CueListId)
 	if err != nil {
@@ -48,7 +48,7 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
 	}
 
-	(*cl).Cues.Add(cue)
+	cl.Cues.Add(cue)
 
 	err = messaging.Publish(p.Messenger(), CueCreatedEventSubject, &CueCreatedEvent{
 		CueListId: req.CueListId,
@@ -117,7 +117,9 @@ func (p *Cueing) GetCueByNumber(sub string, request *GetCueByNumberRequest) (*Ge
 		return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
 	}
 
-	return &GetCueByNumberResponse{Metadata: (*out).Metadata}, nil
+	cue := *out
+
+	return &GetCueByNumberResponse{Metadata: cue.Metadata}, nil
 }
 
 // GetCueById

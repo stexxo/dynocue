@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package gui
+package services
 
 import (
 	"errors"
@@ -17,12 +17,12 @@ import (
 )
 
 type SelectorService struct {
-	clientManager *ClientManager
+	clientManager *client.Manager
 	app           *application.App
 	logger        logging.Logger
 }
 
-func NewSelectorService(manager *ClientManager, app *application.App, logger logging.Logger) *SelectorService {
+func NewSelectorService(manager *client.Manager, app *application.App, logger logging.Logger) *SelectorService {
 	return &SelectorService{
 		clientManager: manager,
 		app:           app,

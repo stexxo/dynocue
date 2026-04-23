@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package gui
+package client
 
 import (
 	"errors"
@@ -10,38 +10,37 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/stexxo/dynocue/client"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 )
 
-type ClientManager struct {
+type Manager struct {
 	mu             sync.RWMutex
 	connected      bool
 	remote         bool
-	client         *client.Client
+	client         *Client
 	core           *core.DynoCue
 	logger         logging.Logger
-	onNewClientFns []func(*client.Client) error
+	onNewClientFns []func(*Client) error
 }
 
-func NewClientManager(logger logging.Logger) *ClientManager {
-	return &ClientManager{logger: logger}
+func NewClientManager(logger logging.Logger) *Manager {
+	return &Manager{logger: logger}
 }
 
-func (cm *ClientManager) Connected() bool {
+func (cm *Manager) Connected() bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	return cm.connected
 }
 
-func (cm *ClientManager) Remote() bool {
+func (cm *Manager) Remote() bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	return cm.remote
 }
 
-func (cm *ClientManager) WithClient(fn func(*client.Client) error) error {
+func (cm *Manager) WithClient(fn func(*Client) error) error {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	if cm.client == nil {
@@ -50,7 +49,7 @@ func (cm *ClientManager) WithClient(fn func(*client.Client) error) error {
 	return fn(cm.client)
 }
 
-func (cm *ClientManager) Core() (*core.DynoCue, error) {
+func (cm *Manager) Core() (*core.DynoCue, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 	if cm.core == nil {
@@ -59,7 +58,7 @@ func (cm *ClientManager) Core() (*core.DynoCue, error) {
 	return cm.core, nil
 }
 
-func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
+func (cm *Manager) ConnectLocal(core *core.DynoCue) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	conn, err := core.GetInProcessConn("local-client")
@@ -67,7 +66,7 @@ func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
 		return err
 	}
 
-	c := client.NewClient(conn, cm.logger)
+	c := NewClient(conn, cm.logger)
 
 	cm.client = c
 	cm.core = core
@@ -83,14 +82,14 @@ func (cm *ClientManager) ConnectLocal(core *core.DynoCue) error {
 	return nil
 }
 
-func (cm *ClientManager) ConnectRemote(addr string) error {
+func (cm *Manager) ConnectRemote(addr string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	conn, err := nats.Connect(addr, nats.MaxReconnects(-1), nats.ReconnectWait(1*time.Second))
 	if err != nil {
 		return err
 	}
-	c := client.NewClient(conn, cm.logger)
+	c := NewClient(conn, cm.logger)
 	cm.client = c
 	cm.core = nil
 
@@ -105,7 +104,7 @@ func (cm *ClientManager) ConnectRemote(addr string) error {
 	return nil
 }
 
-func (cm *ClientManager) Disconnect() error {
+func (cm *Manager) Disconnect() error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	if !cm.connected {
@@ -118,7 +117,7 @@ func (cm *ClientManager) Disconnect() error {
 	return nil
 }
 
-func (cm *ClientManager) OnNewClient(fn func(*client.Client) error) {
+func (cm *Manager) OnNewClient(fn func(*Client) error) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.onNewClientFns = append(cm.onNewClientFns, fn)
