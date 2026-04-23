@@ -15,6 +15,8 @@ import (
 const CueNotFound = "Cue Not Found"
 const CueNumberExists = "Cue Number Already Exists"
 
+// CreateCue
+
 const CreateCueRequestSubject = "request.cueing.cue.create"
 const CueCreatedEventSubject = "event.cueing.cue.created"
 
@@ -60,11 +62,14 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 	return &CreateCueResponse{CueListId: req.CueListId, CueId: cue.Metadata.Id, CueNumber: cue.Metadata.Number}, nil
 }
 
+// EnumerateCues
+
 const EnumerateCuesRequestSubject = "request.cueing.cue.enumerate"
 
 type EnumerateCuesRequest struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 }
+
 type EnumerateCuesResponse struct {
 	Cues []types.CueMetadata `msgpack:"cues" json:"cues"`
 }
@@ -83,12 +88,15 @@ func (p *Cueing) EnumerateCues(sub string, request *EnumerateCuesRequest) (*Enum
 	return &EnumerateCuesResponse{Cues: out}, nil
 }
 
+// GetCueByNumber
+
 const GetCueByNumberRequestSubject = "request.cueing.cue.get.number"
 
 type GetCueByNumberRequest struct {
 	CueListNumber float64 `msgpack:"cueListNumber" json:"cueListNumber" validate:"required,gt=0"`
 	CueNumber     float64 `msgpack:"cueNumber" json:"cueNumber" validate:"required,gt=0"`
 }
+
 type GetCueByNumberResponse struct {
 	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
 }
@@ -112,12 +120,15 @@ func (p *Cueing) GetCueByNumber(sub string, request *GetCueByNumberRequest) (*Ge
 	return &GetCueByNumberResponse{Metadata: (*out).Metadata}, nil
 }
 
+// GetCueById
+
 const GetCueByIdRequestSubject = "request.cueing.cue.get.id"
 
 type GetCueByIdRequest struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
 }
+
 type GetCueByIdResponse struct {
 	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
 }
@@ -147,48 +158,7 @@ func (p *Cueing) getCueById(cl *types.CueList, id string) (*types.Cue, error) {
 	return *cue, nil
 }
 
-const CueMetadataUpdatedEventSubject = "event.cueing.cue.metadata.updated"
-
-type CueMetadataUpdatedEvent struct {
-	CueListId string            `msgpack:"cueListId" json:"cueListId"`
-	Metadata  types.CueMetadata `msgpack:"metadata" json:"metadata"`
-}
-
-const UpdateCueLabelRequestSubject = "request.cueing.cue.updateLabel"
-
-type UpdateCueLabelRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
-	Label     string `msgpack:"label" json:"label"`
-}
-type UpdateCueLabelResponse struct {
-	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
-}
-
-func (p *Cueing) UpdateCueLabel(sub string, request *UpdateCueLabelRequest) (*UpdateCueLabelResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue.Metadata.Label = request.Label
-
-	err = messaging.Publish(p.Messenger(), CueMetadataUpdatedEventSubject, &CueMetadataUpdatedEvent{
-		CueListId: request.CueListId,
-		Metadata:  cue.Metadata,
-	})
-	if err != nil {
-		p.Logger().Error("Failed to publish updated cue label", "error", err)
-		return nil, err
-	}
-
-	return &UpdateCueLabelResponse{Metadata: cue.Metadata}, nil
-}
+// RenumberCue
 
 const RenumberCueRequestSubject = "request.cueing.cue.renumber"
 const RenumberCueEventSubject = "event.cueing.cue.renumber"
@@ -198,6 +168,7 @@ type RenumberCueRequest struct {
 	CueId     string  `msgpack:"cueId" json:"cueId" validate:"required"`
 	NewNumber float64 `msgpack:"newNumber" json:"newNumber" validate:"required,gt=0"`
 }
+
 type RenumberCueResponse struct{}
 
 type RenumberCueEvent struct {
@@ -241,6 +212,8 @@ func (p *Cueing) RenumberCue(sub string, request *RenumberCueRequest) (*Renumber
 	return &RenumberCueResponse{}, nil
 }
 
+// DeleteCue
+
 const DeleteCueRequestSubject = "request.cueing.cue.delete"
 const DeleteCueEventSubject = "event.cueing.cue.deleted"
 
@@ -248,7 +221,9 @@ type DeleteCueRequest struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
 }
+
 type DeleteCueResponse struct{}
+
 type CueDeletedEvent struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
 	CueId     string `msgpack:"cueId" json:"cueId"`
@@ -274,4 +249,54 @@ func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueRes
 	}
 
 	return &DeleteCueResponse{}, nil
+}
+
+// Update Operations
+
+// Update Events
+
+const CueMetadataUpdatedEventSubject = "event.cueing.cue.metadata.updated"
+
+type CueMetadataUpdatedEvent struct {
+	CueListId string            `msgpack:"cueListId" json:"cueListId"`
+	Metadata  types.CueMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+// UpdateCueLabel
+
+const UpdateCueLabelRequestSubject = "request.cueing.cue.updateLabel"
+
+type UpdateCueLabelRequest struct {
+	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
+	Label     string `msgpack:"label" json:"label"`
+}
+
+type UpdateCueLabelResponse struct {
+	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+func (p *Cueing) UpdateCueLabel(sub string, request *UpdateCueLabelRequest) (*UpdateCueLabelResponse, error) {
+	cl, err := p.getCueListById(request.CueListId)
+	if err != nil {
+		return nil, err
+	}
+
+	cue, err := p.getCueById(cl, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
+	cue.Metadata.Label = request.Label
+
+	err = messaging.Publish(p.Messenger(), CueMetadataUpdatedEventSubject, &CueMetadataUpdatedEvent{
+		CueListId: request.CueListId,
+		Metadata:  cue.Metadata,
+	})
+	if err != nil {
+		p.Logger().Error("Failed to publish updated cue label", "error", err)
+		return nil, err
+	}
+
+	return &UpdateCueLabelResponse{Metadata: cue.Metadata}, nil
 }

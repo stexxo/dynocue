@@ -114,6 +114,39 @@ func (o *NumberedSlice[T]) RemoveFunc(fn func(T) bool) {
 	o.data = slices.Delete(o.data, i, i+1)
 }
 
+func (o *NumberedSlice[T]) GetByNumber(num float64) *T {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	idx, found := slices.BinarySearchFunc(o.data, num, func(a T, b float64) int {
+		return cmp.Compare(a.Num(), b)
+	})
+
+	if !found {
+		return nil
+	}
+
+	return &o.data[idx]
+}
+
+func (o *NumberedSlice[T]) GetNextByNumber(current float64) *T {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	idx, found := slices.BinarySearchFunc(o.data, current, func(a T, b float64) int {
+		return cmp.Compare(a.Num(), b)
+	})
+	if !found {
+		return nil
+	}
+
+	if idx == len(o.data)-1 {
+		return nil
+	}
+
+	return &o.data[idx+1]
+}
+
 func (o *NumberedSlice[T]) GetFunc(fn func(T) bool) *T {
 	o.mu.RLock()
 	defer o.mu.RUnlock()

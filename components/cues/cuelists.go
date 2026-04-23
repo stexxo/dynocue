@@ -139,43 +139,6 @@ func (p *Cueing) getCueListById(id string) (*types.CueList, error) {
 	return *cl, nil
 }
 
-// UpdateCueListLabel
-
-const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
-const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
-
-type UpdateCueListLabelRequest struct {
-	Id    string `msgpack:"id" json:"id" validate:"required"`
-	Label string `msgpack:"label" json:"label"`
-}
-
-type UpdateCueListLabelResponse struct {
-	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
-}
-
-type CueListMetadataUpdatedEvent struct {
-	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
-}
-
-func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelRequest) (*UpdateCueListLabelResponse, error) {
-	cl, err := p.getCueListById(request.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	cl.Metadata.Label = request.Label
-
-	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListCreatedEvent{
-		CueListMetadata: cl.Metadata,
-	})
-	if err != nil {
-		p.Logger().Error("Failed to publish updated cue list label", "error", err)
-		return nil, err
-	}
-
-	return &UpdateCueListLabelResponse{Metadata: cl.Metadata}, nil
-}
-
 // RenumberCueList
 
 const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
@@ -251,4 +214,46 @@ func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*Del
 	}
 
 	return &DeleteCueListsResponse{}, nil
+}
+
+// Update Operations
+
+// Update Events
+
+const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
+
+type CueListMetadataUpdatedEvent struct {
+	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+// UpdateCueListLabel
+
+const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
+
+type UpdateCueListLabelRequest struct {
+	Id    string `msgpack:"id" json:"id" validate:"required"`
+	Label string `msgpack:"label" json:"label"`
+}
+
+type UpdateCueListLabelResponse struct {
+	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelRequest) (*UpdateCueListLabelResponse, error) {
+	cl, err := p.getCueListById(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	cl.Metadata.Label = request.Label
+
+	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListCreatedEvent{
+		CueListMetadata: cl.Metadata,
+	})
+	if err != nil {
+		p.Logger().Error("Failed to publish updated cue list label", "error", err)
+		return nil, err
+	}
+
+	return &UpdateCueListLabelResponse{Metadata: cl.Metadata}, nil
 }
