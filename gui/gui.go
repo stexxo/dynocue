@@ -32,17 +32,14 @@ func NewGui(logger logging.Logger) *Gui {
 	g.app.RegisterService(application.NewService(NewSelectorService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(NewCueListsService(g.clientManager, g.app, g.logger)))
 
-	w := g.app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Width:           1280,
-		Height:          720,
-		MinWidth:        800,
-		MinHeight:       600,
-		Title:           "DynoCue",
-		URL:             "/",
-		DevToolsEnabled: true,
+	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Width:     1280,
+		Height:    720,
+		MinWidth:  800,
+		MinHeight: 600,
+		Title:     "DynoCue",
+		URL:       "/",
 	}) // Default Window
-	w.OpenDevTools()
-
 	return g
 }
 
