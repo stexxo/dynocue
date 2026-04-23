@@ -36,8 +36,12 @@ func (p *Cueing) onStart() error {
 	p.persistence = pm
 
 	err = errors.Join(
+
+		// Persistence
 		messaging.Reply[string, string](p.Messenger(), false, SaveRequestSubject, p.Save),
 		messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load),
+
+		// Cue Lists
 		messaging.Reply[CreateCueListRequest, CreateCueListResponse](p.Messenger(), true, CreateCueListRequestSubject, p.CreateCueList),
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
 		messaging.Reply[GetCueListByNumberRequest, GetCueListByNumberResponse](p.Messenger(), true, GetCueListByNumberRequestSubject, p.GetCueListByNumber),
@@ -45,6 +49,8 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[UpdateCueListLabelRequest, UpdateCueListLabelResponse](p.Messenger(), true, UpdateCueListLabelRequestSubject, p.UpdateCueListLabel),
 		messaging.Reply[RenumberCueListsRequest, RenumberCueListsResponse](p.Messenger(), true, RenumberCueListRequestSubject, p.RenumberCueList),
 		messaging.Reply[DeleteCueListsRequest, DeleteCueListsResponse](p.Messenger(), true, DeleteCueListRequestSubject, p.DeleteCueList),
+
+		// Cues
 		messaging.Reply[CreateCueRequest, CreateCueResponse](p.Messenger(), true, CreateCueRequestSubject, p.CreateCue),
 		messaging.Reply[EnumerateCuesRequest, EnumerateCuesResponse](p.Messenger(), true, EnumerateCuesRequestSubject, p.EnumerateCues),
 		messaging.Reply[GetCueByNumberRequest, GetCueByNumberResponse](p.Messenger(), true, GetCueByNumberRequestSubject, p.GetCueByNumber),
