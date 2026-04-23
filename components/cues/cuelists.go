@@ -12,6 +12,11 @@ import (
 	"github.com/stexxo/dynocue/util"
 )
 
+const CueListNumberExists = "Cue List Number Already Exists"
+const CueListNotFound = "Cue List Not Found."
+
+// CreateCueList
+
 const CreateCueListRequestSubject = "request.cueing.cuelists.create"
 const CueListCreatedEventSubject = "event.cueing.cuelists.created"
 
@@ -28,8 +33,6 @@ type CreateCueListResponse struct {
 type CueListCreatedEvent struct {
 	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
 }
-
-const CueListNumberExists = "Cue List Number Already Exists"
 
 func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*CreateCueListResponse, error) {
 	c := types.NewCueList(request.Number, request.CueListType)
@@ -52,12 +55,16 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 	}, nil
 }
 
+// EnumerateCueLists
+
 const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
 
 type EnumerateCueListsRequest struct{}
+
 type EnumerateCueListsResponse struct {
 	CueLists []types.CueListMetadata `msgpack:"cueLists" json:"cueLists"`
 }
+
 type CueListEnumeration struct {
 	Number      float64 `msgpack:"number" json:"number"`
 	Label       string  `msgpack:"label" json:"label"`
@@ -73,6 +80,8 @@ func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest
 	return &EnumerateCueListsResponse{CueLists: out}, nil
 }
 
+// GetCueListByNumber
+
 const GetCueListByNumberRequestSubject = "request.cueing.cuelists.get.number"
 
 type GetCueListByNumberRequest struct {
@@ -82,8 +91,6 @@ type GetCueListByNumberRequest struct {
 type GetCueListByNumberResponse struct {
 	CueListMetadata types.CueListMetadata `msgpack:"cueListMetadata" json:"cueListMetadata"`
 }
-
-const CueListNotFound = "Cue List Not Found."
 
 func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberRequest) (*GetCueListByNumberResponse, error) {
 	out := p.model.CueLists.GetFunc(func(list *types.CueList) bool {
@@ -98,10 +105,12 @@ func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberReque
 	}, nil
 }
 
+// GetCueListById
+
 const GetCueListByIdRequestSubject = "request.cueing.cuelists.get.number"
 
 type GetCueListByIdRequest struct {
-	Id string `msgpack:"id" json:"id" validate:"required`
+	Id string `msgpack:"id" json:"id" validate:"required"`
 }
 
 type GetCueListByIdResponse struct {
@@ -130,19 +139,21 @@ func (p *Cueing) getCueListById(id string) (*types.CueList, error) {
 	return *cl, nil
 }
 
-const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
-
-type CueListMetadataUpdatedEvent struct {
-	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
-}
+// UpdateCueListLabel
 
 const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
+const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
 
 type UpdateCueListLabelRequest struct {
 	Id    string `msgpack:"id" json:"id" validate:"required"`
 	Label string `msgpack:"label" json:"label"`
 }
+
 type UpdateCueListLabelResponse struct {
+	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+type CueListMetadataUpdatedEvent struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
 }
 
@@ -165,6 +176,8 @@ func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelReque
 	return &UpdateCueListLabelResponse{Metadata: cl.Metadata}, nil
 }
 
+// RenumberCueList
+
 const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
 const RenumberCueListEventSubject = "event.cueing.cuelists.renumber"
 
@@ -172,6 +185,7 @@ type RenumberCueListsRequest struct {
 	Id        string  `msgpack:"id" json:"id" validate:"required"`
 	NewNumber float64 `msgpack:"newNumber" json:"newNumber" validate:"required,gt=0"`
 }
+
 type RenumberCueListsResponse struct{}
 
 type RenumberCueListEvent struct {
@@ -210,13 +224,17 @@ func (p *Cueing) RenumberCueList(sub string, request *RenumberCueListsRequest) (
 	return &RenumberCueListsResponse{}, nil
 }
 
+// DeleteCueList
+
 const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"
 const DeleteCueListEventSubject = "event.cueing.cuelists.deleted"
 
 type DeleteCueListsRequest struct {
 	Id string `msgpack:"id" json:"id" validate:"required"`
 }
+
 type DeleteCueListsResponse struct{}
+
 type CueListDeletedEvent struct {
 	Id string `msgpack:"id" json:"id"`
 }
