@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cuelistsStore } from "../../stores/cuelistsStore.svelte";
+	import { cuelistsStore } from "../../../stores/cuelistsStore.svelte";
 	import "./CuelistsTableTypes.svelte.ts";
 	import EditableTableData from "$lib/components/table/EditableTableData.svelte";
 

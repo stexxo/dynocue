@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/client"
+	"github.com/stexxo/dynocue/components/cues"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -30,7 +31,7 @@ func (c *CuesService) onNewClient(cl *client.Client) error {
 		cl.OnCueCreated(func(s string, t *types.CueMetadata) { c.app.Event.Emit(s, t) }),
 		cl.OnCueMetadataUpdated(func(s string, t *types.CueMetadata) { c.app.Event.Emit(s, t) }),
 		cl.OnCueRenumber(func(s string, r *client.CueRenumberEvent) { c.app.Event.Emit(s, r) }),
-		cl.OnCueDeleted(func(s string, id *string) { c.app.Event.Emit(s, *id) }),
+		cl.OnCueDeleted(func(s string, e *cues.CueDeletedEvent) { c.app.Event.Emit(s, e) }),
 	)
 }
 

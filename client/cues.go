@@ -205,9 +205,9 @@ func (c *Client) OnCueRenumber(handler EventCallback[CueRenumberEvent]) error {
 	return nil
 }
 
-func (c *Client) OnCueDeleted(handler EventCallback[string]) error {
+func (c *Client) OnCueDeleted(handler EventCallback[cues.CueDeletedEvent]) error {
 	err := messaging.Subscribe[cues.CueDeletedEvent](c.messenger, false, cues.DeleteCueEventSubject, func(s string, e *cues.CueDeletedEvent) {
-		handler(s, &e.CueId)
+		handler(s, e)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue deletion events: %w", err)

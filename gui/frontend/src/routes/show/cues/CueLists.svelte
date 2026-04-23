@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CueListTable from "$lib/components/cuelists/CueListTable.svelte";
+	import CueListTable from "$lib/components/cueing/cuelists/CueListTable.svelte";
 	import {cueListTabState} from "./cuesListsState.svelte";
 	import CueListDetail from "./CueListDetail.svelte";
 	import type {TabContentProps} from "$lib/components/tabs/tabTypes.svelte";

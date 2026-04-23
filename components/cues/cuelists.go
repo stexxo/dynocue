@@ -17,8 +17,8 @@ const CueListNotFound = "Cue List Not Found."
 
 // CreateCueList
 
-const CreateCueListRequestSubject = "request.cueing.cuelists.create"
-const CueListCreatedEventSubject = "event.cueing.cuelists.created"
+const CreateCueListRequestSubject = "request.cueing.cueing.create"
+const CueListCreatedEventSubject = "event.cueing.cueing.created"
 
 type CreateCueListRequest struct {
 	Number      float64 `msgpack:"number" json:"number" validate:"gte=0"`
@@ -57,7 +57,7 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 
 // EnumerateCueLists
 
-const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
+const EnumerateCueListsRequestSubject = "request.cueing.cueing.enumerate"
 
 type EnumerateCueListsRequest struct{}
 
@@ -82,7 +82,7 @@ func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest
 
 // GetCueListByNumber
 
-const GetCueListByNumberRequestSubject = "request.cueing.cuelists.get.number"
+const GetCueListByNumberRequestSubject = "request.cueing.cueing.get.number"
 
 type GetCueListByNumberRequest struct {
 	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
@@ -107,7 +107,7 @@ func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberReque
 
 // GetCueListById
 
-const GetCueListByIdRequestSubject = "request.cueing.cuelists.get.number"
+const GetCueListByIdRequestSubject = "request.cueing.cueing.get.number"
 
 type GetCueListByIdRequest struct {
 	Id string `msgpack:"id" json:"id" validate:"required"`
@@ -141,8 +141,8 @@ func (p *Cueing) getCueListById(id string) (*types.CueList, error) {
 
 // RenumberCueList
 
-const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
-const RenumberCueListEventSubject = "event.cueing.cuelists.renumber"
+const RenumberCueListRequestSubject = "request.cueing.cueing.renumber"
+const RenumberCueListEventSubject = "event.cueing.cueing.renumber"
 
 type RenumberCueListsRequest struct {
 	Id        string  `msgpack:"id" json:"id" validate:"required"`
@@ -189,8 +189,8 @@ func (p *Cueing) RenumberCueList(sub string, request *RenumberCueListsRequest) (
 
 // DeleteCueList
 
-const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"
-const DeleteCueListEventSubject = "event.cueing.cuelists.deleted"
+const DeleteCueListRequestSubject = "request.cueing.cueing.delete"
+const DeleteCueListEventSubject = "event.cueing.cueing.deleted"
 
 type DeleteCueListsRequest struct {
 	Id string `msgpack:"id" json:"id" validate:"required"`
@@ -220,7 +220,7 @@ func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*Del
 
 // Update Events
 
-const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
+const CueListMetadataUpdatedEventSubject = "event.cueing.cueing.metadata.updated"
 
 type CueListMetadataUpdatedEvent struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
@@ -228,7 +228,7 @@ type CueListMetadataUpdatedEvent struct {
 
 // UpdateCueListLabel
 
-const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
+const UpdateCueListLabelRequestSubject = "request.cueing.cueing.updateLabel"
 
 type UpdateCueListLabelRequest struct {
 	Id    string `msgpack:"id" json:"id" validate:"required"`
