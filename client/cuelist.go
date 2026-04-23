@@ -78,6 +78,35 @@ func (c *Client) SetCueListLabel(num float64, label string) (*types.CueListMetad
 	return nil, fmt.Errorf("failed to update cue list label: %s", resp.Error)
 }
 
+func (c *Client) RenumberCueList(originalNumber float64, newNumber float64) error {
+	resp, err := messaging.Request[cues.RenumberCueListsResponse](c.messenger, cues.RenumberCueListRequestSubject, &cues.RenumberCueListsRequest{OriginalNumber: originalNumber, NewNumber: newNumber})
+	if err != nil {
+		return err
+	}
+
+	if resp.Success {
+		return nil
+	}
+
+	if resp.Error == cues.CueListNotFound {
+		return ErrCueListNotFound
+	}
+
+	if resp.Error == cues.CueListNumberExists {
+		return ErrCueListExists
+	}
+
+	return fmt.Errorf("failed to renumber cue list: %s", resp.Error)
+}
+
+func (c *Client) DeleteCueList(number float64) error {
+	err := messaging.Publish(c.messenger, cues.DeleteCueListRequestSubject, &cues.DeleteCueListsRequest{Number: number})
+	if err != nil {
+		return fmt.Errorf("failed to publish delete cue list request: %w", err)
+	}
+	return nil
+}
+
 func (c *Client) OnCueListCreated(handler EventCallback[types.CueListMetadata]) error {
 	err := messaging.Subscribe[cues.CueListCreatedEvent](c.messenger, false, cues.CueListCreatedEventSubject, func(s string, c *cues.CueListCreatedEvent) {
 		handler(s, &c.CueListMetadata)
@@ -94,6 +123,34 @@ func (c *Client) OnCueListMetadataUpdated(handler EventCallback[types.CueListMet
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue list metadata update events: %w", err)
+	}
+	return nil
+}
+
+type RenumberEvent struct {
+	OriginalNumber float64
+	NewNumber      float64
+}
+
+func (c *Client) OnCueListRenumber(handler EventCallback[RenumberEvent]) error {
+	err := messaging.Subscribe[cues.RenumberCueListEvent](c.messenger, false, cues.RenumberCueListEventSubject, func(s string, c *cues.RenumberCueListEvent) {
+		handler(s, &RenumberEvent{
+			OriginalNumber: c.OriginalNumber,
+			NewNumber:      c.NewNumber,
+		})
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to cue list renumber events: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) OnCueListDeleted(handler EventCallback[float64]) error {
+	err := messaging.Subscribe[cues.CueListDeletedEvent](c.messenger, false, cues.DeleteCueListEventSubject, func(s string, c *cues.CueListDeletedEvent) {
+		handler(s, &c.Number)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to cue list deletion events: %w", err)
 	}
 	return nil
 }

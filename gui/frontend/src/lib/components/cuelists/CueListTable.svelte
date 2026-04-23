@@ -29,7 +29,7 @@
 				<tbody class="">
 					{#each cuelists as list}
 						<tr>
-							<td>{list.number}</td>
+							<EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuelistsStore.renumberCuelist(list.number, v)}} tdClass="w-40"/>
 							<EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuelistsStore.setLabel(list.number, v)}} tdClass="max-w-200"/>
 							<td>{list.cueListType}</td>
 							<td class="flex flex-row justify-center"><button class="btn btn-outline btn-secondary" onclick={()=>{props.OnOpenCueList(list.number)}}>Open</button></td>

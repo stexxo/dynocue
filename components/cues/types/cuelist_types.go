@@ -9,20 +9,18 @@ import (
 )
 
 type CueingModel struct {
-	CueLists *util.OrderedArray[*CueList] `msgpack:"cueLists" json:"cueLists"`
+	CueLists *util.NumberedSlice[*CueList] `msgpack:"cueLists" json:"cueLists"`
 }
 
 func NewCueingModel() *CueingModel {
 	return &CueingModel{
-		CueLists: &util.OrderedArray[*CueList]{
-			Data: make([]*CueList, 0),
-		},
+		CueLists: util.NewNumberedSlice[*CueList](),
 	}
 }
 
 type CueList struct {
-	Metadata CueListMetadata         `msgpack:"metadata" json:"metadata"`
-	Cues     util.OrderedArray[*Cue] `msgpack:"cues" json:"cues"`
+	Metadata CueListMetadata          `msgpack:"metadata" json:"metadata"`
+	Cues     util.NumberedSlice[*Cue] `msgpack:"cues" json:"cues"`
 }
 
 type CueListMetadata struct {

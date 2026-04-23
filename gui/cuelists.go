@@ -25,10 +25,12 @@ func NewCueListsService(manager *ClientManager, app *application.App, logger log
 	return out
 }
 
-func (c *CueListsService) onNewClient(client *client.Client) error {
+func (c *CueListsService) onNewClient(cl *client.Client) error {
 	return errors.Join(
-		client.OnCueListCreated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
-		client.OnCueListMetadataUpdated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListCreated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListMetadataUpdated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListRenumber(func(s string, r *client.RenumberEvent) { c.app.Event.Emit(s, r) }),
+		cl.OnCueListDeleted(func(s string, f *float64) { c.app.Event.Emit(s, *f) }),
 	)
 }
 
@@ -93,5 +95,28 @@ func (c *CueListsService) SetCueListLabel(num float64, label string) bool {
 		return false
 	}
 
+	return true
+}
+
+func (c *CueListsService) RenumberCueList(origNum, newNum float64) bool {
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		return c.RenumberCueList(origNum, newNum)
+	})
+	if err != nil {
+		c.logger.Error("failed to renumber cue list", "err", err)
+		return false
+	}
+
+	return true
+}
+
+func (c *CueListsService) DeleteCueList(num float64) bool {
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		return c.DeleteCueList(num)
+	})
+	if err != nil {
+		c.logger.Error("failed to delete cue list", "err", err)
+		return false
+	}
 	return true
 }
