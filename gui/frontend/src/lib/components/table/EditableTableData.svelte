@@ -40,7 +40,7 @@
             </div>
         </div>
     {:else}
-        <div class="hover:border cursor-pointer p-2">
+        <div class="hover:border min-h-10 cursor-pointer p-2">
             {props.value}
         </div>
     {/if}
