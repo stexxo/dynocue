@@ -15,16 +15,16 @@ class CuelistsStore {
 
 	constructor() {
 		this.load();
-		Events.On("event.cueing.cueing.created", () => {
+		Events.On("event.cueing.cuelists.created", () => {
 			this.load();
 		});
-		Events.On("event.cueing.cueing.metadata.updated", () => {
+		Events.On("event.cueing.cuelists.metadata.updated", () => {
 			this.load();
 		})
-		Events.On("event.cueing.cueing.deleted", () => {
+		Events.On("event.cueing.cuelists.deleted", () => {
 			this.load();
 		})
-		Events.On("event.cueing.cueing.renumber", () => {
+		Events.On("event.cueing.cuelists.renumber", () => {
 			this.load();
 		})
 	}

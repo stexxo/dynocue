@@ -17,8 +17,8 @@ const CueListNotFound = "Cue List Not Found."
 
 // CreateCueList
 
-const CreateCueListRequestSubject = "request.cueing.cueing.create"
-const CueListCreatedEventSubject = "event.cueing.cueing.created"
+const CreateCueListRequestSubject = "request.cueing.cuelists.create"
+const CueListCreatedEventSubject = "event.cueing.cuelists.created"
 
 type CreateCueListRequest struct {
 	Number      float64 `msgpack:"number" json:"number" validate:"gte=0"`
@@ -57,7 +57,7 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 
 // EnumerateCueLists
 
-const EnumerateCueListsRequestSubject = "request.cueing.cueing.enumerate"
+const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
 
 type EnumerateCueListsRequest struct{}
 
@@ -82,7 +82,7 @@ func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest
 
 // GetCueListByNumber
 
-const GetCueListByNumberRequestSubject = "request.cueing.cueing.get.number"
+const GetCueListByNumberRequestSubject = "request.cueing.cuelists.get.number"
 
 type GetCueListByNumberRequest struct {
 	Number float64 `msgpack:"number" json:"number" validate:"required,gt=0"`
@@ -107,7 +107,7 @@ func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberReque
 
 // GetCueListById
 
-const GetCueListByIdRequestSubject = "request.cueing.cueing.get.number"
+const GetCueListByIdRequestSubject = "request.cueing.cuelists.get.id"
 
 type GetCueListByIdRequest struct {
 	Id string `msgpack:"id" json:"id" validate:"required"`
@@ -141,8 +141,8 @@ func (p *Cueing) getCueListById(id string) (*types.CueList, error) {
 
 // RenumberCueList
 
-const RenumberCueListRequestSubject = "request.cueing.cueing.renumber"
-const RenumberCueListEventSubject = "event.cueing.cueing.renumber"
+const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
+const RenumberCueListEventSubject = "event.cueing.cuelists.renumber"
 
 type RenumberCueListsRequest struct {
 	Id        string  `msgpack:"id" json:"id" validate:"required"`
@@ -189,8 +189,8 @@ func (p *Cueing) RenumberCueList(sub string, request *RenumberCueListsRequest) (
 
 // DeleteCueList
 
-const DeleteCueListRequestSubject = "request.cueing.cueing.delete"
-const DeleteCueListEventSubject = "event.cueing.cueing.deleted"
+const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"
+const DeleteCueListEventSubject = "event.cueing.cuelists.deleted"
 
 type DeleteCueListsRequest struct {
 	Id string `msgpack:"id" json:"id" validate:"required"`
@@ -207,7 +207,9 @@ func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*Del
 		return list.Id() == request.Id
 	})
 
-	err := messaging.Publish(p.Messenger(), DeleteCueListEventSubject, &CueListDeletedEvent{})
+	err := messaging.Publish(p.Messenger(), DeleteCueListEventSubject, &CueListDeletedEvent{
+		Id: request.Id,
+	})
 	if err != nil {
 		p.Logger().Error("failed to publish cue list deleted event", "error", err, "id", request.Id)
 		return nil, err
@@ -220,7 +222,7 @@ func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*Del
 
 // Update Events
 
-const CueListMetadataUpdatedEventSubject = "event.cueing.cueing.metadata.updated"
+const CueListMetadataUpdatedEventSubject = "event.cueing.cuelists.metadata.updated"
 
 type CueListMetadataUpdatedEvent struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
@@ -228,7 +230,7 @@ type CueListMetadataUpdatedEvent struct {
 
 // UpdateCueListLabel
 
-const UpdateCueListLabelRequestSubject = "request.cueing.cueing.updateLabel"
+const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
 
 type UpdateCueListLabelRequest struct {
 	Id    string `msgpack:"id" json:"id" validate:"required"`
@@ -247,8 +249,8 @@ func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelReque
 
 	cl.Metadata.Label = request.Label
 
-	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListCreatedEvent{
-		CueListMetadata: cl.Metadata,
+	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListMetadataUpdatedEvent{
+		Metadata: cl.Metadata,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue list label", "error", err)

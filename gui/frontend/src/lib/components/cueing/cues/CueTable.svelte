@@ -12,7 +12,7 @@
 <div class="flex flex-col items-center w-full h-full overflow-hidden">
     <div class="w-full max-w-7xl h-full flex flex-col">
         <div class="mb-5 w-full flex-none flex flex-row justify-end">
-            <button class="btn btn-primary" onclick={() => {cuesStore.create(props.CueListId, 0)}}>Create Cue List</button>
+            <button class="btn btn-primary" onclick={() => {cuesStore.create(props.CueListId, 0)}}>Create Cue</button>
         </div>
         <div class="flex-1 overflow-auto">
             <table class="table table-pin-rows">
@@ -24,7 +24,7 @@
                 </tr>
                 </thead>
                 <tbody class="">
-                {#each cues as list}
+                {#each (cues ?? []) as list}
                     <tr>
                         <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(props.CueListId, list.id, v)}} tdClass="w-40"/>
                         <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.setLabel(props.CueListId, list.id, v)}} tdClass="max-w-200"/>
@@ -44,7 +44,7 @@
                 {:else}
                     <tr>
                         <td colspan="3" class="text-center italic text-gray-500">
-                            No cue lists found.
+                            No cues found.
                         </td>
                     </tr>
                 {/each}

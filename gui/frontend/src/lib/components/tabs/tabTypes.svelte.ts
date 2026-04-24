@@ -43,8 +43,11 @@ export class TabManager {
 	}
 
 	addTab(tab: Tab) {
-		this.items = [...this.items, tab];
-		this.activeId = tab.id; // Switch to new tab
+		// check if tab is not already in items
+		if (this.items.findIndex(t => t.id === tab.id) === -1) {
+			this.items = [...this.items, tab];
+		}
+		this.activeId = tab.id; // Switch to the tab
 	}
 
 	closeTab(id: string) {

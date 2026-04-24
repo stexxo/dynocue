@@ -26,10 +26,12 @@ class CuesStore {
             });
         });
 
-        Events.On("event.cueing.cueing.deleted", (ev: any) => {
+        Events.On("event.cueing.cuelists.deleted", (ev: any) => {
             // Wails emits just the ID as per cueing.go: cl.OnCueListDeleted(func(s string, id *string) { c.app.Event.Emit(s, *id) })
             const cueListId = ev.data as string;
-            this.#cues.delete(cueListId);
+            if (this.#cues.delete(cueListId)) {
+                this.#cues = new Map(this.#cues);
+            }
         });
 
         Events.On("event.cueing.cue.created", (ev: any) => {
@@ -58,6 +60,8 @@ class CuesStore {
         const [cues, ok] = await EnumerateCues(cueListId);
         if (ok) {
             this.#cues.set(cueListId, cues);
+            // Re-assign to trigger Svelte reactivity for the Map
+            this.#cues = new Map(this.#cues);
         }
     }
 
