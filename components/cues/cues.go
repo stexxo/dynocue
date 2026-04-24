@@ -269,7 +269,7 @@ const UpdateCueMetadataRequestSubject = "request.cueing.cue.metadata.update"
 
 type UpdateCueMetadataRequest struct {
 	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
+	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required,ne=cueListId,ne=cueId,ne=number"`
 	Field     string      `msgpack:"field" json:"field" validate:"required"`
 	Value     interface{} `msgpack:"value" json:"value"`
 }
