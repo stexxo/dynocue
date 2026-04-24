@@ -263,8 +263,10 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 		return nil, &messaging.FriendlyError{FriendlyErr: NoSaveLocation}
 	}
 
-	if !strings.HasSuffix(in.Location, ".dyno") {
-		in.Location = in.Location + ".dyno"
+	p.savePath = cmp.Or(in.Location, p.savePath)
+
+	if !strings.HasSuffix(p.savePath, ".dyno") {
+		p.savePath = p.savePath + ".dyno"
 	}
 
 	// Trigger a save across all registered subsystems.
@@ -283,8 +285,6 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 		return nil, err
 	}
 	p.Logger().Debug("subsystems saved successfully")
-
-	p.savePath = cmp.Or(in.Location, p.savePath)
 
 	// Prepare for an atomic swap by writing to a temporary file.
 	tempPath := p.savePath + ".tmp"
