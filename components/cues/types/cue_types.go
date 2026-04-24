@@ -4,7 +4,11 @@
 
 package types
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Cue struct {
 	Metadata CueMetadata `msgpack:"metadata" json:"metadata"`
@@ -21,10 +25,13 @@ func NewCue(cueListId string, number float64) *Cue {
 }
 
 type CueMetadata struct {
-	CueListId string  `msgpack:"cueListId" json:"cueListId"`
-	CueId     string  `msgpack:"cueId" json:"cueId"`
-	Number    float64 `msgpack:"number" json:"number"`
-	Label     string  `msgpack:"label" json:"label"`
+	CueListId   string        `msgpack:"cueListId" json:"cueListId"`
+	CueId       string        `msgpack:"cueId" json:"cueId"`
+	Number      float64       `msgpack:"number" json:"number"`
+	Label       string        `msgpack:"label" json:"label"`
+	Description string        `msgpack:"description" json:"description"`
+	Delay       time.Duration `msgpack:"delay" json:"delay"`
+	Follow      time.Duration `msgpack:"follow" json:"follow"`
 }
 
 func (c *Cue) Num() float64 {
