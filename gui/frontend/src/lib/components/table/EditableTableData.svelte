@@ -1,6 +1,13 @@
 <script lang="ts">
     import EditableTextInput from "../inputs/EditableTextInput.svelte";
 
+    interface EditableTableDataProps {
+        value: any;
+        inputType: string;
+        tdClass?: string;
+        onSaveEdit: (value: any) => void;
+    }
+
     let editing = $state(false)
 
     const props: EditableTableDataProps = $props()

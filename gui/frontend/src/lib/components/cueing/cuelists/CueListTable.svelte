@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { cuelistsStore } from "../../../stores/cuelistsStore.svelte";
-	import "./CuelistsTableTypes.svelte.ts";
 	import EditableTableData from "$lib/components/table/EditableTableData.svelte";
+
+	interface CueListTableProps {
+		AllowCreation?: boolean;
+		OnOpenCueList: (id: string) => void;
+	}
 
 	let cuelists = $derived(cuelistsStore.cuelists);
 	const props : CueListTableProps = $props()

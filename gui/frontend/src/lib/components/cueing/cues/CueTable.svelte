@@ -11,7 +11,7 @@
 </script>
 
 <div class="flex flex-col items-center w-full h-full overflow-hidden">
-    <div class="w-full max-w-7xl h-full flex flex-col">
+    <div class="w-full max-w-10xl h-full flex flex-col">
         <div class="mb-5 w-full flex-none flex flex-row justify-end">
             <button class="btn btn-primary" onclick={() => {cuesStore.create(props.CueListId, 0)}}>Create Cue</button>
         </div>
@@ -19,7 +19,7 @@
             <table class="table table-pin-rows">
                 <thead class="sticky top-0 z-10 bg-base-100">
                 <tr class="bg-base-100">
-                    <th class="w-40">#</th>
+                    <th class="w-100 text-center">#</th>
                     <th class="min-w-100 max-w-200">Label</th>
                     <th class="w-100">Delay</th>
                     <th class="w-100">Follow</th>
@@ -29,7 +29,7 @@
                 <tbody class="">
                 {#each (cues ?? []) as list}
                     <tr class="hover:bg-base-200">
-                        <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(list.cueListId, list.cueId, v)}} tdClass="w-40"/>
+                        <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(list.cueListId, list.cueId, v)}} tdClass="w-40 text-center"/>
                         <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "label", v)}} tdClass="min-w-100 max-w-200"/>
                         <EditableTimeData tdClass="w-100" value={list.delay} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "delay", v)}}/>
                         <EditableTimeData tdClass="w-100" value={list.follow} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "follow", v)}}/>

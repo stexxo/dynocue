@@ -13,6 +13,7 @@
     const props: EditableTextInputProps = $props();
 
     let editValue = $state(props.value);
+    let hasChanged = $derived(editValue !== props.value);
 
     $effect(() => {
         editValue = props.value;
@@ -71,16 +72,18 @@
             {/if}
         </div>
         <div class="flex flex-row gap-1 items-start {props.label ? 'pt-1' : ''}">
-            <button class="btn btn-square btn-sm btn-success" onclick={handleSave} title="Save">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-            </button>
-            <button class="btn btn-square btn-sm btn-ghost" onclick={handleCancel} title="Cancel">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
+            {#if hasChanged}
+                <button class="btn btn-square btn-sm btn-success" onclick={handleSave} title="Save">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </button>
+                <button class="btn btn-square btn-sm btn-ghost" onclick={handleCancel} title="Cancel">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            {/if}
         </div>
     </div>
 </div>
