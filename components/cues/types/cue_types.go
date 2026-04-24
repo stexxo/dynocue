@@ -14,7 +14,7 @@ func NewCue(cueListId string, number float64) *Cue {
 	return &Cue{
 		Metadata: CueMetadata{
 			CueListId: cueListId,
-			Id:        uuid.NewString(),
+			CueId:     uuid.NewString(),
 			Number:    number,
 		},
 	}
@@ -22,7 +22,7 @@ func NewCue(cueListId string, number float64) *Cue {
 
 type CueMetadata struct {
 	CueListId string  `msgpack:"cueListId" json:"cueListId"`
-	Id        string  `msgpack:"id" json:"id"`
+	CueId     string  `msgpack:"cueId" json:"cueId"`
 	Number    float64 `msgpack:"number" json:"number"`
 	Label     string  `msgpack:"label" json:"label"`
 }

@@ -85,13 +85,13 @@ func (c *CueListsService) EnumerateCueLists() ([]types.CueListMetadata, bool) {
 	return out, true
 }
 
-func (c *CueListsService) SetCueListLabel(id string, label string) bool {
+func (c *CueListsService) UpdateCueListMetadataField(id, field string, value interface{}) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		_, err := c.SetCueListLabel(id, label)
+		_, err := c.UpdateCueListField(id, field, value)
 		return err
 	})
 	if err != nil {
-		c.logger.Error("failed to set cue list label", "err", err)
+		c.logger.Error("failed to set cue list metadata field", "err", err)
 		return false
 	}
 

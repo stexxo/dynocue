@@ -1,7 +1,7 @@
 import {
 	EnumerateCueLists,
 	CreateCueList,
-	SetCueListLabel,
+	UpdateCueListMetadataField,
 	DeleteCueList, RenumberCueList
 } from "../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice";
 import { CueListMetadata } from "../../../bindings/github.com/stexxo/dynocue/components/cues/types";
@@ -51,10 +51,10 @@ class CuelistsStore {
 		}
 	}
 
-	async setLabel(id: string, label: string) {
-		const ok = await SetCueListLabel(id, label);
+	async setMetadataField(id: string, field:string, value:any) {
+		const ok = await UpdateCueListMetadataField(id, field, value);
 		if (!ok) {
-			console.error("Failed to set cue list label", id, label);
+			console.error("Failed to set cue list metadata field");
 		}
 	}
 

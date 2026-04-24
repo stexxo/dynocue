@@ -26,8 +26,8 @@
                 <tbody class="">
                 {#each (cues ?? []) as list}
                     <tr>
-                        <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(props.CueListId, list.id, v)}} tdClass="w-40"/>
-                        <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.setLabel(props.CueListId, list.id, v)}} tdClass="max-w-200"/>
+                        <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(list.cueListId, list.cueId, v)}} tdClass="w-40"/>
+                        <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "label", v)}} tdClass="max-w-200"/>
                         <td class="flex flex-row justify-around">
                             <details class="dropdown">
                                 <summary class="btn btn-ghost btn-secondary">
@@ -36,7 +36,7 @@
                                     </svg>
                                 </summary>
                                 <ul class="menu dropdown-content">
-                                    <li><button  class="btn btn-outline btn-accent" onclick={()=>{cuesStore.deleteCue(props.CueListId, list.id)}}>Delete</button></li>
+                                    <li><button  class="btn btn-outline btn-accent" onclick={()=>{cuesStore.deleteCue(list.cueListId, list.cueId)}}>Delete</button></li>
                                 </ul>
                             </details>
                         </td>

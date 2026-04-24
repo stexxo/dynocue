@@ -46,7 +46,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
 		messaging.Reply[GetCueListByNumberRequest, GetCueListByNumberResponse](p.Messenger(), true, GetCueListByNumberRequestSubject, p.GetCueListByNumber),
 		messaging.Reply[GetCueListByIdRequest, GetCueListByIdResponse](p.Messenger(), true, GetCueListByIdRequestSubject, p.GetCueListById),
-		messaging.Reply[UpdateCueListLabelRequest, UpdateCueListLabelResponse](p.Messenger(), true, UpdateCueListLabelRequestSubject, p.UpdateCueListLabel),
+		messaging.Reply[UpdateCueListMetadataRequest, UpdateCueListMetadataResponse](p.Messenger(), true, UpdateCueListMetadataRequestSubject, p.UpdateCueListMetadata),
 		messaging.Reply[RenumberCueListsRequest, RenumberCueListsResponse](p.Messenger(), true, RenumberCueListRequestSubject, p.RenumberCueList),
 		messaging.Reply[DeleteCueListsRequest, DeleteCueListsResponse](p.Messenger(), true, DeleteCueListRequestSubject, p.DeleteCueList),
 
@@ -55,7 +55,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[EnumerateCuesRequest, EnumerateCuesResponse](p.Messenger(), true, EnumerateCuesRequestSubject, p.EnumerateCues),
 		messaging.Reply[GetCueByNumberRequest, GetCueByNumberResponse](p.Messenger(), true, GetCueByNumberRequestSubject, p.GetCueByNumber),
 		messaging.Reply[GetCueByIdRequest, GetCueByIdResponse](p.Messenger(), true, GetCueByIdRequestSubject, p.GetCueById),
-		messaging.Reply[UpdateCueLabelRequest, UpdateCueLabelResponse](p.Messenger(), true, UpdateCueLabelRequestSubject, p.UpdateCueLabel),
+		messaging.Reply[UpdateCueMetadataRequest, UpdateCueMetadataResponse](p.Messenger(), true, UpdateCueMetadataRequestSubject, p.UpdateCueMetadata),
 		messaging.Reply[RenumberCueRequest, RenumberCueResponse](p.Messenger(), true, RenumberCueRequestSubject, p.RenumberCue),
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
 	)

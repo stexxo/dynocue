@@ -106,14 +106,14 @@ func (c *CuesService) GetCueById(cueListId string, cueId string) (*types.CueMeta
 	return out, true
 }
 
-func (c *CuesService) UpdateCueLabel(cueListId string, cueId string, label string) bool {
+func (c *CuesService) UpdateCueMetadata(cueListId string, cueId string, field string, value any) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		_, err := c.UpdateCueLabel(cueListId, cueId, label)
+		_, err := c.UpdateCueMetadata(cueListId, cueId, field, value)
 		return err
 	})
 
 	if err != nil {
-		c.logger.Error("failed to update cue label", "err", err)
+		c.logger.Error("failed to update cue metadata", "err", err)
 		return false
 	}
 

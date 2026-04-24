@@ -59,7 +59,7 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 		return nil, err
 	}
 
-	return &CreateCueResponse{CueListId: req.CueListId, CueId: cue.Metadata.Id, CueNumber: cue.Metadata.Number}, nil
+	return &CreateCueResponse{CueListId: req.CueListId, CueId: cue.Metadata.CueId, CueNumber: cue.Metadata.Number}, nil
 }
 
 // EnumerateCues
@@ -151,7 +151,7 @@ func (p *Cueing) GetCueById(sub string, request *GetCueByIdRequest) (*GetCueById
 
 func (p *Cueing) getCueById(cl *types.CueList, id string) (*types.Cue, error) {
 	cue := cl.Cues.GetFunc(func(c *types.Cue) bool {
-		return c.Metadata.Id == id
+		return c.Metadata.CueId == id
 	})
 	if cue == nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
@@ -186,7 +186,7 @@ func (p *Cueing) RenumberCue(sub string, request *RenumberCueRequest) (*Renumber
 	}
 
 	err = cl.Cues.MoveFunc(func(cue *types.Cue) bool {
-		return cue.Metadata.Id == request.CueId
+		return cue.Metadata.CueId == request.CueId
 	}, request.NewNumber)
 	if errors.Is(err, util.ErrNotFound) {
 		return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
@@ -238,7 +238,7 @@ func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueRes
 	}
 
 	cl.Cues.RemoveFunc(func(cue *types.Cue) bool {
-		return cue.Metadata.Id == request.CueId
+		return cue.Metadata.CueId == request.CueId
 	})
 
 	err = messaging.Publish(p.Messenger(), DeleteCueEventSubject, &CueDeletedEvent{
@@ -260,25 +260,25 @@ func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueRes
 const CueMetadataUpdatedEventSubject = "event.cueing.cue.metadata.updated"
 
 type CueMetadataUpdatedEvent struct {
-	CueListId string            `msgpack:"cueListId" json:"cueListId"`
-	Metadata  types.CueMetadata `msgpack:"metadata" json:"metadata"`
-}
-
-// UpdateCueLabel
-
-const UpdateCueLabelRequestSubject = "request.cueing.cue.updateLabel"
-
-type UpdateCueLabelRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
-	Label     string `msgpack:"label" json:"label"`
-}
-
-type UpdateCueLabelResponse struct {
 	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
 }
 
-func (p *Cueing) UpdateCueLabel(sub string, request *UpdateCueLabelRequest) (*UpdateCueLabelResponse, error) {
+// UpdateCueMetadata
+
+const UpdateCueMetadataRequestSubject = "request.cueing.cue.metadata.update"
+
+type UpdateCueMetadataRequest struct {
+	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
+	Field     string      `msgpack:"field" json:"field" validate:"required"`
+	Value     interface{} `msgpack:"value" json:"value"`
+}
+
+type UpdateCueMetadataResponse struct {
+	Metadata types.CueMetadata `msgpack:"metadata" json:"metadata"`
+}
+
+func (p *Cueing) UpdateCueMetadata(sub string, request *UpdateCueMetadataRequest) (*UpdateCueMetadataResponse, error) {
 	cl, err := p.getCueListById(request.CueListId)
 	if err != nil {
 		return nil, err
@@ -289,16 +289,19 @@ func (p *Cueing) UpdateCueLabel(sub string, request *UpdateCueLabelRequest) (*Up
 		return nil, err
 	}
 
-	cue.Metadata.Label = request.Label
+	err = util.UpdateStructByTag("json", request.Field, request.Value, &cue.Metadata)
+	if err != nil {
+		p.Logger().Error("failed to update field in cue")
+		return nil, err
+	}
 
 	err = messaging.Publish(p.Messenger(), CueMetadataUpdatedEventSubject, &CueMetadataUpdatedEvent{
-		CueListId: request.CueListId,
-		Metadata:  cue.Metadata,
+		Metadata: cue.Metadata,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue label", "error", err)
 		return nil, err
 	}
 
-	return &UpdateCueLabelResponse{Metadata: cue.Metadata}, nil
+	return &UpdateCueMetadataResponse{Metadata: cue.Metadata}, nil
 }

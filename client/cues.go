@@ -100,11 +100,12 @@ func (c *Client) GetCueById(cueListId string, cueId string) (*types.CueMetadata,
 	return nil, fmt.Errorf("failed to get cue: %s", resp.Error)
 }
 
-func (c *Client) UpdateCueLabel(cueListId string, cueId string, label string) (*types.CueMetadata, error) {
-	resp, err := messaging.Request[cues.UpdateCueLabelResponse](c.messenger, cues.UpdateCueLabelRequestSubject, &cues.UpdateCueLabelRequest{
+func (c *Client) UpdateCueMetadata(cueListId string, cueId string, field string, value any) (*types.CueMetadata, error) {
+	resp, err := messaging.Request[cues.UpdateCueMetadataResponse](c.messenger, cues.UpdateCueMetadataRequestSubject, &cues.UpdateCueMetadataRequest{
 		CueListId: cueListId,
 		CueId:     cueId,
-		Label:     label,
+		Field:     field,
+		Value:     value,
 	})
 	if err != nil {
 		return nil, err
@@ -122,7 +123,7 @@ func (c *Client) UpdateCueLabel(cueListId string, cueId string, label string) (*
 		return nil, ErrCueListNotFound
 	}
 
-	return nil, fmt.Errorf("failed to update cue label: %s", resp.Error)
+	return nil, fmt.Errorf("failed to update cue metadata: %s", resp.Error)
 }
 
 func (c *Client) RenumberCue(cueListId string, cueId string, newNumber float64) error {

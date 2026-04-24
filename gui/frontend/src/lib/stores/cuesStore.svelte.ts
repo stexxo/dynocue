@@ -1,7 +1,7 @@
 import {
     EnumerateCues,
     CreateCue,
-    UpdateCueLabel,
+    UpdateCueMetadata,
     DeleteCue,
     RenumberCue
 } from "../../../bindings/github.com/stexxo/dynocue/gui/services/cuesservice";
@@ -72,10 +72,10 @@ class CuesStore {
         }
     }
 
-    async setLabel(cueListId: string, cueId: string, label: string) {
-        const ok = await UpdateCueLabel(cueListId, cueId, label);
+    async updateCueMetadata(cueListId: string, cueId: string, field:string, value:any) {
+        const ok = await UpdateCueMetadata(cueListId, cueId, field, value);
         if (!ok) {
-            console.error("Failed to set cue label", cueListId, cueId, label);
+            console.error("Failed to set cue metadata");
         }
     }
 

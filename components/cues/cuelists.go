@@ -228,34 +228,39 @@ type CueListMetadataUpdatedEvent struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
 }
 
-// UpdateCueListLabel
+// UpdateCueListMetadata
 
-const UpdateCueListLabelRequestSubject = "request.cueing.cuelists.updateLabel"
+const UpdateCueListMetadataRequestSubject = "request.cueing.cuelists.metadata.update"
 
-type UpdateCueListLabelRequest struct {
-	Id    string `msgpack:"id" json:"id" validate:"required"`
-	Label string `msgpack:"label" json:"label"`
+type UpdateCueListMetadataRequest struct {
+	Id    string      `msgpack:"id" json:"id" validate:"required"`
+	Field string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=cueListType"`
+	Value interface{} `msgpack:"value" json:"value" validate:"required"`
 }
 
-type UpdateCueListLabelResponse struct {
+type UpdateCueListMetadataResponse struct {
 	Metadata types.CueListMetadata `msgpack:"metadata" json:"metadata"`
 }
 
-func (p *Cueing) UpdateCueListLabel(sub string, request *UpdateCueListLabelRequest) (*UpdateCueListLabelResponse, error) {
+func (p *Cueing) UpdateCueListMetadata(sub string, request *UpdateCueListMetadataRequest) (*UpdateCueListMetadataResponse, error) {
 	cl, err := p.getCueListById(request.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	cl.Metadata.Label = request.Label
+	err = util.UpdateStructByTag("json", request.Field, request.Value, &cl.Metadata)
+	if err != nil {
+		p.Logger().Error("failed to update field in cuelist", "err", err, "field", request.Field, "cueListId", request.Id)
+		return nil, err
+	}
 
 	err = messaging.Publish(p.Messenger(), CueListMetadataUpdatedEventSubject, &CueListMetadataUpdatedEvent{
 		Metadata: cl.Metadata,
 	})
 	if err != nil {
-		p.Logger().Error("Failed to publish updated cue list label", "error", err)
+		p.Logger().Error("Failed to publish updated cue list metadata", "error", err)
 		return nil, err
 	}
 
-	return &UpdateCueListLabelResponse{Metadata: cl.Metadata}, nil
+	return &UpdateCueListMetadataResponse{Metadata: cl.Metadata}, nil
 }
