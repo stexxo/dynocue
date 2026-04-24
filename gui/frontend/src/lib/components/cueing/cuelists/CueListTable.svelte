@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { cuelistsStore } from "../../../stores/cuelistsStore.svelte";
 	import EditableTableData from "$lib/components/table/EditableTableData.svelte";
+	import ConfirmationModal from "$lib/components/modals/ConfirmationModal.svelte";
+	import { clickOutside } from "$lib/utils/clickOutside";
 
 	interface CueListTableProps {
 		AllowCreation?: boolean;
@@ -10,6 +12,20 @@
 	let cuelists = $derived(cuelistsStore.cuelists);
 	const props : CueListTableProps = $props()
 
+	let listToDelete = $state<{id: string, number: number} | null>(null);
+	let deleteModal: ReturnType<typeof ConfirmationModal>;
+
+	function confirmDelete(id: string, number: number) {
+		listToDelete = { id, number };
+		deleteModal?.show();
+	}
+
+	function handleDelete() {
+		if (listToDelete) {
+			cuelistsStore.deleteCueList(listToDelete.id);
+			listToDelete = null;
+		}
+	}
 
 </script>
 
@@ -39,14 +55,18 @@
 						<td class="flex flex-row justify-end gap-2">
 							<button class="btn btn-outline btn-secondary" onclick={()=>{props.OnOpenCueList(list.id)}}>Open</button>
 
-							<details class="dropdown dropdown-end">
+							<details class="dropdown dropdown-end" use:clickOutside={(node) => {
+								if (node.hasAttribute('open')) {
+									node.removeAttribute('open');
+								}
+							}}>
 								<summary class="btn btn-ghost btn-secondary">
 									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
 									</svg>
 								</summary>
 								<ul class="menu dropdown-content bg-base-200 rounded-box z-[1] w-32 p-2 shadow mt-2">
-									<li><button  class="btn btn-outline btn-accent" onclick={()=>{cuelistsStore.deleteCueList(list.id)}}>Delete</button></li>
+									<li><button  class="btn btn-outline btn-accent" onclick={()=>{confirmDelete(list.id, list.number)}}>Delete</button></li>
 								</ul>
 							</details>
 						</td>
@@ -64,3 +84,11 @@
 
 	</div>
 </div>
+
+<ConfirmationModal
+	bind:this={deleteModal}
+	title="Confirm Delete"
+	message="Are you sure you want to delete cue list {listToDelete?.number}? This action cannot be undone."
+	confirmText="Delete"
+	onConfirm={handleDelete}
+/>
