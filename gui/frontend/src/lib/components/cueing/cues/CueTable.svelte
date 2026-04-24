@@ -2,6 +2,7 @@
     import { cuesStore } from "../../../stores/cuesStore.svelte";
     import "./CueTableTypes.svelte";
     import EditableTableData from "$lib/components/table/EditableTableData.svelte";
+    import EditableTimeData from "$lib/components/table/EditableTimeData.svelte";
 
     const props : CueTableProps = $props()
     let cues = $derived(cuesStore.cues.get(props.CueListId));
@@ -19,16 +20,21 @@
                 <thead class="sticky top-0 z-10 bg-base-100">
                 <tr class="bg-base-100">
                     <th class="w-40">#</th>
-                    <th class="min-w-50 max-w-200">Label</th>
-                    <th class="min-w-50 max-w-100"></th>
+                    <th class="min-w-100 max-w-200">Label</th>
+                    <th class="w-100">Delay</th>
+                    <th class="w-100">Follow</th>
+                    <th class="w-100"></th>
                 </tr>
                 </thead>
                 <tbody class="">
                 {#each (cues ?? []) as list}
                     <tr class="hover:bg-base-200">
                         <EditableTableData inputType="number" value={list.number} onSaveEdit={(v)=>{cuesStore.renumberCue(list.cueListId, list.cueId, v)}} tdClass="w-40"/>
-                        <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "label", v)}} tdClass="max-w-200"/>
-                        <td class="flex flex-row justify-end">
+                        <EditableTableData inputType="text" value={list.label} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "label", v)}} tdClass="min-w-100 max-w-200"/>
+                        <EditableTimeData tdClass="w-100" value={list.delay} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "delay", v)}}/>
+                        <EditableTimeData tdClass="w-100" value={list.follow} onSaveEdit={(v)=>{cuesStore.updateCueMetadata(list.cueListId, list.cueId, "follow", v)}}/>
+                        <td class="flex flex-row justify-end gap-1">
+                            <button class="btn btn-soft btn-secondary" onclick={()=>{props.onEdit(list.cueListId, list.cueId)}}> Edit </button>
                             <details class="dropdown dropdown-end">
                                 <summary class="btn btn-ghost btn-secondary">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -36,7 +42,7 @@
                                     </svg>
                                 </summary>
                                 <ul class="menu dropdown-content bg-base-200 rounded-box z-[1] w-32 p-2 shadow mt-2">
-                                    <li><button  class="btn btn-outline btn-accent" onclick={()=>{cuesStore.deleteCue(list.cueListId, list.cueId)}}>Delete</button></li>
+                                    <li><button  class="btn btn-outline btn-error" onclick={()=>{cuesStore.deleteCue(list.cueListId, list.cueId)}}>Delete</button></li>
                                 </ul>
                             </details>
                         </td>

@@ -1,11 +1,17 @@
 <script lang="ts">
-    import EditableTextInput from "../inputs/EditableTextInput.svelte";
+    import EditableTimeInput from "../inputs/EditableTimeInput.svelte";
+    import { formatTime } from "$lib/utils/time";
+
+    interface EditableTimeDataProps {
+        value: number; // nanoseconds
+        tdClass?: string;
+        onSaveEdit: (value: number) => void;
+    }
 
     let editing = $state(false)
+    const props: EditableTimeDataProps = $props()
 
-    const props: EditableTableDataProps = $props()
-
-    function onSave(value: any) {
+    function onSave(value: number) {
         props.onSaveEdit(value)
         editing = false
     }
@@ -17,9 +23,8 @@
 
 <td class="relative {props.tdClass}" onclick={() => {editing=true}}>
     {#if editing}
-        <EditableTextInput
+        <EditableTimeInput
             value={props.value}
-            type={props.inputType}
             onSave={onSave}
             onCancel={onCancel}
             inputClass="input-sm"
@@ -27,7 +32,7 @@
         />
     {:else}
         <div class="hover:border min-h-10 cursor-pointer p-2">
-            {props.value}
+            {formatTime(props.value)}
         </div>
     {/if}
 </td>
