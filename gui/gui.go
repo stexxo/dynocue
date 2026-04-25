@@ -38,8 +38,8 @@ func NewGui(logger logging.Logger) *Gui {
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:     1280,
 		Height:    720,
-		MinWidth:  800,
-		MinHeight: 600,
+		MaxWidth:  5000,
+		MaxHeight: 5000,
 		Title:     "DynoCue",
 		URL:       "/",
 	}) // Default Window

@@ -40,7 +40,7 @@ tasks:
     cmds:
       - go build {{.BUILD_FLAGS}} -o {{.OUTPUT}} {{.MAIN_DIR}}
     vars:
-      BUILD_FLAGS: '-trimpath {{if eq .DEV "true"}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production -trimpath -buildvcs=false -ldflags="-w -s"{{end}}'
+      BUILD_FLAGS: '-trimpath {{if eq .DEV "true"}}-buildvcs=false -tags gtk4 -gcflags=all="-l"{{else}}-tags production,gtk4 -trimpath -buildvcs=false -ldflags="-w -s"{{end}}'
       DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
       OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
     env:
