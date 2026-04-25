@@ -86,7 +86,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev  libappindicator3-dev
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev
 
       - name: Install Wails v3 CLI
         if: steps.cache-go-bin.outputs.cache-hit != 'true'

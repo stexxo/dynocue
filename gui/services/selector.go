@@ -23,11 +23,19 @@ type SelectorService struct {
 }
 
 func NewSelectorService(manager *client.Manager, app *application.App, logger logging.Logger) *SelectorService {
-	return &SelectorService{
+	out := &SelectorService{
 		clientManager: manager,
 		app:           app,
 		logger:        logger,
 	}
+	out.clientManager.OnNewClient(out.onNewClient)
+	return out
+}
+
+func (s *SelectorService) onNewClient(cl *client.Client) error {
+	return cl.HandleShowLoaded(func(subj string, _ *string) {
+		s.app.Event.Emit(subj, nil)
+	})
 }
 
 func (s *SelectorService) localConn() error {

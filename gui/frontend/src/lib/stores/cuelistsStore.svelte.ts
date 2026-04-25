@@ -27,6 +27,9 @@ class CuelistsStore {
 		Events.On("event.cueing.cuelists.renumber", () => {
 			this.load();
 		})
+		Events.On("event.system.persistence.loaded", () => {
+			this.load();
+		})
 	}
 
 	get cuelists() {

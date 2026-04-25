@@ -56,10 +56,14 @@ func (c *Client) NewShow() error {
 	return fmt.Errorf("failed to create new show")
 }
 
-func (c *Client) HandleSaveEvent(fn func()) error {
-	return messaging.Subscribe(c.messenger, false, system.PersistenceShowSavedEventSubject, func(s string, t *string) { fn() })
+func (c *Client) HandleSaveEvent(handler EventCallback[string]) error {
+	return messaging.Subscribe[string](c.messenger, false, system.PersistenceShowSavedEventSubject, func(s string, t *string) {
+		handler(s, t)
+	})
 }
 
-func (c *Client) HandleShowLoaded(fn func()) error {
-	return messaging.Subscribe(c.messenger, false, system.PersistenceShowLoadedEventSubject, func(s string, t *string) { fn() })
+func (c *Client) HandleShowLoaded(handler EventCallback[string]) error {
+	return messaging.Subscribe[string](c.messenger, false, system.PersistenceShowLoadedEventSubject, func(s string, t *string) {
+		handler(s, t)
+	})
 }

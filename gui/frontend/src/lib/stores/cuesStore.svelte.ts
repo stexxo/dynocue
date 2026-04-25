@@ -50,6 +50,9 @@ class CuesStore {
             const event = ev.data as { cueListId: string };
             this.load(event.cueListId);
         });
+        Events.On("event.system.persistence.loaded", () => {
+            this.#cues = new Map();
+        });
     }
 
     get cues(): Map<string, CueMetadata[]> {
