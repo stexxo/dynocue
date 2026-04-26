@@ -18,13 +18,15 @@ type Cueing struct {
 	*core.SubsystemCore
 	persistence *system.PersistenceManager
 
-	model *types.CueingModel
+	model           *types.CueingModel
+	actionTemplates *types.ActionTemplatesModel
 }
 
 func New(logger logging.Logger) *Cueing {
 	p := &Cueing{}
 	p.model = types.NewCueingModel()
 	p.SubsystemCore = core.NewSubsystemCore("cueing", logger, p.onStart)
+	p.actionTemplates = types.NewActionTemplatesModel()
 	return p
 }
 
@@ -59,6 +61,11 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[UpdateCueMetadataRequest, UpdateCueMetadataResponse](p.Messenger(), true, UpdateCueMetadataRequestSubject, p.UpdateCueMetadata),
 		messaging.Reply[RenumberCueRequest, RenumberCueResponse](p.Messenger(), true, RenumberCueRequestSubject, p.RenumberCue),
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
+
+		// Action Templates
+		messaging.Reply[RegisterActionTemplateRequest, RegisterActionTemplateResponse](p.Messenger(), true, RegisterActionTemplateRequestSubject, p.RegisterActionType),
+		messaging.Reply[GetActionTemplateRequest, GetActionTemplateResponse](p.Messenger(), true, GetActionTemplateRequestSubject, p.GetActionTemplate),
+		messaging.Reply[EnumerateActionTemplatesRequest, EnumerateActionTemplatesResponse](p.Messenger(), true, EnumerateActionTemplatesRequestSubject, p.EnumerateActionTemplates),
 	)
 
 	return err

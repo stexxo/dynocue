@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/client"
+	"github.com/stexxo/dynocue/components/audio"
 	"github.com/stexxo/dynocue/components/cues"
 	"github.com/stexxo/dynocue/components/show"
 	"github.com/stexxo/dynocue/components/system"
@@ -44,6 +45,7 @@ func (s *SelectorService) localConn() error {
 			system.NewPersistence(s.logger),
 			show.New(s.logger),
 			cues.New(s.logger),
+			audio.New(s.logger),
 		},
 		Logger: s.logger,
 	})

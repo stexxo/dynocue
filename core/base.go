@@ -47,7 +47,7 @@ func (b *SubsystemCore) Start(conn *nats.Conn) error {
 		return err
 	}
 
-	b.logger.Debug("subsystem  " + b.name + " has started successfully")
+	b.logger.Debug("subsystem " + b.name + " has started successfully")
 
 	b.started.Store(true)
 	return nil
