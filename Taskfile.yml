@@ -76,3 +76,4 @@ tasks:
     cmds:
       - go fmt ./...
       - cd gui/frontend; yarn run format
+      - ./manage_license.sh
