@@ -70,3 +70,9 @@ tasks:
       - rm -rf gui/frontend/dist/
       - rm -rf gui/frontend/bindings
       - rm -rf gui/frontend/bindings
+      - rm -rf gui/frontend/node_modules
+
+  format:
+    cmds:
+      - go fmt ./...
+      - cd gui/frontend; yarn run format

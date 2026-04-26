@@ -2,10 +2,11 @@ import {
 	EnumerateCueLists,
 	CreateCueList,
 	UpdateCueListMetadataField,
-	DeleteCueList, RenumberCueList
-} from "../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice";
-import { CueListMetadata } from "../../../bindings/github.com/stexxo/dynocue/components/cues/types";
-import { Events } from "@wailsio/runtime";
+	DeleteCueList,
+	RenumberCueList
+} from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice';
+import { CueListMetadata } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { Events } from '@wailsio/runtime';
 
 /**
  * Store for managing cue lists.
@@ -15,29 +16,29 @@ class CuelistsStore {
 
 	constructor() {
 		this.load();
-		Events.On("event.cueing.cuelists.created", () => {
+		Events.On('event.cueing.cuelists.created', () => {
 			this.load();
 		});
-		Events.On("event.cueing.cuelists.metadata.updated", () => {
+		Events.On('event.cueing.cuelists.metadata.updated', () => {
 			this.load();
-		})
-		Events.On("event.cueing.cuelists.deleted", () => {
+		});
+		Events.On('event.cueing.cuelists.deleted', () => {
 			this.load();
-		})
-		Events.On("event.cueing.cuelists.renumber", () => {
+		});
+		Events.On('event.cueing.cuelists.renumber', () => {
 			this.load();
-		})
-		Events.On("event.system.persistence.loaded", () => {
+		});
+		Events.On('event.system.persistence.loaded', () => {
 			this.load();
-		})
+		});
 	}
 
 	get cuelists() {
 		return this.#cuelists;
 	}
 
-	cueList(id:string): CueListMetadata | undefined {
-		return this.#cuelists.find(list => list.id === id);
+	cueList(id: string): CueListMetadata | undefined {
+		return this.#cuelists.find((list) => list.id === id);
 	}
 
 	async load() {
@@ -48,30 +49,30 @@ class CuelistsStore {
 	}
 
 	async create(num: number) {
-		const ok = await CreateCueList(num, "SEQUENTIAL");
+		const ok = await CreateCueList(num, 'SEQUENTIAL');
 		if (!ok) {
-			console.error("Failed to create cue list", num);
+			console.error('Failed to create cue list', num);
 		}
 	}
 
-	async setMetadataField(id: string, field:string, value:any) {
+	async setMetadataField(id: string, field: string, value: any) {
 		const ok = await UpdateCueListMetadataField(id, field, value);
 		if (!ok) {
-			console.error("Failed to set cue list metadata field");
+			console.error('Failed to set cue list metadata field');
 		}
 	}
 
 	async deleteCueList(id: string) {
-		const ok = await DeleteCueList(id)
+		const ok = await DeleteCueList(id);
 		if (!ok) {
-			console.error("Failed to delete cue list", id);
+			console.error('Failed to delete cue list', id);
 		}
 	}
 
-	async renumberCuelist(id: string, newNum: number	) {
+	async renumberCuelist(id: string, newNum: number) {
 		const ok = await RenumberCueList(id, newNum);
 		if (!ok) {
-			console.error("Failed to renumber cue list", id, newNum);
+			console.error('Failed to renumber cue list', id, newNum);
 		}
 	}
 }

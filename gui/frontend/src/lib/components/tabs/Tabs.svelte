@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {type TabProps, TabState} from './tabTypes.svelte';
+	import { type TabProps, TabState } from './tabTypes.svelte';
 	let props: TabProps = $props();
 
 	let activeTab = $derived(props.tabManager.getActive());
@@ -33,7 +33,7 @@
 	</div>
 
 	<div
-		class="-mt-(--tab-border) flex-1 min-h-0 rounded-b-box border border-base-300 bg-base-100 p-6"
+		class="-mt-(--tab-border) min-h-0 flex-1 rounded-b-box border border-base-300 bg-base-100 p-6"
 	>
 		{#if activeTab?.content}
 			{@const Content = activeTab.content}

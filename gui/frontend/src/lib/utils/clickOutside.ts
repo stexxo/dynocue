@@ -1,15 +1,15 @@
 export function clickOutside(node: HTMLElement, callback: (node: HTMLElement) => void) {
-    const handleClick = (event: MouseEvent) => {
-        if (!node.contains(event.target as Node)) {
-            callback(node);
-        }
-    };
+	const handleClick = (event: MouseEvent) => {
+		if (!node.contains(event.target as Node)) {
+			callback(node);
+		}
+	};
 
-    document.addEventListener('click', handleClick, true);
+	document.addEventListener('click', handleClick, true);
 
-    return {
-        destroy() {
-            document.removeEventListener('click', handleClick, true);
-        }
-    };
+	return {
+		destroy() {
+			document.removeEventListener('click', handleClick, true);
+		}
+	};
 }

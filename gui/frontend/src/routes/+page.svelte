@@ -5,7 +5,10 @@
 -->
 
 <script>
-	import { NewShow, OpenShow } from '../../bindings/github.com/stexxo/dynocue/gui/services/selectorservice.js';
+	import {
+		NewShow,
+		OpenShow
+	} from '../../bindings/github.com/stexxo/dynocue/gui/services/selectorservice.js';
 	import { withLoading, createLoadingState } from '$lib/loading.svelte';
 
 	const loadingState = createLoadingState();

@@ -17,7 +17,7 @@ export interface TabContentProps {
 	[key: string]: any;
 }
 
-export class TabState{
+export class TabState {
 	#tab: Tab;
 	constructor(tab: Tab) {
 		this.#tab = tab;
@@ -28,7 +28,7 @@ export class TabState{
 		}
 		return this.#tab.label ?? this.#tab.id;
 	}
-	setLabel(label: string | (() => string)){
+	setLabel(label: string | (() => string)) {
 		this.#tab.label = label;
 	}
 }
@@ -44,7 +44,7 @@ export class TabManager {
 
 	addTab(tab: Tab) {
 		// check if tab is not already in items
-		if (this.items.findIndex(t => t.id === tab.id) === -1) {
+		if (this.items.findIndex((t) => t.id === tab.id) === -1) {
 			this.items = [...this.items, tab];
 		}
 		this.activeId = tab.id; // Switch to the tab
