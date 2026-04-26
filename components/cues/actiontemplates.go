@@ -12,10 +12,11 @@ const RegisterActionTemplateRequestSubject = "request.cueing.actions.templates.r
 const RegisterActionTemplateEventSubject = "event.cueing.actions.templates.registered"
 
 type RegisterActionTemplateRequest struct {
-	Id      string                      `msgpack:"id" json:"id"`
-	Name    string                      `msgpack:"name" json:"name"`
-	Subject string                      `msgpack:"subject" json:"subject"`
-	Fields  []types.ActionTemplateField `msgpack:"fields" json:"fields"`
+	Id            string                      `msgpack:"id" json:"id"`
+	SubsystemName string                      `msgpack:"subsystemName" json:"subsystemName"`
+	Name          string                      `msgpack:"name" json:"name"`
+	Subject       string                      `msgpack:"subject" json:"subject"`
+	Fields        []types.ActionTemplateField `msgpack:"fields" json:"fields"`
 }
 
 type RegisterActionTemplateResponse struct{}
@@ -26,7 +27,7 @@ type RegisterActionTemplateEvent struct {
 }
 
 func (p *Cueing) RegisterActionType(sub string, req *RegisterActionTemplateRequest) (*RegisterActionTemplateResponse, error) {
-	p.actionTemplates.AddTemplate(types.ActionTemplate{Id: req.Id, TemplateName: req.Name, Subject: req.Subject, Fields: req.Fields})
+	p.actionTemplates.AddTemplate(types.ActionTemplate{Id: req.Id, TemplateName: req.Name, Subject: req.Subject, Fields: req.Fields, SubsystemName: req.SubsystemName})
 	err := messaging.Publish(p.Messenger(), RegisterActionTemplateEventSubject, &RegisterActionTemplateEvent{Id: uuid.NewString(), Name: req.Name})
 	if err != nil {
 		return nil, err

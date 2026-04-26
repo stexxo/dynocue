@@ -34,16 +34,17 @@
 	}}
 >
 	{#if editing}
-		<EditableTimeInput
-			value={props.value}
-			{onSave}
-			{onCancel}
-			inputClass="input-sm"
-			autofocus={true}
-		/>
-	{:else}
-		<div class="min-h-10 cursor-pointer p-2 hover:border">
-			{formatTime(props.value)}
+		<div class="absolute inset-0 z-20 flex items-center bg-base-100">
+			<EditableTimeInput
+				value={props.value}
+				{onSave}
+				{onCancel}
+				inputClass="input-sm"
+				autofocus={true}
+			/>
 		</div>
 	{/if}
+	<div class="min-h-10 cursor-pointer p-2 hover:border {editing ? 'invisible' : ''}">
+		{formatTime(props.value)}
+	</div>
 </td>

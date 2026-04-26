@@ -10,16 +10,15 @@ import (
 type Action struct {
 	Id         string         `msgpack:"id" json:"id"`
 	Number     float64        `msgpack:"number" json:"number"`
-	Subject    string         `msgpack:"subject" json:"subject"`
+	Label      string         `msgpack:"label" json:"label"`
 	TemplateId string         `msgpack:"templateId" json:"templateId"`
-	Delay      time.Time      `msgpack:"delay" json:"delay"`
-	Follow     time.Time      `msgpack:"follow" json:"follow"`
+	Delay      time.Duration  `msgpack:"delay" json:"delay"`
+	Follow     time.Duration  `msgpack:"follow" json:"follow"`
 	Fields     []ActionFields `msgpack:"fields" json:"fields"`
 }
 
 func NewActionByTemplate(actionTemplate *ActionTemplate) *Action {
 	action := NewAction()
-	action.Subject = actionTemplate.Subject
 	action.TemplateId = actionTemplate.Id
 
 	for _, f := range actionTemplate.Fields {
@@ -45,22 +44,23 @@ func (action *Action) SetNum(number float64) {
 
 type ActionFields struct {
 	FieldName  string      `msgpack:"fieldName" json:"fieldName"`
-	FieldLabel string      `msgpack:"fieldType" json:"fieldType"`
+	FieldLabel string      `msgpack:"fieldLabel" json:"fieldLabel"`
 	DataType   string      `msgpack:"dataType" json:"dataType"`
 	Value      interface{} `msgpack:"value" json:"value"`
 }
 
 type ActionTemplate struct {
-	Id           string                `msgpack:"id" json:"id"`
-	TemplateName string                `msgpack:"templateName" json:"templateName"`
-	Subject      string                `msgpack:"subject" json:"subject"`
-	Fields       []ActionTemplateField `msgpack:"fields" json:"fields"`
+	Id            string                `msgpack:"id" json:"id"`
+	TemplateName  string                `msgpack:"templateName" json:"templateName"`
+	SubsystemName string                `msgpack:"subsystemName" json:"subsystemName"`
+	Subject       string                `msgpack:"subject" json:"subject"`
+	Fields        []ActionTemplateField `msgpack:"fields" json:"fields"`
 }
 
 type ActionTemplateField struct {
 	FieldName    string      `msgpack:"fieldName" json:"fieldName"`
 	FieldLabel   string      `msgpack:"fieldLabel" json:"fieldLabel"`
-	DataType     string      `msgpack:"dataType" json:"dataType"` // string, float, int, bool
+	DataType     string      `msgpack:"dataType" json:"dataType"` // string, float, int, bool, time
 	DefaultValue interface{} `msgpack:"defaultValue" json:"defaultValue"`
 }
 

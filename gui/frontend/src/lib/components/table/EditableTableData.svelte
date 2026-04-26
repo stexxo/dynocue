@@ -12,6 +12,7 @@
 		inputType: string;
 		tdClass?: string;
 		onSaveEdit: (value: any) => void;
+		prefix?: import('svelte').Snippet;
 	}
 
 	let editing = $state(false);
@@ -19,7 +20,8 @@
 	const props: EditableTableDataProps = $props();
 
 	function onSave(value: any) {
-		props.onSaveEdit(value);
+		const parsedValue = props.inputType === 'number' ? Number(value) : value;
+		props.onSaveEdit(parsedValue);
 		editing = false;
 	}
 
@@ -34,18 +36,26 @@
 		editing = true;
 	}}
 >
-	{#if editing}
-		<EditableTextInput
-			value={props.value}
-			type={props.inputType}
-			{onSave}
-			{onCancel}
-			inputClass="input-sm"
-			autofocus={true}
-		/>
-	{:else}
-		<div class="min-h-10 cursor-pointer p-2 hover:border">
-			{props.value}
+	<div class="flex items-center">
+		{#if props.prefix}
+			{@render props.prefix()}
+		{/if}
+		<div class="relative flex-1">
+			{#if editing}
+				<div class="absolute inset-0 z-20 flex items-center bg-base-100">
+					<EditableTextInput
+						value={props.value}
+						inputType={props.inputType}
+						{onSave}
+						{onCancel}
+						inputClass="input-sm"
+						autofocus={true}
+					/>
+				</div>
+			{/if}
+			<div class="min-h-10 cursor-pointer p-2 hover:border {editing ? 'invisible' : ''}">
+				{props.value}
+			</div>
 		</div>
-	{/if}
+	</div>
 </td>

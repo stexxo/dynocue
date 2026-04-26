@@ -7,7 +7,7 @@
 <script lang="ts">
 	interface EditableTextInputProps {
 		value: any;
-		type?: string;
+		inputType?: string;
 		onSave: (value: any) => void;
 		onCancel?: () => void;
 		label?: string;
@@ -65,7 +65,7 @@
 				></textarea>
 			{:else}
 				<input
-					type={props.type ?? 'text'}
+					type={props.inputType ?? 'text'}
 					class="input-bordered input w-full {props.inputClass ?? ''}"
 					bind:value={editValue}
 					onblur={handleSave}

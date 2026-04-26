@@ -222,9 +222,12 @@ type ActionRenumberedEvent struct {
 }
 
 func (p *Cueing) RenumberAction(sub string, request *RenumberActionRequest) (*RenumberActionResponse, error) {
-	_, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
+	a, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
 	if err != nil {
 		return nil, err
+	}
+	if a.Num() == request.NewNumber {
+		return &RenumberActionResponse{}, nil // no change, return without error
 	}
 
 	cue, _ := p.getCueById(request.CueListId, request.CueId)
@@ -263,7 +266,7 @@ type UpdateActionRequest struct {
 	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
 	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
 	ActionId  string      `msgpack:"actionId" json:"actionId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required,oneof=subject delay follow"`
+	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=subject,ne=templateId,ne=fields"`
 	Value     interface{} `msgpack:"value" json:"value"`
 }
 

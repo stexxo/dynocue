@@ -16,7 +16,9 @@ class ActionTemplatesStore {
 	#templates = $state<ActionTemplate[]>([]);
 
 	constructor() {
-		this.load();
+		$effect.root(() => {
+			this.load();
+		});
 		Events.On('event.cueing.actions.templates.registered', () => {
 			this.load();
 		});

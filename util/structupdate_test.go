@@ -75,7 +75,7 @@ func TestUpdateStructByTag(t *testing.T) {
 	t.Run("Type Mismatch", func(t *testing.T) {
 		err := UpdateStructByTag("json", "age", "forty", &s)
 		if err == nil {
-			t.Error("expected error due to type mismatch, got nil")
+			t.Error("expected error due to inputType mismatch, got nil")
 		}
 	})
 

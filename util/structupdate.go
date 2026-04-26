@@ -54,7 +54,7 @@ func UpdateStructByTag(tag string, tagValue string, value interface{}, data inte
 				if val.Type().ConvertibleTo(structField.Type()) {
 					val = val.Convert(structField.Type())
 				} else {
-					return fmt.Errorf("type mismatch: cannot set %s with %s", structField.Type().String(), val.Type().String())
+					return fmt.Errorf("inputType mismatch: cannot set %s with %s", structField.Type().String(), val.Type().String())
 				}
 			}
 

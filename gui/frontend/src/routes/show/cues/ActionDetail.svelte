@@ -1,0 +1,168 @@
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+-->
+
+<script lang="ts">
+	import { actionsStore } from '$lib/stores/actionsStore.svelte';
+	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
+	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
+	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
+	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
+	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
+
+	interface ActionDetailProps {
+		cueListId: string;
+		cueId: string;
+		actionId: string;
+	}
+
+	let { cueListId, cueId, actionId }: ActionDetailProps = $props();
+
+	let action = $derived.by(() => {
+		const actions = actionsStore.actions.get(cueId);
+		return actions?.find((a) => a.id === actionId) ?? null;
+	});
+
+	let template = $derived.by(() => {
+		if (!action) return null;
+		return actionTemplatesStore.templates.find((t) => t.id === action.templateId) ?? null;
+	});
+	let isExpanded = $state(false);
+</script>
+
+{#if action}
+	<tr>
+		<EditableTableData
+			inputType="number"
+			value={action.number}
+			onSaveEdit={(v) => {
+				actionsStore.renumber(cueListId, cueId, action.id, v);
+			}}
+			tdClass="w-40 p-0 text-center"
+		>
+			{#snippet prefix()}
+				<button
+					class="btn h-full rounded-none px-1 btn-ghost btn-xs"
+					onclick={(e) => {
+						e.stopPropagation();
+						isExpanded = !isExpanded;
+					}}
+				>
+					{#if isExpanded}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							class="h-4 w-4"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M5.22 14.78a.75.75 0 001.06 0L10 11.06l3.72 3.72a.75.75 0 101.06-1.06l-4.25-4.25a.75.75 0 00-1.06 0l-4.25 4.25a.75.75 0 000 1.06z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					{:else}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							class="h-4 w-4"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M5.22 5.22a.75.75 0 011.06 0L10 8.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 6.28a.75.75 0 010-1.06z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					{/if}
+				</button>
+			{/snippet}
+		</EditableTableData>
+		<EditableTableData
+			value={action.label}
+			inputType="text"
+			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'label', v)}
+			tdClass="w-64 border-none"
+		/>
+		<td>
+			<span class="text-sm opacity-70">
+				{template?.templateName ?? 'Unknown Template'}
+			</span>
+		</td>
+		<EditableTimeData
+			value={action.delay}
+			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'delay', v)}
+			tdClass="border-none"
+		/>
+		<EditableTimeData
+			value={action.follow}
+			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'follow', v)}
+			tdClass="border-none"
+		/>
+		<td>
+			<div class="flex gap-2">
+				<button
+					class="btn text-error btn-ghost btn-xs"
+					onclick={() => actionsStore.deleteAction(cueListId, cueId, action.id)}
+				>
+					Delete
+				</button>
+			</div>
+		</td>
+	</tr>
+
+	{#if isExpanded}
+		<tr>
+			<td colspan="6" class="bg-base-200 p-4">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+					{#each action.fields as field}
+						{#if field.dataType === 'string'}
+							<EditableTextInput
+								label={field.fieldLabel || field.fieldName}
+								value={field.value}
+								onSave={(v) =>
+									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+							/>
+						{:else if field.dataType === 'float' || field.dataType === 'int'}
+							<EditableTextInput
+								label={field.fieldLabel || field.fieldName}
+								value={field.value}
+								inputType="number"
+								onSave={(v) =>
+									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+							/>
+						{:else if field.dataType === 'bool'}
+							<div class="form-control flex flex-col justify-center">
+								<label class="label cursor-pointer flex items-center justify-between">
+									<span class="label-text">{field.fieldLabel || field.fieldName}</span>
+									<input
+										type="checkbox"
+										class="checkbox"
+										checked={field.value}
+										onchange={(e) =>
+											actionsStore.updateField(
+												cueListId,
+												cueId,
+												action.id,
+												field.fieldName,
+												e.currentTarget.checked
+											)}
+									/>
+								</label>
+							</div>
+						{:else if field.dataType === 'time'}
+							<EditableTimeInput
+								label={field.fieldLabel || field.fieldName}
+								value={field.value}
+								onSave={(v) =>
+									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+							/>
+						{/if}
+					{/each}
+				</div>
+			</td>
+		</tr>
+	{/if}
+{/if}

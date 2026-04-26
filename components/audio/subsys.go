@@ -41,6 +41,21 @@ func (a *Audio) onStart() error {
 		return err
 	}
 
+	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, FadeActionTemplate, 10, time.Second)
+	if err != nil {
+		return err
+	}
+
+	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, StopActionTemplate, 10, time.Second)
+	if err != nil {
+		return err
+	}
+
+	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, PauseActionTemplate, 10, time.Second)
+	if err != nil {
+		return err
+	}
+
 	a.persistence = pm
 
 	err = errors.Join(

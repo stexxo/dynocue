@@ -7,8 +7,12 @@
 <script lang="ts">
 	import { cuesStore } from '$lib/stores/cuesStore.svelte';
 	import { cuelistsStore } from '$lib/stores/cuelistsStore.svelte';
+	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
+	import { actionsStore } from '$lib/stores/actionsStore.svelte';
+	import { clickOutside } from '$lib/utils/clickOutside';
 	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
 	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
+	import ActionDetail from './ActionDetail.svelte';
 
 	interface CueEditProps {
 		cueListId?: string;
@@ -30,17 +34,61 @@
 		return cuelistsStore.cueList(cueListId);
 	});
 
+	let actions = $derived.by(() => {
+		if (!cueId) return [];
+		return actionsStore.actions.get(cueId) ?? [];
+	});
+
+	let selectedTemplateId = $state('');
+	let searchTerm = $state('');
+	let dropdownOpen = $state(false);
+
+	let filteredTemplates = $derived.by(() => {
+		const term = searchTerm.toLowerCase();
+		return actionTemplatesStore.templates.filter(
+			(t) => t.templateName.toLowerCase().includes(term) || t.subsystemName.toLowerCase().includes(term)
+		);
+	});
+
+	let groupedTemplates = $derived.by(() => {
+		const groups = new Map<string, typeof actionTemplatesStore.templates>();
+		for (const template of filteredTemplates) {
+			const group = groups.get(template.subsystemName) ?? [];
+			group.push(template);
+			groups.set(template.subsystemName, group);
+		}
+		return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+	});
+
+	let selectedTemplate = $derived.by(() => {
+		return actionTemplatesStore.templates.find((t) => t.id === selectedTemplateId) ?? null;
+	});
+
+	async function createAction() {
+		if (!cueListId || !cueId || !selectedTemplateId) return;
+
+		// Find the next action number
+		const nextNumber = actions.length > 0 ? Math.max(...actions.map((a) => a.number)) + 1 : 1;
+
+		await actionsStore.create(cueListId, cueId, selectedTemplateId, nextNumber);
+		selectedTemplateId = '';
+		searchTerm = '';
+	}
+
 	export function show(listId: string, id: string) {
 		cueListId = listId;
 		cueId = id;
+		selectedTemplateId = '';
+		searchTerm = '';
+		dropdownOpen = false;
 		dialog.showModal();
 	}
 </script>
 
 <dialog bind:this={dialog} id="cue_edit_modal" class="modal">
 	{#if cue}
-		<div class="modal-box w-2/3 max-w-7xl">
-			<div class="flex flex-col gap-5">
+		<div class="modal-box flex h-[90vh] w-2/3 max-w-7xl flex-col">
+			<div class="flex min-h-0 grow flex-col gap-5">
 				<form method="dialog">
 					<button class="btn absolute top-2 right-2 btn-circle btn-ghost btn-sm">✕</button>
 				</form>
@@ -83,6 +131,93 @@
 								if (cue) cuesStore.updateCueMetadata(cue.cueListId, cue.cueId, 'description', v);
 							}}
 						/>
+					</div>
+				</div>
+
+				<div class="divider">Actions</div>
+
+				<div class="flex min-h-0 grow flex-col gap-4">
+					<div class="flex items-start gap-4">
+						<div class="form-control grow">
+							<div
+								class="dropdown w-full"
+								class:dropdown-open={dropdownOpen}
+								use:clickOutside={() => (dropdownOpen = false)}
+							>
+								<div
+									tabindex="0"
+									role="button"
+									class="select-bordered select flex items-center justify-between w-full"
+									onclick={() => (dropdownOpen = !dropdownOpen)}
+								>
+									<span class="truncate">
+										{selectedTemplate?.templateName ?? 'Select a template'}
+									</span>
+								</div>
+								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+								<div
+									tabindex="0"
+									class="dropdown-content menu z-[100] w-full gap-2 rounded-box bg-base-200 p-2 shadow"
+								>
+									<input
+										type="text"
+										placeholder="Search templates..."
+										class="input-bordered input input-sm w-full"
+										bind:value={searchTerm}
+										onclick={(e) => e.stopPropagation()}
+									/>
+									<div class="max-h-60 overflow-y-auto">
+										{#each groupedTemplates as [subsystem, templates]}
+											<div class="menu-title flex items-center gap-2">
+												<span>{subsystem}</span>
+											</div>
+											<ul>
+												{#each templates as template}
+													<li>
+														<button
+															class="flex flex-col items-start"
+															class:active={selectedTemplateId === template.id}
+															onclick={() => {
+																selectedTemplateId = template.id;
+																dropdownOpen = false;
+																searchTerm = '';
+															}}
+														>
+															<span class="font-bold">{template.templateName}</span>
+														</button>
+													</li>
+												{/each}
+											</ul>
+										{:else}
+											<div class="p-2 text-center italic text-gray-500">No templates found</div>
+										{/each}
+									</div>
+								</div>
+							</div>
+						</div>
+						<button class="btn btn-primary" disabled={!selectedTemplateId} onclick={createAction}>
+							Add Action
+						</button>
+					</div>
+
+					<div class="grow overflow-auto">
+						<table class="table w-full">
+							<thead class="sticky top-0 z-30 bg-base-100">
+								<tr>
+									<th class="w-40 text-center">#</th>
+									<th class="w-64">Label</th>
+									<th class="w-40">Template</th>
+									<th class="w-32">Delay</th>
+									<th class="w-32">Follow</th>
+									<th class="w-16"></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each actions as action (action.id)}
+									<ActionDetail {cueListId} {cueId} actionId={action.id} />
+								{/each}
+							</tbody>
+						</table>
 					</div>
 				</div>
 			</div>

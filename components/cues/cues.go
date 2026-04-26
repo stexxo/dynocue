@@ -183,9 +183,12 @@ type RenumberCueEvent struct {
 }
 
 func (p *Cueing) RenumberCue(sub string, request *RenumberCueRequest) (*RenumberCueResponse, error) {
-	_, err := p.getCueById(request.CueListId, request.CueId)
+	c, err := p.getCueById(request.CueListId, request.CueId)
 	if err != nil {
 		return nil, err
+	}
+	if c.Num() == request.NewNumber { // no change, respond without error
+		return &RenumberCueResponse{}, nil
 	}
 
 	cl, err := p.getCueListById(request.CueListId)

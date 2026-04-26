@@ -157,7 +157,15 @@ type RenumberCueListEvent struct {
 }
 
 func (p *Cueing) RenumberCueList(sub string, request *RenumberCueListsRequest) (*RenumberCueListsResponse, error) {
-	err := p.model.CueLists.MoveFunc(func(list *types.CueList) bool {
+	cl, err := p.getCueListById(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	if cl.Num() == request.NewNumber {
+		return &RenumberCueListsResponse{}, nil // no change, return without error
+	}
+
+	err = p.model.CueLists.MoveFunc(func(list *types.CueList) bool {
 		return list.Id() == request.Id
 	}, request.NewNumber)
 	if errors.Is(err, util.ErrNotFound) {
