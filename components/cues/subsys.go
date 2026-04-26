@@ -62,6 +62,15 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[RenumberCueRequest, RenumberCueResponse](p.Messenger(), true, RenumberCueRequestSubject, p.RenumberCue),
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
 
+		// Actions
+		messaging.Reply[EnumerateActionsRequest, EnumerateActionsResponse](p.Messenger(), true, EnumerateActionsRequestSubject, p.EnumerateActions),
+		messaging.Reply[GetActionByNumberRequest, GetActionByNumberResponse](p.Messenger(), true, GetActionByNumberRequestSubject, p.GetActionByNumber),
+		messaging.Reply[GetActionByIdRequest, GetActionByIdResponse](p.Messenger(), true, GetActionByIdRequestSubject, p.GetActionById),
+		messaging.Reply[DeleteActionRequest, DeleteActionResponse](p.Messenger(), true, DeleteActionRequestSubject, p.DeleteAction),
+		messaging.Reply[RenumberActionRequest, RenumberActionResponse](p.Messenger(), true, RenumberActionRequestSubject, p.RenumberAction),
+		messaging.Reply[UpdateActionRequest, UpdateActionResponse](p.Messenger(), true, UpdateActionRequestSubject, p.UpdateAction),
+		messaging.Reply[UpdateActionFieldRequest, UpdateActionFieldResponse](p.Messenger(), true, UpdateActionFieldRequestSubject, p.UpdateActionField),
+
 		// Action Templates
 		messaging.Reply[RegisterActionTemplateRequest, RegisterActionTemplateResponse](p.Messenger(), true, RegisterActionTemplateRequestSubject, p.RegisterActionType),
 		messaging.Reply[GetActionTemplateRequest, GetActionTemplateResponse](p.Messenger(), true, GetActionTemplateRequestSubject, p.GetActionTemplate),
