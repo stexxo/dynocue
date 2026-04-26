@@ -7,7 +7,6 @@ import {
 	CreateAction,
 	UpdateAction,
 	UpdateActionField,
-	RenumberAction,
 	DeleteAction
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/actionsservice';
 import { Action } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types/models';
@@ -50,11 +49,6 @@ class ActionsStore {
 			this.load(event.cueListId, event.cueId);
 		});
 
-		Events.On('event.cueing.actions.renumbered', (ev: any) => {
-			const event = ev.data as { cueListId: string; cueId: string };
-			this.load(event.cueListId, event.cueId);
-		});
-
 		Events.On('event.cueing.actions.deleted', (ev: any) => {
 			const event = ev.data as { cueListId: string; cueId: string };
 			this.load(event.cueListId, event.cueId);
@@ -78,10 +72,10 @@ class ActionsStore {
 		}
 	}
 
-	async create(cueListId: string, cueId: string, templateId: string, number: number) {
-		const [action, ok] = await CreateAction(cueListId, cueId, templateId, number);
+	async create(cueListId: string, cueId: string, templateId: string) {
+		const [action, ok] = await CreateAction(cueListId, cueId, templateId);
 		if (!ok) {
-			console.error('Failed to create action', cueListId, cueId, templateId, number);
+			console.error('Failed to create action', cueListId, cueId, templateId);
 		}
 		return action;
 	}
@@ -106,14 +100,6 @@ class ActionsStore {
 			console.error('Failed to update action field', actionId, fieldName, value);
 		}
 		return action;
-	}
-
-	async renumber(cueListId: string, cueId: string, actionId: string, newNumber: number) {
-		const ok = await RenumberAction(cueListId, cueId, actionId, newNumber);
-		if (!ok) {
-			console.error('Failed to renumber action', actionId, newNumber);
-		}
-		return ok;
 	}
 
 	async deleteAction(cueListId: string, cueId: string, actionId: string) {

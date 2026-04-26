@@ -17,6 +17,7 @@ type Task interface {
 type TaskEngine struct {
 	interval time.Duration
 	incoming chan Task
+	cmds     chan string
 	tasks    []Task
 
 	ctx     context.Context
@@ -30,7 +31,8 @@ func NewEngine(ticksPerSecond int) *TaskEngine {
 	return &TaskEngine{
 		interval: msInterval,
 		incoming: make(chan Task),
-		tasks:    make([]Task, 0),
+		tasks:    make([]Task, 100),
+		cmds:     make(chan string),
 		ctx:      nil,
 	}
 }
@@ -65,23 +67,40 @@ func (e *TaskEngine) Stop() {
 	}
 	e.cancel()
 }
+
 func (e *TaskEngine) AddTask(task Task) {
-	e.incoming <- task
+	go func() {
+		e.incoming <- task
+	}()
+}
+
+func (e *TaskEngine) StopAll() {
+	e.cmds <- "CLEAR_TASKS"
 }
 
 func (e *TaskEngine) tick(timeSinceLast time.Duration) {
-	processTasks := true
-	for processTasks {
+	select {
+	case <-e.ctx.Done():
+		return
+	case cmd := <-e.cmds:
+		switch cmd {
+		case "CLEAR_TASKS":
+			e.tasks = e.tasks[:0]
+		}
+	}
+
+	for {
 		select {
 		case <-e.ctx.Done():
 			return
 		case task := <-e.incoming:
 			e.tasks = append(e.tasks, task)
 		default:
-			processTasks = false
+			goto taskExecution
 		}
 	}
 
+taskExecution:
 	i := 0
 	for j := 0; j < len(e.tasks); j++ {
 		if finished := e.tasks[j].Execute(timeSinceLast); !finished {

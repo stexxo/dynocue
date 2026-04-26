@@ -15,12 +15,11 @@ import (
 var ErrActionExists = fmt.Errorf("action with provided number already exists")
 var ErrActionNotFound = fmt.Errorf("action not found")
 
-func (c *Client) CreateAction(cueListId string, cueId string, templateId string, number float64) (*types.Action, error) {
+func (c *Client) CreateAction(cueListId string, cueId string, templateId string) (*types.Action, error) {
 	resp, err := messaging.Request[cues.CreateActionResponse](c.messenger, cues.CreateActionRequestSubject, &cues.CreateActionRequest{
 		CueListId:  cueListId,
 		CueId:      cueId,
 		TemplateId: templateId,
-		Number:     number,
 	})
 	if err != nil {
 		return nil, err
@@ -49,26 +48,6 @@ func (c *Client) EnumerateActions(cueListId string, cueId string) ([]types.Actio
 	}
 
 	return nil, fmt.Errorf("failed to enumerate actions: %s", resp.Error)
-}
-
-func (c *Client) GetActionByNumber(cueListId string, cueId string, number float64) (*types.Action, error) {
-	resp, err := messaging.Request[cues.GetActionByNumberResponse](c.messenger, cues.GetActionByNumberRequestSubject, &cues.GetActionByNumberRequest{
-		CueListId:    cueListId,
-		CueId:        cueId,
-		ActionNumber: number,
-	})
-	if err != nil {
-		return nil, err
-	}
-	if resp.Success {
-		return &resp.Response.Action, nil
-	}
-
-	if resp.Error == cues.ActionNotFound {
-		return nil, ErrActionNotFound
-	}
-
-	return nil, fmt.Errorf("failed to get action: %s", resp.Error)
 }
 
 func (c *Client) GetActionById(cueListId string, cueId string, actionId string) (*types.Action, error) {
@@ -135,30 +114,6 @@ func (c *Client) UpdateActionField(cueListId string, cueId string, actionId stri
 	return nil, fmt.Errorf("failed to update action field: %s", resp.Error)
 }
 
-func (c *Client) RenumberAction(cueListId string, cueId string, actionId string, newNumber float64) error {
-	resp, err := messaging.Request[cues.RenumberActionResponse](c.messenger, cues.RenumberActionRequestSubject, &cues.RenumberActionRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		ActionId:  actionId,
-		NewNumber: newNumber,
-	})
-	if err != nil {
-		return err
-	}
-	if resp.Success {
-		return nil
-	}
-
-	if resp.Error == cues.ActionNotFound {
-		return ErrActionNotFound
-	}
-	if resp.Error == cues.ActionNumberExists {
-		return ErrActionExists
-	}
-
-	return fmt.Errorf("failed to renumber action: %s", resp.Error)
-}
-
 func (c *Client) DeleteAction(cueListId string, cueId string, actionId string) error {
 	resp, err := messaging.Request[cues.DeleteActionResponse](c.messenger, cues.DeleteActionRequestSubject, &cues.DeleteActionRequest{
 		CueListId: cueListId,
@@ -187,12 +142,6 @@ func (c *Client) OnActionCreated(handler EventCallback[cues.ActionCreatedEvent])
 
 func (c *Client) OnActionUpdated(handler EventCallback[cues.ActionUpdatedEvent]) error {
 	return messaging.Subscribe[cues.ActionUpdatedEvent](c.messenger, true, cues.ActionUpdatedEventSubject, func(sub string, msg *cues.ActionUpdatedEvent) {
-		handler(sub, msg)
-	})
-}
-
-func (c *Client) OnActionRenumbered(handler EventCallback[cues.ActionRenumberedEvent]) error {
-	return messaging.Subscribe[cues.ActionRenumberedEvent](c.messenger, true, cues.ActionRenumberedEventSubject, func(sub string, msg *cues.ActionRenumberedEvent) {
 		handler(sub, msg)
 	})
 }

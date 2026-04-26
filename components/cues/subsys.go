@@ -12,6 +12,7 @@ import (
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/engine"
 )
 
 type Cueing struct {
@@ -20,10 +21,13 @@ type Cueing struct {
 
 	model           *types.CueingModel
 	actionTemplates *types.ActionTemplatesModel
+	engine          *engine.TaskEngine
 }
 
 func New(logger logging.Logger) *Cueing {
-	p := &Cueing{}
+	p := &Cueing{
+		engine: engine.NewEngine(60),
+	}
 	p.model = types.NewCueingModel()
 	p.SubsystemCore = core.NewSubsystemCore("cueing", logger, p.onStart)
 	p.actionTemplates = types.NewActionTemplatesModel()
@@ -39,7 +43,6 @@ func (p *Cueing) onStart() error {
 	p.persistence = pm
 
 	err = errors.Join(
-
 		// Persistence
 		messaging.Reply[string, string](p.Messenger(), false, SaveRequestSubject, p.Save),
 		messaging.Reply[string, string](p.Messenger(), false, LoadRequestSubject, p.Load),
@@ -65,10 +68,8 @@ func (p *Cueing) onStart() error {
 		// Actions
 		messaging.Reply[CreateActionRequest, CreateActionResponse](p.Messenger(), true, CreateActionRequestSubject, p.CreateAction),
 		messaging.Reply[EnumerateActionsRequest, EnumerateActionsResponse](p.Messenger(), true, EnumerateActionsRequestSubject, p.EnumerateActions),
-		messaging.Reply[GetActionByNumberRequest, GetActionByNumberResponse](p.Messenger(), true, GetActionByNumberRequestSubject, p.GetActionByNumber),
 		messaging.Reply[GetActionByIdRequest, GetActionByIdResponse](p.Messenger(), true, GetActionByIdRequestSubject, p.GetActionById),
 		messaging.Reply[DeleteActionRequest, DeleteActionResponse](p.Messenger(), true, DeleteActionRequestSubject, p.DeleteAction),
-		messaging.Reply[RenumberActionRequest, RenumberActionResponse](p.Messenger(), true, RenumberActionRequestSubject, p.RenumberAction),
 		messaging.Reply[UpdateActionRequest, UpdateActionResponse](p.Messenger(), true, UpdateActionRequestSubject, p.UpdateAction),
 		messaging.Reply[UpdateActionFieldRequest, UpdateActionFieldResponse](p.Messenger(), true, UpdateActionFieldRequestSubject, p.UpdateActionField),
 
@@ -77,6 +78,8 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[GetActionTemplateRequest, GetActionTemplateResponse](p.Messenger(), true, GetActionTemplateRequestSubject, p.GetActionTemplate),
 		messaging.Reply[EnumerateActionTemplatesRequest, EnumerateActionTemplatesResponse](p.Messenger(), true, EnumerateActionTemplatesRequestSubject, p.EnumerateActionTemplates),
 	)
+
+	p.engine.Start()
 
 	return err
 }

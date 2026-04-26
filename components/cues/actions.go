@@ -5,8 +5,8 @@
 package cues
 
 import (
-	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -22,10 +22,9 @@ const CreateActionRequestSubject = "request.cueing.actions.create"
 const ActionCreatedEventSubject = "event.cueing.actions.created"
 
 type CreateActionRequest struct {
-	CueListId  string  `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId      string  `msgpack:"cueId" json:"cueId" validate:"required"`
-	TemplateId string  `msgpack:"templateId" json:"templateId" validate:"required"`
-	Number     float64 `msgpack:"number" json:"number"`
+	CueListId  string `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	CueId      string `msgpack:"cueId" json:"cueId" validate:"required"`
+	TemplateId string `msgpack:"templateId" json:"templateId" validate:"required"`
 }
 
 type CreateActionResponse struct {
@@ -51,10 +50,7 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 
 	action := types.NewActionByTemplate(template)
 
-	ok := cue.Actions.Add(action)
-	if !ok {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNumberExists}
-	}
+	cue.Actions = append(cue.Actions, *action)
 
 	err = messaging.Publish(p.Messenger(), ActionCreatedEventSubject, &ActionCreatedEvent{
 		CueListId: request.CueListId,
@@ -88,40 +84,7 @@ func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) 
 		return nil, err
 	}
 
-	var actions []types.Action
-	cue.Actions.ForEach(func(action *types.Action) {
-		actions = append(actions, *action)
-	})
-
-	return &EnumerateActionsResponse{Actions: actions}, nil
-}
-
-// GetActionByNumber
-
-const GetActionByNumberRequestSubject = "request.cueing.actions.get.number"
-
-type GetActionByNumberRequest struct {
-	CueListId    string  `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId        string  `msgpack:"cueId" json:"cueId" validate:"required"`
-	ActionNumber float64 `msgpack:"actionNumber" json:"actionNumber" validate:"required"`
-}
-
-type GetActionByNumberResponse struct {
-	Action types.Action `msgpack:"action" json:"action"`
-}
-
-func (p *Cueing) GetActionByNumber(sub string, request *GetActionByNumberRequest) (*GetActionByNumberResponse, error) {
-	cue, err := p.getCueById(request.CueListId, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
-	action := cue.Actions.GetByNumber(request.ActionNumber)
-	if action == nil {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
-	}
-
-	return &GetActionByNumberResponse{Action: **action}, nil
+	return &EnumerateActionsResponse{Actions: cue.Actions}, nil
 }
 
 // GetActionById
@@ -153,14 +116,14 @@ func (p *Cueing) getActionById(cueListId string, cueId string, actionId string) 
 		return nil, err
 	}
 
-	action := cue.Actions.GetFunc(func(a *types.Action) bool {
+	actionIdx := slices.IndexFunc(cue.Actions, func(a types.Action) bool {
 		return a.Id == actionId
 	})
-	if action == nil {
+	if actionIdx == -1 {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
 	}
 
-	return *action, nil
+	return &cue.Actions[actionIdx], nil
 }
 
 // DeleteAction
@@ -184,7 +147,8 @@ type ActionDeletedEvent struct {
 
 func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*DeleteActionResponse, error) {
 	cue, _ := p.getCueById(request.CueListId, request.CueId)
-	cue.Actions.RemoveFunc(func(a *types.Action) bool {
+
+	slices.DeleteFunc(cue.Actions, func(a types.Action) bool {
 		return a.Id == request.ActionId
 	})
 
@@ -200,63 +164,6 @@ func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*Delete
 	return &DeleteActionResponse{}, nil
 }
 
-// RenumberAction
-
-const RenumberActionRequestSubject = "request.cueing.actions.renumber"
-const ActionRenumberedEventSubject = "event.cueing.actions.renumbered"
-
-type RenumberActionRequest struct {
-	CueListId string  `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string  `msgpack:"cueId" json:"cueId" validate:"required"`
-	ActionId  string  `msgpack:"actionId" json:"actionId" validate:"required"`
-	NewNumber float64 `msgpack:"newNumber" json:"newNumber" validate:"required"`
-}
-
-type RenumberActionResponse struct{}
-
-type ActionRenumberedEvent struct {
-	CueListId string  `msgpack:"cueListId" json:"cueListId"`
-	CueId     string  `msgpack:"cueId" json:"cueId"`
-	ActionId  string  `msgpack:"actionId" json:"actionId"`
-	NewNumber float64 `msgpack:"newNumber" json:"newNumber"`
-}
-
-func (p *Cueing) RenumberAction(sub string, request *RenumberActionRequest) (*RenumberActionResponse, error) {
-	a, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
-	if err != nil {
-		return nil, err
-	}
-	if a.Num() == request.NewNumber {
-		return &RenumberActionResponse{}, nil // no change, return without error
-	}
-
-	cue, _ := p.getCueById(request.CueListId, request.CueId)
-	err = cue.Actions.MoveFunc(func(a *types.Action) bool {
-		return a.Id == request.ActionId
-	}, request.NewNumber)
-	if errors.Is(err, util.ErrNotFound) {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
-	}
-	if errors.Is(err, util.ErrExists) {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNumberExists}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	err = messaging.Publish(p.Messenger(), ActionRenumberedEventSubject, &ActionRenumberedEvent{
-		CueListId: request.CueListId,
-		CueId:     request.CueId,
-		ActionId:  request.ActionId,
-		NewNumber: request.NewNumber,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &RenumberActionResponse{}, nil
-}
-
 // UpdateAction
 
 const UpdateActionRequestSubject = "request.cueing.actions.update"
@@ -266,7 +173,7 @@ type UpdateActionRequest struct {
 	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
 	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
 	ActionId  string      `msgpack:"actionId" json:"actionId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=subject,ne=templateId,ne=fields"`
+	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=subject,ne=templateId,ne=fields"`
 	Value     interface{} `msgpack:"value" json:"value"`
 }
 

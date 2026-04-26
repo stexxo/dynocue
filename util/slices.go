@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"encoding/json"
 	"errors"
+	"iter"
 	"math"
 	"slices"
 	"sync"
@@ -175,4 +176,37 @@ func (o *NumberedSlice[T]) WithValues(fn func([]T)) {
 	o.mu.RLock()
 	defer o.mu.RUnlock()
 	fn(o.data)
+}
+
+func (o *NumberedSlice[T]) IterateFromStart() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		o.mu.RLock()
+		defer o.mu.RUnlock()
+		for _, item := range o.data {
+			if !yield(item) {
+				return
+			}
+		}
+	}
+}
+
+func (o *NumberedSlice[T]) IterateFromNumber(num float64) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		o.mu.RLock()
+		defer o.mu.RUnlock()
+		idx, found := slices.BinarySearchFunc(o.data, num, func(a T, b float64) int {
+			return cmp.Compare(a.Num(), b)
+		})
+
+		var d []T
+		if found {
+			d = o.data[idx:]
+		}
+
+		for _, item := range d {
+			if !yield(item) {
+				return
+			}
+		}
+	}
 }

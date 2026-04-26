@@ -3,9 +3,3 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 package types
-
-type AudioModel struct{}
-
-func NewAudioModel() *AudioModel {
-	return &AudioModel{}
-}

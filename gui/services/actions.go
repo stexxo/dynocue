@@ -34,15 +34,14 @@ func (s *ActionsService) onNewClient(cl *client.Client) error {
 	return errors.Join(
 		cl.OnActionCreated(func(sub string, event *cues.ActionCreatedEvent) { s.app.Event.Emit(sub, event) }),
 		cl.OnActionUpdated(func(sub string, event *cues.ActionUpdatedEvent) { s.app.Event.Emit(sub, event) }),
-		cl.OnActionRenumbered(func(sub string, event *cues.ActionRenumberedEvent) { s.app.Event.Emit(sub, event) }),
 		cl.OnActionDeleted(func(sub string, event *cues.ActionDeletedEvent) { s.app.Event.Emit(sub, event) }),
 	)
 }
 
-func (s *ActionsService) CreateAction(cueListId string, cueId string, templateId string, number float64) (*types.Action, bool) {
+func (s *ActionsService) CreateAction(cueListId string, cueId string, templateId string) (*types.Action, bool) {
 	var out *types.Action
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.CreateAction(cueListId, cueId, templateId, number)
+		action, err := c.CreateAction(cueListId, cueId, templateId)
 		if err != nil {
 			return err
 		}
@@ -71,25 +70,6 @@ func (s *ActionsService) EnumerateActions(cueListId string, cueId string) ([]typ
 
 	if err != nil {
 		s.logger.Error("failed to enumerate actions", "err", err)
-		return nil, false
-	}
-
-	return out, true
-}
-
-func (s *ActionsService) GetActionByNumber(cueListId string, cueId string, number float64) (*types.Action, bool) {
-	var out *types.Action
-	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.GetActionByNumber(cueListId, cueId, number)
-		if err != nil {
-			return err
-		}
-		out = action
-		return nil
-	})
-
-	if err != nil {
-		s.logger.Error("failed to get action by number", "err", err)
 		return nil, false
 	}
 
@@ -151,19 +131,6 @@ func (s *ActionsService) UpdateActionField(cueListId string, cueId string, actio
 	}
 
 	return out, true
-}
-
-func (s *ActionsService) RenumberAction(cueListId string, cueId string, actionId string, newNumber float64) bool {
-	err := s.clientManager.WithClient(func(c *client.Client) error {
-		return c.RenumberAction(cueListId, cueId, actionId, newNumber)
-	})
-
-	if err != nil {
-		s.logger.Error("failed to renumber action", "err", err)
-		return false
-	}
-
-	return true
 }
 
 func (s *ActionsService) DeleteAction(cueListId string, cueId string, actionId string) bool {

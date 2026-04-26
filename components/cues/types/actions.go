@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 package types
 
 import (
@@ -9,11 +13,9 @@ import (
 
 type Action struct {
 	Id         string         `msgpack:"id" json:"id"`
-	Number     float64        `msgpack:"number" json:"number"`
 	Label      string         `msgpack:"label" json:"label"`
 	TemplateId string         `msgpack:"templateId" json:"templateId"`
 	Delay      time.Duration  `msgpack:"delay" json:"delay"`
-	Follow     time.Duration  `msgpack:"follow" json:"follow"`
 	Fields     []ActionFields `msgpack:"fields" json:"fields"`
 }
 
@@ -32,14 +34,6 @@ func NewAction() *Action {
 	return &Action{
 		Id: uuid.NewString(),
 	}
-}
-
-func (action *Action) Num() float64 {
-	return action.Number
-}
-
-func (action *Action) SetNum(number float64) {
-	action.Number = number
 }
 
 type ActionFields struct {

@@ -3,3 +3,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 package cues
+
+const ExecuteCueRequestSubject = "request.cueing.execute"
+const ExecuteCueResponseSubject = "response.cueing.execute"
+
+type ExecuteCueRequest struct {
+	CueListId string `msgpack:"cueListId"`
+	CueId     string `msgpack:"cueId"`
+}

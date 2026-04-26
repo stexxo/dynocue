@@ -46,7 +46,8 @@
 	let filteredTemplates = $derived.by(() => {
 		const term = searchTerm.toLowerCase();
 		return actionTemplatesStore.templates.filter(
-			(t) => t.templateName.toLowerCase().includes(term) || t.subsystemName.toLowerCase().includes(term)
+			(t) =>
+				t.templateName.toLowerCase().includes(term) || t.subsystemName.toLowerCase().includes(term)
 		);
 	});
 
@@ -66,13 +67,7 @@
 
 	async function createAction() {
 		if (!cueListId || !cueId || !selectedTemplateId) return;
-
-		// Find the next action number
-		const nextNumber = actions.length > 0 ? Math.max(...actions.map((a) => a.number)) + 1 : 1;
-
-		await actionsStore.create(cueListId, cueId, selectedTemplateId, nextNumber);
-		selectedTemplateId = '';
-		searchTerm = '';
+		await actionsStore.create(cueListId, cueId, selectedTemplateId);
 	}
 
 	export function show(listId: string, id: string) {
@@ -147,7 +142,7 @@
 								<div
 									tabindex="0"
 									role="button"
-									class="select-bordered select flex items-center justify-between w-full"
+									class="select-bordered select flex w-full items-center justify-between"
 									onclick={() => (dropdownOpen = !dropdownOpen)}
 								>
 									<span class="truncate">
@@ -168,7 +163,7 @@
 									/>
 									<div class="max-h-60 overflow-y-auto">
 										{#each groupedTemplates as [subsystem, templates]}
-											<div class="menu-title flex items-center gap-2">
+											<div class="flex items-center gap-2 menu-title">
 												<span>{subsystem}</span>
 											</div>
 											<ul>
@@ -204,11 +199,10 @@
 						<table class="table w-full">
 							<thead class="sticky top-0 z-30 bg-base-100">
 								<tr>
-									<th class="w-40 text-center">#</th>
+									<th class="w-16"></th>
 									<th class="w-64">Label</th>
 									<th class="w-40">Template</th>
 									<th class="w-32">Delay</th>
-									<th class="w-32">Follow</th>
 									<th class="w-16"></th>
 								</tr>
 							</thead>

@@ -35,52 +35,43 @@
 
 {#if action && cueListId && cueId}
 	<tr>
-		<EditableTableData
-			inputType="number"
-			value={action.number}
-			onSaveEdit={(v) => {
-				actionsStore.renumber(cueListId, cueId, action.id, v);
-			}}
-			tdClass="w-40 p-0 text-center"
-		>
-			{#snippet prefix()}
-				<button
-					class="btn h-full rounded-none px-1 btn-ghost btn-xs"
-					onclick={(e) => {
-						e.stopPropagation();
-						isExpanded = !isExpanded;
-					}}
-				>
-					{#if isExpanded}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-							class="h-4 w-4"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M5.22 14.78a.75.75 0 001.06 0L10 11.06l3.72 3.72a.75.75 0 101.06-1.06l-4.25-4.25a.75.75 0 00-1.06 0l-4.25 4.25a.75.75 0 000 1.06z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					{:else}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-							class="h-4 w-4"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M5.22 5.22a.75.75 0 011.06 0L10 8.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 6.28a.75.75 0 010-1.06z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					{/if}
-				</button>
-			{/snippet}
-		</EditableTableData>
+		<td>
+			<button
+				class="btn h-full rounded-none px-1 btn-ghost btn-xs"
+				onclick={(e) => {
+					e.stopPropagation();
+					isExpanded = !isExpanded;
+				}}
+			>
+				{#if isExpanded}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						class="h-4 w-4"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M5.22 14.78a.75.75 0 001.06 0L10 11.06l3.72 3.72a.75.75 0 101.06-1.06l-4.25-4.25a.75.75 0 00-1.06 0l-4.25 4.25a.75.75 0 000 1.06z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+				{:else}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						class="h-4 w-4"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M5.22 5.22a.75.75 0 011.06 0L10 8.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 6.28a.75.75 0 010-1.06z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+				{/if}
+			</button>
+		</td>
 		<EditableTableData
 			value={action.label}
 			inputType="text"
@@ -95,11 +86,6 @@
 		<EditableTimeData
 			value={action.delay}
 			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'delay', v)}
-			tdClass="border-none"
-		/>
-		<EditableTimeData
-			value={action.follow}
-			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'follow', v)}
 			tdClass="border-none"
 		/>
 		<td>
@@ -136,7 +122,7 @@
 							/>
 						{:else if field.dataType === 'bool'}
 							<div class="form-control flex flex-col justify-center">
-								<label class="label cursor-pointer flex items-center justify-between">
+								<label class="label flex cursor-pointer items-center justify-between">
 									<span class="label-text">{field.fieldLabel || field.fieldName}</span>
 									<input
 										type="checkbox"
