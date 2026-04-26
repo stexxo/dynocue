@@ -139,12 +139,7 @@ type GetCueByIdResponse struct {
 }
 
 func (p *Cueing) GetCueById(sub string, request *GetCueByIdRequest) (*GetCueByIdResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
+	cue, err := p.getCueById(request.CueListId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +147,12 @@ func (p *Cueing) GetCueById(sub string, request *GetCueByIdRequest) (*GetCueById
 	return &GetCueByIdResponse{Metadata: cue.Metadata}, nil
 }
 
-func (p *Cueing) getCueById(cl *types.CueList, id string) (*types.Cue, error) {
+func (p *Cueing) getCueById(cueListId string, id string) (*types.Cue, error) {
+	cl, err := p.getCueListById(cueListId)
+	if err != nil {
+		return nil, err
+	}
+
 	cue := cl.Cues.GetFunc(func(c *types.Cue) bool {
 		return c.Metadata.CueId == id
 	})
@@ -183,6 +183,11 @@ type RenumberCueEvent struct {
 }
 
 func (p *Cueing) RenumberCue(sub string, request *RenumberCueRequest) (*RenumberCueResponse, error) {
+	_, err := p.getCueById(request.CueListId, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
 	cl, err := p.getCueListById(request.CueListId)
 	if err != nil {
 		return nil, err
@@ -235,6 +240,11 @@ type CueDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueResponse, error) {
+	_, err := p.getCueById(request.CueListId, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
 	cl, err := p.getCueListById(request.CueListId)
 	if err != nil {
 		return nil, err
@@ -282,12 +292,7 @@ type UpdateCueMetadataResponse struct {
 }
 
 func (p *Cueing) UpdateCueMetadata(sub string, request *UpdateCueMetadataRequest) (*UpdateCueMetadataResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
+	cue, err := p.getCueById(request.CueListId, request.CueId)
 	if err != nil {
 		return nil, err
 	}

@@ -20,6 +20,7 @@ type Action struct {
 func NewActionByTemplate(actionTemplate *ActionTemplate) *Action {
 	action := NewAction()
 	action.Subject = actionTemplate.Subject
+	action.TemplateId = actionTemplate.Id
 
 	for _, f := range actionTemplate.Fields {
 		action.Fields = append(action.Fields, ActionFields{FieldName: f.FieldName, FieldLabel: f.FieldLabel, DataType: f.DataType, Value: f.DefaultValue})

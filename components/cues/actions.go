@@ -16,6 +16,59 @@ import (
 const ActionNotFound = "Action Not Found"
 const ActionNumberExists = "Action Number Already Exists"
 
+// CreateAction
+
+const CreateActionRequestSubject = "request.cueing.actions.create"
+const ActionCreatedEventSubject = "event.cueing.actions.created"
+
+type CreateActionRequest struct {
+	CueListId  string  `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	CueId      string  `msgpack:"cueId" json:"cueId" validate:"required"`
+	TemplateId string  `msgpack:"templateId" json:"templateId" validate:"required"`
+	Number     float64 `msgpack:"number" json:"number"`
+}
+
+type CreateActionResponse struct {
+	Action types.Action `msgpack:"action" json:"action"`
+}
+
+type ActionCreatedEvent struct {
+	CueListId string       `msgpack:"cueListId" json:"cueListId"`
+	CueId     string       `msgpack:"cueId" json:"cueId"`
+	Action    types.Action `msgpack:"action" json:"action"`
+}
+
+func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*CreateActionResponse, error) {
+	cue, err := p.getCueById(request.CueListId, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
+	template := p.actionTemplates.GetTemplateById(request.TemplateId)
+	if template == nil {
+		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
+	}
+
+	action := types.NewActionByTemplate(template)
+
+	ok := cue.Actions.Add(action)
+	if !ok {
+		return nil, &messaging.FriendlyError{FriendlyErr: ActionNumberExists}
+	}
+
+	err = messaging.Publish(p.Messenger(), ActionCreatedEventSubject, &ActionCreatedEvent{
+		CueListId: request.CueListId,
+		CueId:     request.CueId,
+		Action:    *action,
+	})
+	if err != nil {
+		p.Logger().Error("failed to publish action created event", "error", err)
+		return nil, err
+	}
+
+	return &CreateActionResponse{Action: *action}, nil
+}
+
 // EnumerateActions
 
 const EnumerateActionsRequestSubject = "request.cueing.actions.enumerate"
@@ -30,12 +83,7 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
+	cue, err := p.getCueById(request.CueListId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +111,7 @@ type GetActionByNumberResponse struct {
 }
 
 func (p *Cueing) GetActionByNumber(sub string, request *GetActionByNumberRequest) (*GetActionByNumberResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
+	cue, err := p.getCueById(request.CueListId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -96,24 +139,28 @@ type GetActionByIdResponse struct {
 }
 
 func (p *Cueing) GetActionById(sub string, request *GetActionByIdRequest) (*GetActionByIdResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
+	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
 	if err != nil {
 		return nil, err
 	}
 
-	cue, err := p.getCueById(cl, request.CueId)
+	return &GetActionByIdResponse{Action: *action}, nil
+}
+
+func (p *Cueing) getActionById(cueListId string, cueId string, actionId string) (*types.Action, error) {
+	cue, err := p.getCueById(cueListId, cueId)
 	if err != nil {
 		return nil, err
 	}
 
 	action := cue.Actions.GetFunc(func(a *types.Action) bool {
-		return a.Id == request.ActionId
+		return a.Id == actionId
 	})
 	if action == nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
 	}
 
-	return &GetActionByIdResponse{Action: **action}, nil
+	return *action, nil
 }
 
 // DeleteAction
@@ -136,21 +183,12 @@ type ActionDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*DeleteActionResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
-	if err != nil {
-		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
+	cue, _ := p.getCueById(request.CueListId, request.CueId)
 	cue.Actions.RemoveFunc(func(a *types.Action) bool {
 		return a.Id == request.ActionId
 	})
 
-	err = messaging.Publish(p.Messenger(), ActionDeletedEventSubject, &ActionDeletedEvent{
+	err := messaging.Publish(p.Messenger(), ActionDeletedEventSubject, &ActionDeletedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
 		ActionId:  request.ActionId,
@@ -184,16 +222,12 @@ type ActionRenumberedEvent struct {
 }
 
 func (p *Cueing) RenumberAction(sub string, request *RenumberActionRequest) (*RenumberActionResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
+	_, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
 	if err != nil {
 		return nil, err
 	}
 
-	cue, err := p.getCueById(cl, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
+	cue, _ := p.getCueById(request.CueListId, request.CueId)
 	err = cue.Actions.MoveFunc(func(a *types.Action) bool {
 		return a.Id == request.ActionId
 	}, request.NewNumber)
@@ -244,24 +278,12 @@ type ActionUpdatedEvent struct {
 }
 
 func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*UpdateActionResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
+	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
 	if err != nil {
 		return nil, err
 	}
 
-	cue, err := p.getCueById(cl, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
-	action := cue.Actions.GetFunc(func(a *types.Action) bool {
-		return a.Id == request.ActionId
-	})
-	if action == nil {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
-	}
-
-	err = util.UpdateStructByTag("json", request.Field, request.Value, *action)
+	err = util.UpdateStructByTag("json", request.Field, request.Value, action)
 	if err != nil {
 		return nil, err
 	}
@@ -269,13 +291,13 @@ func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*Update
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
-		Action:    **action,
+		Action:    *action,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &UpdateActionResponse{Action: **action}, nil
+	return &UpdateActionResponse{Action: *action}, nil
 }
 
 // UpdateActionField
@@ -295,27 +317,15 @@ type UpdateActionFieldResponse struct {
 }
 
 func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest) (*UpdateActionFieldResponse, error) {
-	cl, err := p.getCueListById(request.CueListId)
+	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
 	if err != nil {
 		return nil, err
-	}
-
-	cue, err := p.getCueById(cl, request.CueId)
-	if err != nil {
-		return nil, err
-	}
-
-	action := cue.Actions.GetFunc(func(a *types.Action) bool {
-		return a.Id == request.ActionId
-	})
-	if action == nil {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
 	}
 
 	foundField := false
-	for i := range (*action).Fields {
-		if (*action).Fields[i].FieldName == request.FieldName {
-			(*action).Fields[i].Value = request.Value
+	for i := range action.Fields {
+		if action.Fields[i].FieldName == request.FieldName {
+			action.Fields[i].Value = request.Value
 			foundField = true
 			break
 		}
@@ -328,11 +338,11 @@ func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
-		Action:    **action,
+		Action:    *action,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &UpdateActionFieldResponse{Action: **action}, nil
+	return &UpdateActionFieldResponse{Action: *action}, nil
 }

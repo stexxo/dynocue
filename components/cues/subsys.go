@@ -63,6 +63,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
 
 		// Actions
+		messaging.Reply[CreateActionRequest, CreateActionResponse](p.Messenger(), true, CreateActionRequestSubject, p.CreateAction),
 		messaging.Reply[EnumerateActionsRequest, EnumerateActionsResponse](p.Messenger(), true, EnumerateActionsRequestSubject, p.EnumerateActions),
 		messaging.Reply[GetActionByNumberRequest, GetActionByNumberResponse](p.Messenger(), true, GetActionByNumberRequestSubject, p.GetActionByNumber),
 		messaging.Reply[GetActionByIdRequest, GetActionByIdResponse](p.Messenger(), true, GetActionByIdRequestSubject, p.GetActionById),
