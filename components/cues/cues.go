@@ -48,7 +48,10 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 		return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
 	}
 
-	cl.Cues.Add(cue)
+	ok := cl.Cues.Add(cue)
+	if !ok {
+		return nil, &messaging.FriendlyError{FriendlyErr: CueNumberExists}
+	}
 
 	err = messaging.Publish(p.Messenger(), CueCreatedEventSubject, &CueCreatedEvent{
 		CueListId: req.CueListId,

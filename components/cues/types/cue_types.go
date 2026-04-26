@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stexxo/dynocue/util"
 )
 
 type Cue struct {
-	Metadata CueMetadata `msgpack:"metadata" json:"metadata"`
+	Metadata CueMetadata                  `msgpack:"metadata" json:"metadata"`
+	Actions  *util.NumberedSlice[*Action] `msgpack:"actions" json:"actions"`
 }
 
 func NewCue(cueListId string, number float64) *Cue {
@@ -21,6 +23,7 @@ func NewCue(cueListId string, number float64) *Cue {
 			CueId:     uuid.NewString(),
 			Number:    number,
 		},
+		Actions: util.NewNumberedSlice[*Action](),
 	}
 }
 

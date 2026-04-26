@@ -37,7 +37,7 @@ func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 		return resp.Response.Template, nil
 	}
 
-	if resp.Error == cues.ActionNotFound {
+	if resp.Error == cues.ActionTemplateNotFound {
 		return nil, ErrActionTemplateNotFound
 	}
 
