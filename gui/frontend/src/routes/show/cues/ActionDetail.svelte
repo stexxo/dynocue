@@ -13,14 +13,15 @@
 	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
 
 	interface ActionDetailProps {
-		cueListId: string;
-		cueId: string;
+		cueListId: string | undefined;
+		cueId: string | undefined;
 		actionId: string;
 	}
 
 	let { cueListId, cueId, actionId }: ActionDetailProps = $props();
 
 	let action = $derived.by(() => {
+		if (!cueId) return null;
 		const actions = actionsStore.actions.get(cueId);
 		return actions?.find((a) => a.id === actionId) ?? null;
 	});
@@ -32,7 +33,7 @@
 	let isExpanded = $state(false);
 </script>
 
-{#if action}
+{#if action && cueListId && cueId}
 	<tr>
 		<EditableTableData
 			inputType="number"
