@@ -12,16 +12,20 @@ import (
 )
 
 type Action struct {
+	CueListId  string         `msgpack:"cueListId" json:"cueListId"`
+	CueId      string         `msgpack:"cueId" json:"cueId"`
 	Id         string         `msgpack:"id" json:"id"`
+	Subject    string         `msgpack:"subject" json:"subject"`
 	Label      string         `msgpack:"label" json:"label"`
 	TemplateId string         `msgpack:"templateId" json:"templateId"`
 	Delay      time.Duration  `msgpack:"delay" json:"delay"`
 	Fields     []ActionFields `msgpack:"fields" json:"fields"`
 }
 
-func NewActionByTemplate(actionTemplate *ActionTemplate) *Action {
-	action := NewAction()
+func NewActionByTemplate(cueListId string, cueId string, actionTemplate *ActionTemplate) *Action {
+	action := NewAction(cueListId, cueId)
 	action.TemplateId = actionTemplate.Id
+	action.Subject = actionTemplate.Subject
 
 	for _, f := range actionTemplate.Fields {
 		action.Fields = append(action.Fields, ActionFields{FieldName: f.FieldName, FieldLabel: f.FieldLabel, DataType: f.DataType, Value: f.DefaultValue})
@@ -30,9 +34,11 @@ func NewActionByTemplate(actionTemplate *ActionTemplate) *Action {
 	return action
 }
 
-func NewAction() *Action {
+func NewAction(cueListId string, cueId string) *Action {
 	return &Action{
-		Id: uuid.NewString(),
+		Id:        uuid.NewString(),
+		CueListId: cueListId,
+		CueId:     cueId,
 	}
 }
 

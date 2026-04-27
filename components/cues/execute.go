@@ -11,3 +11,16 @@ type ExecuteCueRequest struct {
 	CueListId string `msgpack:"cueListId"`
 	CueId     string `msgpack:"cueId"`
 }
+
+type ExecuteCueResponse struct{}
+
+func (p *Cueing) ExecuteCueRequest(sub string, request ExecuteCueRequest) (*ExecuteCueResponse, error) {
+	cue, err := p.getCueById(request.CueListId, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
+	p.engine.AddTask(NewExecuteCueTask(cue, p.Messenger(), p.Logger(), p.engine))
+
+	return &ExecuteCueResponse{}, nil
+}

@@ -28,7 +28,6 @@ var (
 		Fields: []types.ActionTemplateField{
 			{FieldName: "source", FieldLabel: "Source", DataType: "float", DefaultValue: 0.0},
 			{FieldName: "targetVolume", FieldLabel: "Target Volume %", DataType: "float", DefaultValue: 0.0},
-			{FieldName: "stopWhenComplete", FieldLabel: "Stop When Complete", DataType: "bool", DefaultValue: false},
 			{FieldName: "duration", FieldLabel: "Duration", DataType: "time", DefaultValue: 0.0},
 		},
 	}

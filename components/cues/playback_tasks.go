@@ -5,7 +5,8 @@
 package cues
 
 import (
-	"math"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/stexxo/dynocue/components/cues/types"
@@ -15,100 +16,126 @@ import (
 )
 
 const (
-	ExecutionStageInitialized = iota
-	ExecutionStageDelayed
-	ExecutionStageActions
-	ExecutionStageFollow
-	ExecutionStageComplete
+	CueExecutionStageInitialized = iota
+	CueExecutionStageDelayed
+	CueExecutionStageActionStart
+	CueExecutionStageActionWait
+	CueExecutionStageFollow
+	CueExecutionStageComplete
 )
 
 const CueExecutionStatusEventSubject = "event.cueing.execution.status"
 
 type CueExecutionStatusEvent struct {
-	CueListId string                 `msgpack:"cueListId" json:"cueListId"`
-	CueId     string                 `msgpack:"cueId" json:"cueId"`
-	Stage     int                    `msgpack:"stage" json:"stage"`
-	Data      map[string]interface{} `msgpack:"data" json:"data"`
+	CueListId      string        `msgpack:"cueListId" json:"cueListId"`
+	CueId          string        `msgpack:"cueId" json:"cueId"`
+	Stage          int           `msgpack:"stage" json:"stage"`
+	TotalElapsed   time.Duration `msgpack:"totalElapsed" json:"totalElapsed"`
+	ElapsedInStage time.Duration `msgpack:"elapsedinstage" json:"elapsedinstage"`
 }
 
 type ExecuteCueTask struct {
-	cue *types.Cue
+	cueList *types.CueList
+	cue     *types.Cue
 
 	messenger *messaging.Messenger
 	logger    logging.Logger
 	engine    *engine.TaskEngine
 
-	executionStage int
+	executionStage     int
+	timeElapsedInStage time.Duration
+	totalElapsed       time.Duration
 
-	delayElapsed  time.Duration
-	actionElapsed time.Duration
-	followElapsed time.Duration
-
-	actionCursor float64
+	actionsStarted bool
+	actionTasks    []*ExecuteActionTask
 }
 
 func NewExecuteCueTask(cue *types.Cue, messenger *messaging.Messenger, logger logging.Logger, e *engine.TaskEngine) *ExecuteCueTask {
 	return &ExecuteCueTask{
-		cue:       cue,
-		messenger: messenger,
-		logger:    logger,
-		engine:    e,
+		cue:            cue,
+		messenger:      messenger,
+		logger:         logger,
+		engine:         e,
+		executionStage: CueExecutionStageInitialized,
 	}
 }
 
 func (e *ExecuteCueTask) Execute(t time.Duration) bool {
-	var next bool
-	switch e.executionStage {
-	case ExecutionStageInitialized:
-		e.executionStage = ExecutionStageDelayed
-	case ExecutionStageDelayed:
-		next = e.delayStage(t)
-	case ExecutionStageActions:
-		next = e.actionStage(t)
-	case ExecutionStageFollow:
-		next = e.followStage(t)
-	case ExecutionStageComplete:
-		return true
+	e.timeElapsedInStage += t
+	e.totalElapsed += t
+
+	if e.executionStage == CueExecutionStageInitialized {
+		e.executionStage = CueExecutionStageDelayed
 	}
 
-	if next {
-		e.executionStage++
+	if e.executionStage == CueExecutionStageDelayed {
+		if e.timeElapsedInStage > e.cue.Metadata.Delay {
+			e.executionStage = CueExecutionStageActionStart
+		}
 	}
 
-	return false
-}
+	if e.executionStage == CueExecutionStageActionStart {
+		for _, action := range e.cue.Actions {
+			actionTask := NewExecuteActionTask(&action, e.messenger, e.logger)
+			e.engine.AddTask(actionTask)
+		}
+		e.executionStage = CueExecutionStageActionWait
+	}
 
-func (e *ExecuteCueTask) delayStage(t time.Duration) bool {
-	err := messaging.Publish(e.messenger, CueExecutionStatusEventSubject, &CueExecutionStatusEvent{
-		CueListId: e.cue.Metadata.CueListId,
-		CueId:     e.cue.Metadata.CueId,
-		Stage:     e.executionStage,
-		Data: map[string]interface{}{
-			"delay":   e.cue.Metadata.Delay,
-			"elapsed": int(math.Min(float64(e.delayElapsed), float64(e.cue.Metadata.Delay))),
-		},
+	if e.executionStage == CueExecutionStageActionWait {
+		e.actionTasks = slices.DeleteFunc(e.actionTasks, func(action *ExecuteActionTask) bool {
+			action.mu.Lock()
+			defer action.mu.Unlock()
+
+			return action.executionState == ActionExecutionStageComplete
+		})
+
+		if len(e.actionTasks) == 0 {
+			e.executionStage = CueExecutionStageFollow
+		}
+	}
+
+	if e.executionStage == CueExecutionStageFollow {
+		if e.cue.Metadata.Follow == 0 {
+			e.executionStage = CueExecutionStageComplete
+		}
+
+		if e.timeElapsedInStage > e.cue.Metadata.Follow {
+			nextCue := e.cueList.Cues.GetNextByNumber(e.cue.Num())
+			if nextCue != nil {
+				task := NewExecuteCueTask(*nextCue, e.messenger, e.logger, e.engine)
+				e.engine.AddTask(task)
+			}
+			e.executionStage = CueExecutionStageComplete
+		}
+	}
+
+	err := messaging.Publish(e.messenger, CueExecutionStatusEventSubject, CueExecutionStatusEvent{
+		CueListId:      e.cue.Metadata.CueListId,
+		CueId:          e.cue.Metadata.CueId,
+		Stage:          e.executionStage,
+		ElapsedInStage: e.timeElapsedInStage,
+		TotalElapsed:   e.totalElapsed,
 	})
 	if err != nil {
-		e.logger.Error("failed to emit status event about cue delay")
+		e.logger.Error("failed to publish cue execution status event", "err", err)
 	}
 
-	if e.delayElapsed > e.cue.Metadata.Delay {
+	if e.executionStage == ActionExecutionStageComplete {
 		return true
 	}
 
-	return false
-}
-
-func (e *ExecuteCueTask) actionStage(duration time.Duration) bool {
-
-	return false
-}
-
-func (e *ExecuteCueTask) followStage(duration time.Duration) bool {
 	return false
 }
 
 const ActionExecutionStatusEventSubject = "event.cueing.execution.status"
+
+const (
+	ActionExecutionStageInitialized = iota
+	ActionExecutionStageDelayed
+	ActionExecutionStageRunning
+	ActionExecutionStageComplete
+)
 
 type ActionExecutionStatusEvent struct {
 	CueListId string                 `msgpack:"cueListId" json:"cueListId"`
@@ -116,4 +143,71 @@ type ActionExecutionStatusEvent struct {
 	ActionId  string                 `msgpack:"actionId" json:"actionId"`
 	Stage     int                    `msgpack:"stage" json:"stage"`
 	Data      map[string]interface{} `msgpack:"data" json:"data"`
+}
+
+type ExecuteActionTask struct {
+	mu sync.RWMutex
+
+	action    *types.Action
+	messenger *messaging.Messenger
+	logger    logging.Logger
+
+	executionState     int
+	timeElapsedInStage time.Duration
+	totalElapsed       time.Duration
+}
+
+func NewExecuteActionTask(action *types.Action, messenger *messaging.Messenger, logger logging.Logger) *ExecuteActionTask {
+	return &ExecuteActionTask{
+		action:         action,
+		messenger:      messenger,
+		logger:         logger,
+		executionState: ActionExecutionStageInitialized,
+	}
+}
+
+func (e *ExecuteActionTask) Execute(t time.Duration) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.timeElapsedInStage += t
+	e.totalElapsed += t
+
+	if e.executionState == ActionExecutionStageInitialized {
+		e.executionState = CueExecutionStageDelayed
+	}
+
+	if e.executionState == ActionExecutionStageDelayed {
+		if e.timeElapsedInStage > e.action.Delay {
+			e.executionState = ActionExecutionStageRunning
+		}
+	}
+
+	if e.executionState == ActionExecutionStageRunning {
+		body := map[string]interface{}{}
+		for _, f := range e.action.Fields {
+			body[f.FieldName] = f.Value
+		}
+		err := messaging.Publish(e.messenger, e.action.Subject, body)
+		if err != nil {
+			e.logger.Error("failed to publish action execution status event", "err", err)
+		}
+		e.executionState = CueExecutionStageComplete
+	}
+
+	err := messaging.Publish(e.messenger, ActionExecutionStatusEventSubject, ActionExecutionStatusEvent{
+		CueListId: e.action.CueListId,
+		CueId:     e.action.CueId,
+		Stage:     e.executionState,
+	})
+
+	if err != nil {
+		e.logger.Error("failed to publish action execution status event", "err", err)
+	}
+
+	if e.executionState == ActionExecutionStageComplete {
+		return true
+	}
+
+	return false
 }

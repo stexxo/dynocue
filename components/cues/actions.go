@@ -48,7 +48,7 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 
-	action := types.NewActionByTemplate(template)
+	action := types.NewActionByTemplate(request.CueListId, request.CueId, template)
 
 	cue.Actions = append(cue.Actions, *action)
 
