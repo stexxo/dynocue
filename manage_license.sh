@@ -58,7 +58,7 @@ EXT_STYLE_MAP["yml"]="hash"
 EXT_STYLE_MAP["sh"]="hash"
 
 # Exclude directories and generated files
-EXCLUDE_DIRS="-not -path '*/node_modules/*' -not -path '*/.svelte-kit/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/bindings/*'"
+EXCLUDE_DIRS="-not -path '*/node_modules/*' -not -path '*/.svelte-kit/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/bindings/*' -not -path '*/dist/*"
 
 # Process each extension
 for ext in "${!EXT_STYLE_MAP[@]}"; do
