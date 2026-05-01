@@ -11,7 +11,4 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	server: { fs: { allow: ['.', '..'] } },
-	ssr: {
-		noExternal: ['daisyui']
-	}
 });
