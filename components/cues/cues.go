@@ -112,8 +112,8 @@ func (p *Cueing) EnumerateCues(sub string, request *EnumerateCuesRequest) (*Enum
 const GetCueByNumberRequestSubject = "request.cueing.cue.get.number"
 
 type GetCueByNumberRequest struct {
-	CueListNumber float64 `msgpack:"cueListNumber" json:"cueListNumber" validate:"required,gt=0"`
-	CueNumber     float64 `msgpack:"cueNumber" json:"cueNumber" validate:"required,gt=0"`
+	CueListId string  `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	CueNumber float64 `msgpack:"cueNumber" json:"cueNumber" validate:"required,gt=0"`
 }
 
 type GetCueByNumberResponse struct {
@@ -121,15 +121,7 @@ type GetCueByNumberResponse struct {
 }
 
 func (p *Cueing) GetCueByNumber(sub string, request *GetCueByNumberRequest) (*GetCueByNumberResponse, error) {
-	cueList, err := db.GetFirstDb[types.CueList](p.db, TableCueLists, IndexNumber, request.CueListNumber)
-	if err != nil {
-		if errors.Is(err, db.ErrItemNotFound) {
-			return nil, &messaging.FriendlyError{FriendlyErr: CueListNotFound}
-		}
-		return nil, err
-	}
-
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexNumber, cueList.CueListId, request.CueNumber)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexNumber, request.CueListId, request.CueNumber)
 	if err != nil {
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
@@ -145,8 +137,7 @@ func (p *Cueing) GetCueByNumber(sub string, request *GetCueByNumberRequest) (*Ge
 const GetCueByIdRequestSubject = "request.cueing.cue.get.id"
 
 type GetCueByIdRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
+	CueId string `msgpack:"cueId" json:"cueId" validate:"required"`
 }
 
 type GetCueByIdResponse struct {
@@ -171,8 +162,7 @@ const DeleteCueRequestSubject = "request.cueing.cue.delete"
 const DeleteCueEventSubject = "event.cueing.cue.deleted"
 
 type DeleteCueRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
+	CueId string `msgpack:"cueId" json:"cueId" validate:"required"`
 }
 
 type DeleteCueResponse struct{}
@@ -183,17 +173,25 @@ type CueDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueResponse, error) {
-	err := db.DeleteItemFromDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	if err != nil {
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
+		}
+		return nil, err
+	}
+
+	err = db.DeleteItemFromDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), DeleteCueEventSubject, &CueDeletedEvent{
-		CueListId: request.CueListId,
+		CueListId: cue.CueListId,
 		CueId:     request.CueId,
 	})
 	if err != nil {
-		p.Logger().Error("failed to publish cue deleted event", "error", err, "cueListId", request.CueListId, "id", request.CueId)
+		p.Logger().Error("failed to publish cue deleted event", "error", err, "id", request.CueId)
 		return nil, err
 	}
 
@@ -207,7 +205,8 @@ func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueRes
 const CueAttributesUpdatedEventSubject = "event.cueing.cue.attributes.updated"
 
 type CueUpdatedEvent struct {
-	Cue types.Cue `msgpack:"cue" json:"cue"`
+	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	CueId     string `msgpack:"cueId" json:"cueId"`
 }
 
 // UpdateCueAttributes
@@ -215,10 +214,9 @@ type CueUpdatedEvent struct {
 const UpdateCueAttributesRequestSubject = "request.cueing.cue.attributes.update"
 
 type UpdateCueAttributesRequest struct {
-	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required"`
-	Value     interface{} `msgpack:"value" json:"value"`
+	CueId string      `msgpack:"cueId" json:"cueId" validate:"required"`
+	Field string      `msgpack:"field" json:"field" validate:"required"`
+	Value interface{} `msgpack:"value" json:"value"`
 }
 
 type UpdateCueAttributesResponse struct{}
@@ -236,7 +234,8 @@ func (p *Cueing) UpdateCueAttributes(sub string, request *UpdateCueAttributesReq
 	}
 
 	err = messaging.Publish(p.Messenger(), CueAttributesUpdatedEventSubject, &CueUpdatedEvent{
-		Cue: *cue,
+		CueListId: cue.CueListId,
+		CueId:     request.CueId,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue", "error", err)

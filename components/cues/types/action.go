@@ -13,7 +13,7 @@ import (
 type Action struct {
 	CueListId  string         `msgpack:"cueListId" json:"cueListId"`
 	CueId      string         `msgpack:"cueId" json:"cueId"`
-	Id         string         `msgpack:"id" json:"id"`
+	ActionId   string         `msgpack:"actionId" json:"actionId"`
 	Subject    string         `msgpack:"subject" json:"subject"`
 	Label      string         `msgpack:"label" json:"label"`
 	TemplateId string         `msgpack:"templateId" json:"templateId"`
@@ -23,7 +23,7 @@ type Action struct {
 
 func NewAction(cueListId string, cueId string) *Action {
 	return &Action{
-		Id:        uuid.NewString(),
+		ActionId:  uuid.NewString(),
 		CueListId: cueListId,
 		CueId:     cueId,
 	}

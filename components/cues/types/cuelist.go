@@ -6,7 +6,7 @@ package types
 
 type CueList struct {
 	CueListId   string `msgpack:"cueListId" json:"cueListId"`
-	Number      int    `msgpack:"number" json:"number"`
+	Number      uint   `msgpack:"number" json:"number"`
 	Label       string `msgpack:"label" json:"label"`
 	CueListType string `msgpack:"cueListType" json:"cueListType"`
 }

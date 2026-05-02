@@ -10,7 +10,11 @@ import (
 func WithWrite(db *memdb.MemDB, fn func(*memdb.Txn) error) error {
 	txn := db.Txn(true)
 	defer txn.Abort()
-	return fn(txn)
+	if err := fn(txn); err != nil {
+		return err
+	}
+	txn.Commit()
+	return nil
 }
 
 func DeleteItemFromTxn[T any](tx *memdb.Txn, table string, index string, key any) error {

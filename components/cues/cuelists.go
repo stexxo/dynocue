@@ -23,13 +23,13 @@ const CreateCueListRequestSubject = "request.cueing.cuelists.create"
 const CueListCreatedEventSubject = "event.cueing.cuelists.created"
 
 type CreateCueListRequest struct {
-	Number      int    `msgpack:"number" json:"number" validate:"gte=0"`
+	Number      uint   `msgpack:"number" json:"number" validate:"gte=0"`
 	CueListType string `msgpack:"cueListType" json:"cueListType" validate:"required,oneof=SEQUENTIAL"`
 }
 
 type CreateCueListResponse struct {
 	Id     string `msgpack:"id" json:"id"`
-	Number int    `msgpack:"number" json:"number"`
+	Number uint   `msgpack:"number" json:"number"`
 }
 
 type CueListCreatedEvent struct {
@@ -54,7 +54,7 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 				cl.Number = last.Number + 1
 			}
 		} else {
-			existing, err := txn.First("cuelist", "number", request.Number)
+			existing, err := txn.First(TableCueLists, IndexNumber, request.Number)
 			if err != nil {
 				return err
 			}
@@ -63,11 +63,10 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 			}
 		}
 
-		if err := txn.Insert("cuelist", cl); err != nil {
+		if err := txn.Insert(TableCueLists, &cl); err != nil {
 			return err
 		}
 
-		txn.Commit()
 		return nil
 	})
 	if err != nil {
@@ -97,12 +96,6 @@ type EnumerateCueListsResponse struct {
 	CueLists []types.CueList `msgpack:"cueLists" json:"cueLists"`
 }
 
-type CueListEnumeration struct {
-	Number      float64 `msgpack:"number" json:"number"`
-	Label       string  `msgpack:"label" json:"label"`
-	CueListType string  `msgpack:"cueListType" json:"cueListType"`
-}
-
 func (p *Cueing) EnumerateCueLists(sub string, request *EnumerateCueListsRequest) (*EnumerateCueListsResponse, error) {
 	out, err := db.GetAllDb[types.CueList](p.db, TableCueLists, IndexNumber)
 	if err != nil {
@@ -124,7 +117,7 @@ type GetCueListByNumberResponse struct {
 }
 
 func (p *Cueing) GetCueListByNumber(sub string, request *GetCueListByNumberRequest) (*GetCueListByNumberResponse, error) {
-	out, err := db.GetFirstDb[types.CueList](p.db, TableCueLists, "number", request.Number)
+	out, err := db.GetFirstDb[types.CueList](p.db, TableCueLists, IndexNumber, uint(request.Number))
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +175,7 @@ type CueListDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*DeleteCueListsResponse, error) {
-	err := db.DeleteItemFromDb[types.CueList](p.db, TableCueLists, "id", request.Id)
+	err := db.DeleteItemFromDb[types.CueList](p.db, TableCueLists, IndexCueListId, request.Id)
 	if err != nil {
 		return nil, err
 	}

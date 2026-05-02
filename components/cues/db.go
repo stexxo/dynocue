@@ -5,16 +5,17 @@ import (
 )
 
 const (
-	TableCueLists = "cuelists"
-	TableCues     = "cues"
-	TableActions  = "actions"
+	TableCueLists        = "cuelists"
+	TableCues            = "cues"
+	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
 
-	IndexCueListId = "cueListId"
-	IndexNumber    = "number"
-	IndexCueId     = "cueId"
-	IndexActionId  = "actionId"
-	IndexActionTemplateId = "actionTemplateId"
+	IndexCueListId        = "id"
+	IndexNumber           = "number"
+	IndexCueId            = "id"
+	IndexActionId         = "id"
+	IndexActionTemplateId = "id"
+	IndexCueIdKey         = "cueId"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -25,7 +26,7 @@ var persistentSchema = &memdb.DBSchema{
 				IndexCueListId: {
 					Name:    IndexCueListId,
 					Unique:  true,
-					Indexer: &memdb.StringFieldIndex{Field: "CueListId"},
+					Indexer: &memdb.UUIDFieldIndex{Field: "CueListId"},
 				},
 				IndexNumber: {
 					Name:    IndexNumber,
@@ -37,11 +38,6 @@ var persistentSchema = &memdb.DBSchema{
 		TableCues: {
 			Name: TableCues,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexCueListId: {
-					Name:    IndexCueListId,
-					Unique:  false,
-					Indexer: &memdb.UUIDFieldIndex{Field: "CueListId"},
-				},
 				IndexCueId: {
 					Name:    IndexCueId,
 					Unique:  true,
@@ -62,20 +58,15 @@ var persistentSchema = &memdb.DBSchema{
 		TableActions: {
 			Name: TableActions,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexCueListId: {
-					Name:    IndexCueListId,
-					Unique:  false,
-					Indexer: &memdb.UUIDFieldIndex{Field: "CueListId"},
-				},
-				IndexCueId: {
-					Name:    IndexCueId,
-					Unique:  false,
-					Indexer: &memdb.UUIDFieldIndex{Field: "CueId"},
-				},
 				IndexActionId: {
 					Name:    IndexActionId,
-					Unique:  false,
+					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "ActionId"},
+				},
+				IndexCueIdKey: {
+					Name:    IndexCueIdKey,
+					Unique:  false,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
 			},
 		},

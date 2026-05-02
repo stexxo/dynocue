@@ -24,7 +24,6 @@ const CreateActionRequestSubject = "request.cueing.actions.create"
 const ActionCreatedEventSubject = "event.cueing.actions.created"
 
 type CreateActionRequest struct {
-	CueListId  string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 	CueId      string `msgpack:"cueId" json:"cueId" validate:"required"`
 	TemplateId string `msgpack:"templateId" json:"templateId" validate:"required"`
 }
@@ -34,9 +33,7 @@ type CreateActionResponse struct {
 }
 
 type ActionCreatedEvent struct {
-	CueListId string       `msgpack:"cueListId" json:"cueListId"`
-	CueId     string       `msgpack:"cueId" json:"cueId"`
-	Action    types.Action `msgpack:"action" json:"action"`
+	Action types.Action `msgpack:"action" json:"action"`
 }
 
 func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*CreateActionResponse, error) {
@@ -45,7 +42,14 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 
-	action := template.NewAction(request.CueListId, request.CueId)
+	// We still need CueListId for the action struct itself.
+	// We might need to fetch the cue to get its CueListId if it's not provided in the request anymore.
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	if err != nil {
+		return nil, err
+	}
+
+	action := template.NewAction(cue.CueListId, request.CueId)
 
 	err = db.WithWrite(p.db, func(txn *memdb.Txn) error {
 		return txn.Insert(TableActions, action)
@@ -55,9 +59,7 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionCreatedEventSubject, &ActionCreatedEvent{
-		CueListId: request.CueListId,
-		CueId:     request.CueId,
-		Action:    *action,
+		Action: *action,
 	})
 	if err != nil {
 		p.Logger().Error("failed to publish action created event", "error", err)
@@ -72,8 +74,7 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 const EnumerateActionsRequestSubject = "request.cueing.actions.enumerate"
 
 type EnumerateActionsRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
+	CueId string `msgpack:"cueId" json:"cueId" validate:"required"`
 }
 
 type EnumerateActionsResponse struct {
@@ -81,7 +82,7 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueId, request.CueId)
+	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueIdKey, request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +95,7 @@ func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) 
 const GetActionByIdRequestSubject = "request.cueing.actions.get.id"
 
 type GetActionByIdRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
-	ActionId  string `msgpack:"actionId" json:"actionId" validate:"required"`
+	ActionId string `msgpack:"actionId" json:"actionId" validate:"required"`
 }
 
 type GetActionByIdResponse struct {
@@ -121,9 +120,7 @@ const DeleteActionRequestSubject = "request.cueing.actions.delete"
 const ActionDeletedEventSubject = "event.cueing.actions.deleted"
 
 type DeleteActionRequest struct {
-	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string `msgpack:"cueId" json:"cueId" validate:"required"`
-	ActionId  string `msgpack:"actionId" json:"actionId" validate:"required"`
+	ActionId string `msgpack:"actionId" json:"actionId" validate:"required"`
 }
 
 type DeleteActionResponse struct{}
@@ -135,14 +132,22 @@ type ActionDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*DeleteActionResponse, error) {
-	err := db.DeleteItemFromDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	if err != nil {
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
+		}
+		return nil, err
+	}
+
+	err = db.DeleteItemFromDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
 	if err != nil {
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionDeletedEventSubject, &ActionDeletedEvent{
-		CueListId: request.CueListId,
-		CueId:     request.CueId,
+		CueListId: action.CueListId,
+		CueId:     action.CueId,
 		ActionId:  request.ActionId,
 	})
 	if err != nil {
@@ -159,19 +164,17 @@ const UpdateActionRequestSubject = "request.cueing.actions.update"
 const ActionUpdatedEventSubject = "event.cueing.actions.updated"
 
 type UpdateActionRequest struct {
-	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
-	ActionId  string      `msgpack:"actionId" json:"actionId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=subject,ne=templateId,ne=fields"`
-	Value     interface{} `msgpack:"value" json:"value"`
+	ActionId string      `msgpack:"actionId" json:"actionId" validate:"required"`
+	Field    string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=subject,ne=templateId,ne=fields"`
+	Value    interface{} `msgpack:"value" json:"value"`
 }
 
 type UpdateActionResponse struct{}
 
 type ActionUpdatedEvent struct {
-	CueListId string       `msgpack:"cueListId" json:"cueListId"`
-	CueId     string       `msgpack:"cueId" json:"cueId"`
-	Action    types.Action `msgpack:"action" json:"action"`
+	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	CueId     string `msgpack:"cueId" json:"cueId"`
+	ActionId  string `msgpack:"actionId" json:"actionId"`
 }
 
 func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*UpdateActionResponse, error) {
@@ -181,16 +184,16 @@ func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*Update
 		return nil, err
 	}
 
-	cue, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
 	if err != nil {
 		p.Logger().Error("failed to get action for event", "error", err)
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
-		CueListId: request.CueListId,
-		CueId:     request.CueId,
-		Action:    *cue,
+		CueListId: action.CueListId,
+		CueId:     action.CueId,
+		ActionId:  request.ActionId,
 	})
 	if err != nil {
 		p.Logger().Error("failed to publish updated action", "error", err)
@@ -205,16 +208,12 @@ func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*Update
 const UpdateActionFieldRequestSubject = "request.cueing.actions.field.update"
 
 type UpdateActionFieldRequest struct {
-	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	CueId     string      `msgpack:"cueId" json:"cueId" validate:"required"`
 	ActionId  string      `msgpack:"actionId" json:"actionId" validate:"required"`
 	FieldName string      `msgpack:"fieldName" json:"fieldName" validate:"required"`
 	Value     interface{} `msgpack:"value" json:"value"`
 }
 
-type UpdateActionFieldResponse struct {
-	Action types.Action `msgpack:"action" json:"action"`
-}
+type UpdateActionFieldResponse struct{}
 
 func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest) (*UpdateActionFieldResponse, error) {
 	var action types.Action
@@ -248,14 +247,14 @@ func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
-		CueListId: request.CueListId,
-		CueId:     request.CueId,
-		Action:    action,
+		CueListId: action.CueListId,
+		CueId:     action.CueId,
+		ActionId:  request.ActionId,
 	})
 	if err != nil {
 		p.Logger().Error("failed to publish updated action", "error", err)
 		return nil, err
 	}
 
-	return &UpdateActionFieldResponse{Action: action}, nil
+	return &UpdateActionFieldResponse{}, nil
 }
