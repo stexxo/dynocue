@@ -11,6 +11,72 @@ import (
 	"strings"
 )
 
+// DeepCopyStruct creates a deep copy of a struct, including nested slices.
+func DeepCopyStruct[T any](input *T) *T {
+	if input == nil {
+		return nil
+	}
+
+	v := reflect.ValueOf(input)
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		// If not a struct, just return a copy of the value if possible,
+		// but this function is intended for structs.
+		res := *input
+		return &res
+	}
+
+	clone := reflect.New(v.Type()).Elem()
+	deepCopyValue(v, clone)
+
+	res := clone.Addr().Interface().(*T)
+	return res
+}
+
+func deepCopyValue(src, dst reflect.Value) {
+	switch src.Kind() {
+	case reflect.Slice:
+		if src.IsNil() {
+			return
+		}
+		dst.Set(reflect.MakeSlice(src.Type(), src.Len(), src.Cap()))
+		for i := 0; i < src.Len(); i++ {
+			deepCopyValue(src.Index(i), dst.Index(i))
+		}
+	case reflect.Struct:
+		for i := 0; i < src.NumField(); i++ {
+			if dst.Field(i).CanSet() {
+				deepCopyValue(src.Field(i), dst.Field(i))
+			}
+		}
+	case reflect.Ptr:
+		if src.IsNil() {
+			return
+		}
+		dst.Set(reflect.New(src.Type().Elem()))
+		deepCopyValue(src.Elem(), dst.Elem())
+	case reflect.Map:
+		if src.IsNil() {
+			return
+		}
+		dst.Set(reflect.MakeMap(src.Type()))
+		for _, key := range src.MapKeys() {
+			val := src.MapIndex(key)
+			newVal := reflect.New(val.Type()).Elem()
+			deepCopyValue(val, newVal)
+			dst.SetMapIndex(key, newVal)
+		}
+	default:
+		dst.Set(src)
+	}
+}
+
 // UpdateStructByTag updates a field in a struct identified by a tag value.
 // It supports pointers and pointers to pointers for the data argument.
 func UpdateStructByTag(tag string, tagValue string, value interface{}, data interface{}) error {

@@ -21,9 +21,10 @@ type Cueing struct {
 	*core.SubsystemCore
 	persistence *system.PersistenceManager
 
-	data   sync.RWMutex
-	db     *memdb.MemDB
-	engine *engine.TaskEngine
+	data      sync.RWMutex
+	db        *memdb.MemDB
+	runtimeDb *memdb.MemDB
+	engine    *engine.TaskEngine
 }
 
 func New(logger logging.Logger) *Cueing {
@@ -58,7 +59,6 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[GetCueListByNumberRequest, GetCueListByNumberResponse](p.Messenger(), true, GetCueListByNumberRequestSubject, p.GetCueListByNumber),
 		messaging.Reply[GetCueListByIdRequest, GetCueListByIdResponse](p.Messenger(), true, GetCueListByIdRequestSubject, p.GetCueListById),
 		messaging.Reply[UpdateCueListAttributesRequest, UpdateCueListAttributesResponse](p.Messenger(), true, UpdateCueListAttributesRequestSubject, p.UpdateCueListAttributes),
-		messaging.Reply[RenumberCueListsRequest, RenumberCueListsResponse](p.Messenger(), true, RenumberCueListRequestSubject, p.RenumberCueList),
 		messaging.Reply[DeleteCueListsRequest, DeleteCueListsResponse](p.Messenger(), true, DeleteCueListRequestSubject, p.DeleteCueList),
 
 		// Cues
@@ -67,7 +67,6 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[GetCueByNumberRequest, GetCueByNumberResponse](p.Messenger(), true, GetCueByNumberRequestSubject, p.GetCueByNumber),
 		messaging.Reply[GetCueByIdRequest, GetCueByIdResponse](p.Messenger(), true, GetCueByIdRequestSubject, p.GetCueById),
 		messaging.Reply[UpdateCueAttributesRequest, UpdateCueAttributesResponse](p.Messenger(), true, UpdateCueAttributesRequestSubject, p.UpdateCueAttributes),
-		messaging.Reply[RenumberCueRequest, RenumberCueResponse](p.Messenger(), true, RenumberCueRequestSubject, p.RenumberCue),
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
 
 		// Actions

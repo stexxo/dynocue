@@ -48,11 +48,11 @@ func (p *Cueing) CreateCueList(sub string, request *CreateCueListRequest) (*Crea
 			last, err := db.GetLastTxn[types.CueList](txn, TableCueLists, IndexNumber)
 			if errors.Is(err, db.ErrItemNotFound) {
 				cl.Number = 1
-			}
-			if err != nil {
+			} else if err != nil {
 				return err
+			} else {
+				cl.Number = last.Number + 1
 			}
-			cl.Number = last.Number + 1
 		} else {
 			existing, err := txn.First("cuelist", "number", request.Number)
 			if err != nil {

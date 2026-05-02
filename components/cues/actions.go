@@ -5,11 +5,13 @@
 package cues
 
 import (
+	"errors"
 	"fmt"
-	"slices"
 
+	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/db"
 	"github.com/stexxo/dynocue/util"
 )
 
@@ -38,19 +40,19 @@ type ActionCreatedEvent struct {
 }
 
 func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*CreateActionResponse, error) {
-	cue, err := p.getCueById(request.CueListId, request.CueId)
+	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId, request.TemplateId)
 	if err != nil {
-		return nil, err
-	}
-
-	template := p.actionTemplates.GetTemplateById(request.TemplateId)
-	if template == nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 
-	action := types.NewActionByTemplate(request.CueListId, request.CueId, template)
+	action := template.NewAction(request.CueListId, request.CueId)
 
-	cue.Actions = append(cue.Actions, *action)
+	err = db.WithWrite(p.db, func(txn *memdb.Txn) error {
+		return txn.Insert(TableActions, action)
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	err = messaging.Publish(p.Messenger(), ActionCreatedEventSubject, &ActionCreatedEvent{
 		CueListId: request.CueListId,
@@ -79,12 +81,12 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	cue, err := p.getCueById(request.CueListId, request.CueId)
+	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
 
-	return &EnumerateActionsResponse{Actions: cue.Actions}, nil
+	return &EnumerateActionsResponse{Actions: out}, nil
 }
 
 // GetActionById
@@ -102,28 +104,15 @@ type GetActionByIdResponse struct {
 }
 
 func (p *Cueing) GetActionById(sub string, request *GetActionByIdRequest) (*GetActionByIdResponse, error) {
-	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
 	if err != nil {
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
+		}
 		return nil, err
 	}
 
 	return &GetActionByIdResponse{Action: *action}, nil
-}
-
-func (p *Cueing) getActionById(cueListId string, cueId string, actionId string) (*types.Action, error) {
-	cue, err := p.getCueById(cueListId, cueId)
-	if err != nil {
-		return nil, err
-	}
-
-	actionIdx := slices.IndexFunc(cue.Actions, func(a types.Action) bool {
-		return a.Id == actionId
-	})
-	if actionIdx == -1 {
-		return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
-	}
-
-	return &cue.Actions[actionIdx], nil
 }
 
 // DeleteAction
@@ -146,18 +135,18 @@ type ActionDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*DeleteActionResponse, error) {
-	cue, _ := p.getCueById(request.CueListId, request.CueId)
+	err := db.DeleteItemFromDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	if err != nil {
+		return nil, err
+	}
 
-	slices.DeleteFunc(cue.Actions, func(a types.Action) bool {
-		return a.Id == request.ActionId
-	})
-
-	err := messaging.Publish(p.Messenger(), ActionDeletedEventSubject, &ActionDeletedEvent{
+	err = messaging.Publish(p.Messenger(), ActionDeletedEventSubject, &ActionDeletedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
 		ActionId:  request.ActionId,
 	})
 	if err != nil {
+		p.Logger().Error("failed to publish action deleted event", "error", err, "actionId", request.ActionId)
 		return nil, err
 	}
 
@@ -177,9 +166,7 @@ type UpdateActionRequest struct {
 	Value     interface{} `msgpack:"value" json:"value"`
 }
 
-type UpdateActionResponse struct {
-	Action types.Action `msgpack:"action" json:"action"`
-}
+type UpdateActionResponse struct{}
 
 type ActionUpdatedEvent struct {
 	CueListId string       `msgpack:"cueListId" json:"cueListId"`
@@ -188,26 +175,29 @@ type ActionUpdatedEvent struct {
 }
 
 func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*UpdateActionResponse, error) {
-	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
+	err := db.UpdateStructInDb(p.db, TableActions, IndexActionId, request.ActionId, request.Field, request.Value)
 	if err != nil {
+		p.Logger().Error("failed to update field in action", "error", err)
 		return nil, err
 	}
 
-	err = util.UpdateStructByTag("json", request.Field, request.Value, action)
+	cue, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
 	if err != nil {
+		p.Logger().Error("failed to get action for event", "error", err)
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
-		Action:    *action,
+		Action:    *cue,
 	})
 	if err != nil {
+		p.Logger().Error("failed to publish updated action", "error", err)
 		return nil, err
 	}
 
-	return &UpdateActionResponse{Action: *action}, nil
+	return &UpdateActionResponse{}, nil
 }
 
 // UpdateActionField
@@ -227,32 +217,45 @@ type UpdateActionFieldResponse struct {
 }
 
 func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest) (*UpdateActionFieldResponse, error) {
-	action, err := p.getActionById(request.CueListId, request.CueId, request.ActionId)
-	if err != nil {
-		return nil, err
-	}
-
-	foundField := false
-	for i := range action.Fields {
-		if action.Fields[i].FieldName == request.FieldName {
-			action.Fields[i].Value = request.Value
-			foundField = true
-			break
+	var action types.Action
+	err := db.WithWrite(p.db, func(txn *memdb.Txn) error {
+		original, err := db.GetFirstTxn[types.Action](txn, TableActions, IndexActionId, request.ActionId)
+		if err != nil {
+			return err
 		}
-	}
 
-	if !foundField {
-		return nil, fmt.Errorf("field %s not found in action %s", request.FieldName, request.ActionId)
+		// Deep copy of the top level struct and nested slices
+		action = *util.DeepCopyStruct(original)
+
+		foundField := false
+		for i := range action.Fields {
+			if action.Fields[i].FieldName == request.FieldName {
+				action.Fields[i].Value = request.Value
+				foundField = true
+				break
+			}
+		}
+
+		if !foundField {
+			return fmt.Errorf("field %s not found in action %s", request.FieldName, request.ActionId)
+		}
+
+		return txn.Insert(TableActions, &action)
+	})
+	if err != nil {
+		p.Logger().Error("failed to update action field", "error", err)
+		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), ActionUpdatedEventSubject, &ActionUpdatedEvent{
 		CueListId: request.CueListId,
 		CueId:     request.CueId,
-		Action:    *action,
+		Action:    action,
 	})
 	if err != nil {
+		p.Logger().Error("failed to publish updated action", "error", err)
 		return nil, err
 	}
 
-	return &UpdateActionFieldResponse{Action: *action}, nil
+	return &UpdateActionFieldResponse{Action: action}, nil
 }

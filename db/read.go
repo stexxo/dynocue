@@ -14,8 +14,8 @@ func WithRead[T any](db *memdb.MemDB, fn func(txn *memdb.Txn) (T, error)) (T, er
 	return fn(txn)
 }
 
-func GetLastTxn[T any](txn *memdb.Txn, table string, index string) (*T, error) {
-	it, err := txn.Last(table, index)
+func GetLastTxn[T any](txn *memdb.Txn, table string, index string, key ...any) (*T, error) {
+	it, err := txn.Last(table, index, key...)
 	if err != nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func GetLastTxn[T any](txn *memdb.Txn, table string, index string) (*T, error) {
 	return cl, nil
 }
 
-func GetAllTxn[T any](txn *memdb.Txn, table string, index string) ([]T, error) {
-	it, err := txn.Get(table, index)
+func GetAllTxn[T any](txn *memdb.Txn, table string, index string, key ...any) ([]T, error) {
+	it, err := txn.Get(table, index, key...)
 	if err != nil {
 		return nil, err
 	}
@@ -39,14 +39,14 @@ func GetAllTxn[T any](txn *memdb.Txn, table string, index string) ([]T, error) {
 	return results, nil
 }
 
-func GetAllDb[T any](db *memdb.MemDB, table string, index string) ([]T, error) {
+func GetAllDb[T any](db *memdb.MemDB, table string, index string, key ...any) ([]T, error) {
 	return WithRead[[]T](db, func(txn *memdb.Txn) ([]T, error) {
-		return GetAllTxn[T](txn, table, index)
+		return GetAllTxn[T](txn, table, index, key...)
 	})
 }
 
-func GetFirstTxn[T any](txn *memdb.Txn, table string, index string, key any) (*T, error) {
-	it, err := txn.First(table, index, key)
+func GetFirstTxn[T any](txn *memdb.Txn, table string, index string, key ...any) (*T, error) {
+	it, err := txn.First(table, index, key...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +57,8 @@ func GetFirstTxn[T any](txn *memdb.Txn, table string, index string, key any) (*T
 	return obj, nil
 }
 
-func GetFirstDb[T any](db *memdb.MemDB, table string, index string, key any) (*T, error) {
+func GetFirstDb[T any](db *memdb.MemDB, table string, index string, key ...any) (*T, error) {
 	return WithRead[*T](db, func(txn *memdb.Txn) (*T, error) {
-		return GetFirstTxn[T](txn, table, index, key)
+		return GetFirstTxn[T](txn, table, index, key...)
 	})
 }

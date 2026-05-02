@@ -6,8 +6,10 @@ package cues
 
 import (
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/db"
 )
 
 const ActionTemplateNotFound = "Action template not found."
@@ -31,8 +33,20 @@ type RegisterActionTemplateEvent struct {
 }
 
 func (p *Cueing) RegisterActionType(sub string, req *RegisterActionTemplateRequest) (*RegisterActionTemplateResponse, error) {
-	p.actionTemplates.AddTemplate(types.ActionTemplate{Id: req.Id, TemplateName: req.Name, Subject: req.Subject, Fields: req.Fields, SubsystemName: req.SubsystemName})
-	err := messaging.Publish(p.Messenger(), RegisterActionTemplateEventSubject, &RegisterActionTemplateEvent{Id: uuid.NewString(), Name: req.Name})
+	err := db.WithWrite(p.runtimeDb, func(txn *memdb.Txn) error {
+		return txn.Insert(TableActionTemplates, &types.ActionTemplate{
+			Id:            req.Id,
+			TemplateName:  req.Name,
+			Subject:       req.Subject,
+			Fields:        req.Fields,
+			SubsystemName: req.SubsystemName,
+		})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = messaging.Publish(p.Messenger(), RegisterActionTemplateEventSubject, &RegisterActionTemplateEvent{Id: uuid.NewString(), Name: req.Name})
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +61,11 @@ type EnumerateActionTemplatesResponse struct {
 }
 
 func (p *Cueing) EnumerateActionTemplates(sub string, req *EnumerateActionTemplatesRequest) (*EnumerateActionTemplatesResponse, error) {
-	out := p.actionTemplates.GetTemplates()
-	return &EnumerateActionTemplatesResponse{out}, nil
+	out, err := db.GetAllDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId)
+	if err != nil {
+		return nil, err
+	}
+	return &EnumerateActionTemplatesResponse{ActionTemplates: out}, nil
 }
 
 const GetActionTemplateRequestSubject = "request.cueing.actions.templates.get"
@@ -61,8 +78,8 @@ type GetActionTemplateResponse struct {
 }
 
 func (p *Cueing) GetActionTemplate(sub string, req *GetActionTemplateRequest) (*GetActionTemplateResponse, error) {
-	template := p.actionTemplates.GetTemplateById(req.Id)
-	if template == nil {
+	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId, req.Id)
+	if err != nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 

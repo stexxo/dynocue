@@ -8,11 +8,13 @@ const (
 	TableCueLists = "cuelists"
 	TableCues     = "cues"
 	TableActions  = "actions"
+	TableActionTemplates = "actiontemplates"
 
 	IndexCueListId = "cueListId"
 	IndexNumber    = "number"
 	IndexCueId     = "cueId"
 	IndexActionId  = "actionId"
+	IndexActionTemplateId = "actionTemplateId"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -46,9 +48,14 @@ var persistentSchema = &memdb.DBSchema{
 					Indexer: &memdb.UUIDFieldIndex{Field: "CueId"},
 				},
 				IndexNumber: {
-					Name:    IndexNumber,
-					Unique:  true,
-					Indexer: &memdb.UintFieldIndex{Field: "Number"},
+					Name:   IndexNumber,
+					Unique: true,
+					Indexer: &memdb.CompoundIndex{
+						Indexes: []memdb.Indexer{
+							&memdb.StringFieldIndex{Field: "CueListId"},
+							&memdb.UintFieldIndex{Field: "Number"},
+						},
+					},
 				},
 			},
 		},
@@ -75,11 +82,33 @@ var persistentSchema = &memdb.DBSchema{
 	},
 }
 
+var volatileSchema = &memdb.DBSchema{
+	Tables: map[string]*memdb.TableSchema{
+		TableActionTemplates: {
+			Name: TableActionTemplates,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexActionTemplateId: {
+					Name:    IndexActionTemplateId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "Id"},
+				},
+			},
+		},
+	},
+}
+
 func (p *Cueing) initiateDatabase() error {
-	db, err := memdb.NewMemDB(persistentSchema)
+	pdb, err := memdb.NewMemDB(persistentSchema)
 	if err != nil {
 		return err
 	}
-	p.db = db
+	p.db = pdb
+
+	rdb, err := memdb.NewMemDB(volatileSchema)
+	if err != nil {
+		return err
+	}
+	p.runtimeDb = rdb
+
 	return nil
 }

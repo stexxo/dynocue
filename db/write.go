@@ -41,7 +41,15 @@ func UpdateStructInDb(db *memdb.MemDB, table, index string, key any, field strin
 		if err != nil {
 			return err
 		}
-		return util.UpdateStructByTag("json", field, value, item)
+
+		// Deep copy of the item to avoid modifying the one in the database
+		clone := util.DeepCopyStruct(item)
+		err = util.UpdateStructByTag("json", field, value, clone)
+		if err != nil {
+			return err
+		}
+
+		return txn.Insert(table, clone)
 	})
 	return err
 }

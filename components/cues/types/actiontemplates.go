@@ -4,33 +4,6 @@
 
 package types
 
-type ActionTemplateStore struct {
-	ActionTemplatesList ActionTemplateList `msgpack:"actionTemplatesList"`
-}
-
-type ActionTemplateList struct {
-	Templates []ActionTemplate
-}
-
-func (p *ActionTemplateList) AddTemplate(template ActionTemplate) {
-	p.Templates = append(p.Templates, template)
-}
-
-func (p *ActionTemplateList) GetTemplates() []ActionTemplate {
-	out := make([]ActionTemplate, len(p.Templates))
-	copy(out, p.Templates)
-	return out
-}
-
-func (p *ActionTemplateList) GetTemplateById(id string) *ActionTemplate {
-	for _, template := range p.Templates {
-		if template.Id == id {
-			return &template
-		}
-	}
-	return nil
-}
-
 type ActionTemplate struct {
 	Id            string                `msgpack:"id" json:"id"`
 	TemplateName  string                `msgpack:"templateName" json:"templateName"`
@@ -56,8 +29,4 @@ type ActionTemplateField struct {
 	FieldLabel   string      `msgpack:"fieldLabel" json:"fieldLabel"`
 	DataType     string      `msgpack:"dataType" json:"dataType"` // string, float, int, bool, time
 	DefaultValue interface{} `msgpack:"defaultValue" json:"defaultValue"`
-}
-
-func NewActionTemplatesModel() *ActionTemplateStore {
-	return &ActionTemplateStore{}
 }
