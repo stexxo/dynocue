@@ -69,7 +69,7 @@ func (e *ExecuteCueTask) Execute(t time.Duration) bool {
 	}
 
 	if e.executionStage == CueExecutionStageDelayed {
-		if e.timeElapsedInStage > e.cue.Metadata.Delay {
+		if e.timeElapsedInStage > e.cue.Attributes.Delay {
 			e.executionStage = CueExecutionStageActionStart
 		}
 	}
@@ -96,11 +96,11 @@ func (e *ExecuteCueTask) Execute(t time.Duration) bool {
 	}
 
 	if e.executionStage == CueExecutionStageFollow {
-		if e.cue.Metadata.Follow == 0 {
+		if e.cue.Attributes.Follow == 0 {
 			e.executionStage = CueExecutionStageComplete
 		}
 
-		if e.timeElapsedInStage > e.cue.Metadata.Follow {
+		if e.timeElapsedInStage > e.cue.Attributes.Follow {
 			nextCue := e.cueList.Cues.GetNextByNumber(e.cue.Num())
 			if nextCue != nil {
 				task := NewExecuteCueTask(*nextCue, e.messenger, e.logger, e.engine)
@@ -111,8 +111,8 @@ func (e *ExecuteCueTask) Execute(t time.Duration) bool {
 	}
 
 	err := messaging.Publish(e.messenger, CueExecutionStatusEventSubject, CueExecutionStatusEvent{
-		CueListId:      e.cue.Metadata.CueListId,
-		CueId:          e.cue.Metadata.CueId,
+		CueListId:      e.cue.Attributes.CueListId,
+		CueId:          e.cue.Attributes.CueId,
 		Stage:          e.executionStage,
 		ElapsedInStage: e.timeElapsedInStage,
 		TotalElapsed:   e.totalElapsed,

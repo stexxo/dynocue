@@ -72,7 +72,7 @@
 								inputType="text"
 								value={list.label}
 								onSaveEdit={(v) => {
-									cuesStore.updateCueMetadata(list.cueListId, list.cueId, 'label', v);
+									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'label', v);
 								}}
 								tdClass="min-w-100 max-w-200"
 							/>
@@ -80,14 +80,14 @@
 								tdClass="w-100"
 								value={list.delay}
 								onSaveEdit={(v) => {
-									cuesStore.updateCueMetadata(list.cueListId, list.cueId, 'delay', v);
+									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'delay', v);
 								}}
 							/>
 							<EditableTimeData
 								tdClass="w-100"
 								value={list.follow}
 								onSaveEdit={(v) => {
-									cuesStore.updateCueMetadata(list.cueListId, list.cueId, 'follow', v);
+									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'follow', v);
 								}}
 							/>
 							<td class="flex flex-row justify-end gap-1">

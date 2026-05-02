@@ -71,7 +71,7 @@
 								inputType="text"
 								value={list.label}
 								onSaveEdit={(v) => {
-									cuelistsStore.setMetadataField(list.id, 'label', v);
+									cuelistsStore.setAttributesField(list.id, 'label', v);
 								}}
 								tdClass="max-w-200"
 							/>

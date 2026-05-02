@@ -5,11 +5,11 @@
 import {
 	EnumerateCues,
 	CreateCue,
-	UpdateCueMetadata,
+	UpdateCueAttributes,
 	DeleteCue,
 	RenumberCue
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuesservice';
-import { CueMetadata } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { CueAttributes } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 import { cuelistsStore } from './cuelistsStore.svelte';
 
@@ -17,7 +17,7 @@ import { cuelistsStore } from './cuelistsStore.svelte';
  * Store for managing cues within cue lists.
  */
 class CuesStore {
-	#cues = $state<Map<string, CueMetadata[]>>(new Map());
+	#cues = $state<Map<string, CueAttributes[]>>(new Map());
 
 	constructor() {
 		$effect.root(() => {
@@ -39,11 +39,11 @@ class CuesStore {
 		});
 
 		Events.On('event.cueing.cue.created', (ev: any) => {
-			const event = ev.data as CueMetadata;
+			const event = ev.data as CueAttributes;
 			this.load(event.cueListId);
 		});
-		Events.On('event.cueing.cue.metadata.updated', (ev: any) => {
-			const event = ev.data as CueMetadata;
+		Events.On('event.cueing.cue.attributes.updated', (ev: any) => {
+			const event = ev.data as CueAttributes;
 			this.load(event.cueListId);
 		});
 		Events.On('event.cueing.cue.deleted', (ev: any) => {
@@ -59,7 +59,7 @@ class CuesStore {
 		});
 	}
 
-	get cues(): Map<string, CueMetadata[]> {
+	get cues(): Map<string, CueAttributes[]> {
 		return this.#cues;
 	}
 
@@ -79,10 +79,10 @@ class CuesStore {
 		}
 	}
 
-	async updateCueMetadata(cueListId: string, cueId: string, field: string, value: any) {
-		const ok = await UpdateCueMetadata(cueListId, cueId, field, value);
+	async updateCueAttributes(cueListId: string, cueId: string, field: string, value: any) {
+		const ok = await UpdateCueAttributes(cueListId, cueId, field, value);
 		if (!ok) {
-			console.error('Failed to set cue metadata');
+			console.error('Failed to set cue attributes');
 		}
 	}
 

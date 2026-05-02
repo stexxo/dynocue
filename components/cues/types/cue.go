@@ -6,27 +6,9 @@ package types
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Cue struct {
-	Metadata CueMetadata `msgpack:"metadata" json:"metadata"`
-	Actions  []Action    `msgpack:"actions" json:"actions"`
-}
-
-func NewCue(cueListId string, number float64) *Cue {
-	return &Cue{
-		Metadata: CueMetadata{
-			CueListId: cueListId,
-			CueId:     uuid.NewString(),
-			Number:    number,
-		},
-		Actions: make([]Action, 0),
-	}
-}
-
-type CueMetadata struct {
 	CueListId   string        `msgpack:"cueListId" json:"cueListId"`
 	CueId       string        `msgpack:"cueId" json:"cueId"`
 	Number      float64       `msgpack:"number" json:"number"`
@@ -34,12 +16,4 @@ type CueMetadata struct {
 	Description string        `msgpack:"description" json:"description"`
 	Delay       time.Duration `msgpack:"delay" json:"delay"`
 	Follow      time.Duration `msgpack:"follow" json:"follow"`
-}
-
-func (c *Cue) Num() float64 {
-	return c.Metadata.Number
-}
-
-func (c *Cue) SetNum(n float64) {
-	c.Metadata.Number = n
 }

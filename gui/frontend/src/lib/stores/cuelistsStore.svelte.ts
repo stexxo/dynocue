@@ -5,25 +5,25 @@
 import {
 	EnumerateCueLists,
 	CreateCueList,
-	UpdateCueListMetadataField,
+	UpdateCueListAttributesField,
 	DeleteCueList,
 	RenumberCueList
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice';
-import { CueListMetadata } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { CueListAttributes } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 
 /**
  * Store for managing cue lists.
  */
 class CuelistsStore {
-	#cuelists = $state<CueListMetadata[]>([]);
+	#cuelists = $state<CueListAttributes[]>([]);
 
 	constructor() {
 		this.load();
 		Events.On('event.cueing.cuelists.created', () => {
 			this.load();
 		});
-		Events.On('event.cueing.cuelists.metadata.updated', () => {
+		Events.On('event.cueing.cuelists.attributes.updated', () => {
 			this.load();
 		});
 		Events.On('event.cueing.cuelists.deleted', () => {
@@ -41,7 +41,7 @@ class CuelistsStore {
 		return this.#cuelists;
 	}
 
-	cueList(id: string): CueListMetadata | undefined {
+	cueList(id: string): CueListAttributes | undefined {
 		return this.#cuelists.find((list) => list.id === id);
 	}
 
@@ -59,10 +59,10 @@ class CuelistsStore {
 		}
 	}
 
-	async setMetadataField(id: string, field: string, value: any) {
-		const ok = await UpdateCueListMetadataField(id, field, value);
+	async setAttributesField(id: string, field: string, value: any) {
+		const ok = await UpdateCueListAttributesField(id, field, value);
 		if (!ok) {
-			console.error('Failed to set cue list metadata field');
+			console.error('Failed to set cue list attributes field');
 		}
 	}
 

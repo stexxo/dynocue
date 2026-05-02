@@ -31,8 +31,8 @@ func NewCueListsService(manager *client.Manager, app *application.App, logger lo
 
 func (c *CueListsService) onNewClient(cl *client.Client) error {
 	return errors.Join(
-		cl.OnCueListCreated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
-		cl.OnCueListMetadataUpdated(func(s string, t *types.CueListMetadata) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListCreated(func(s string, t *types.CueListAttributes) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListAttributesUpdated(func(s string, t *types.CueListAttributes) { c.app.Event.Emit(s, t) }),
 		cl.OnCueListRenumber(func(s string, r *client.RenumberEvent) { c.app.Event.Emit(s, r) }),
 		cl.OnCueListDeleted(func(s string, id *string) { c.app.Event.Emit(s, *id) }),
 	)
@@ -52,8 +52,8 @@ func (c *CueListsService) CreateCueList(num float64, cueListType string) bool {
 	return true
 }
 
-func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, bool) {
-	var out *types.CueListMetadata
+func (c *CueListsService) GetCueList(num float64) (*types.CueListAttributes, bool) {
+	var out *types.CueListAttributes
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.GetCueListByNumber(num)
 		if err != nil {
@@ -70,8 +70,8 @@ func (c *CueListsService) GetCueList(num float64) (*types.CueListMetadata, bool)
 	return out, true
 }
 
-func (c *CueListsService) EnumerateCueLists() ([]types.CueListMetadata, bool) {
-	var out []types.CueListMetadata
+func (c *CueListsService) EnumerateCueLists() ([]types.CueListAttributes, bool) {
+	var out []types.CueListAttributes
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.EnumerateCueLists()
 		if err != nil {
@@ -89,13 +89,13 @@ func (c *CueListsService) EnumerateCueLists() ([]types.CueListMetadata, bool) {
 	return out, true
 }
 
-func (c *CueListsService) UpdateCueListMetadataField(id, field string, value interface{}) bool {
+func (c *CueListsService) UpdateCueListAttributesField(id, field string, value interface{}) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		_, err := c.UpdateCueListField(id, field, value)
 		return err
 	})
 	if err != nil {
-		c.logger.Error("failed to set cue list metadata field", "err", err)
+		c.logger.Error("failed to set cue list attributes field", "err", err)
 		return false
 	}
 

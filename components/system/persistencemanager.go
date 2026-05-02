@@ -5,9 +5,8 @@
 package system
 
 import (
-	"compress/gzip"
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +15,6 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
-	"golang.org/x/sync/errgroup"
 )
 
 type PersistenceManager struct {
@@ -58,62 +56,25 @@ func (pm *PersistenceManager) ObjectStore() jetstream.ObjectStore {
 	return pm.objectStore
 }
 
-func (pm *PersistenceManager) WriteToObjectStore(key string, data interface{}) error {
+func (pm *PersistenceManager) WriteToObjectStore(key string, reader io.Reader) error {
 	pm.logger.Info("writing data to store", "key", key, "subsystem", pm.name)
-
-	read, write := io.Pipe()
-
-	execgroup := errgroup.Group{}
-
-	execgroup.Go(func() error {
-		defer func() {
-			if err := write.Close(); err != nil {
-				pm.logger.Error("failed to close pipe writer", "err", err)
-			}
-		}()
-
-		w := gzip.NewWriter(write)
-		defer func() {
-			if err := w.Close(); err != nil {
-				pm.logger.Error("failed to close gzip writer", "err", err)
-			}
-		}()
-
-		err := json.NewEncoder(w).Encode(data)
-		if err != nil {
-			pm.logger.Error("failed to encode model to gzip writer", "err", err)
-			return err
-		}
-
-		return nil
-	})
-
-	execgroup.Go(func() error {
-		_, err := pm.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: fmt.Sprintf("%s/%s", pm.name, key)}, read)
-		if err != nil {
-			pm.logger.Error("failed to write object to store", "err", err)
-		}
-		return nil
-	})
-
-	err := execgroup.Wait()
+	_, err := pm.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: fmt.Sprintf("%s/%s", pm.name, key)}, reader)
 	if err != nil {
+		pm.logger.Error("failed to write object to store", "err", err)
 		return err
 	}
-
 	return nil
 }
 
-func (pm *PersistenceManager) ReadFromObjectStore(key string, out interface{}) error {
+func (pm *PersistenceManager) ReadFromObjectStore(key string) (*bytes.Buffer, error) {
 	pm.logger.Info("reading data from store", "key", key, "subsystem", pm.name)
 
 	res, err := pm.objectStore.Get(context.Background(), fmt.Sprintf("%s/%s", pm.name, key))
 	if errors.Is(err, jetstream.ErrObjectNotFound) { // nothing to load
-		return nil
+		return nil, err
 	}
-
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
@@ -121,20 +82,11 @@ func (pm *PersistenceManager) ReadFromObjectStore(key string, out interface{}) e
 		}
 	}()
 
-	readGzip, err := gzip.NewReader(res)
+	buf := &bytes.Buffer{}
+	_, err = io.Copy(buf, res)
 	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := readGzip.Close(); err != nil {
-			pm.logger.Error("failed to close gzip reader", "err", err)
-		}
-	}()
-
-	err = json.NewDecoder(readGzip).Decode(out)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return buf, nil
 }

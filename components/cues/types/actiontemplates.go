@@ -1,0 +1,63 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+package types
+
+type ActionTemplateStore struct {
+	ActionTemplatesList ActionTemplateList `msgpack:"actionTemplatesList"`
+}
+
+type ActionTemplateList struct {
+	Templates []ActionTemplate
+}
+
+func (p *ActionTemplateList) AddTemplate(template ActionTemplate) {
+	p.Templates = append(p.Templates, template)
+}
+
+func (p *ActionTemplateList) GetTemplates() []ActionTemplate {
+	out := make([]ActionTemplate, len(p.Templates))
+	copy(out, p.Templates)
+	return out
+}
+
+func (p *ActionTemplateList) GetTemplateById(id string) *ActionTemplate {
+	for _, template := range p.Templates {
+		if template.Id == id {
+			return &template
+		}
+	}
+	return nil
+}
+
+type ActionTemplate struct {
+	Id            string                `msgpack:"id" json:"id"`
+	TemplateName  string                `msgpack:"templateName" json:"templateName"`
+	SubsystemName string                `msgpack:"subsystemName" json:"subsystemName"`
+	Subject       string                `msgpack:"subject" json:"subject"`
+	Fields        []ActionTemplateField `msgpack:"fields" json:"fields"`
+}
+
+func (a *ActionTemplate) NewAction(cueListId string, cueId string) *Action {
+	action := NewAction(cueListId, cueId)
+	action.TemplateId = a.Id
+	action.Subject = a.Subject
+
+	for _, f := range a.Fields {
+		action.Fields = append(action.Fields, ActionFields{FieldName: f.FieldName, FieldLabel: f.FieldLabel, DataType: f.DataType, Value: f.DefaultValue})
+	}
+
+	return action
+}
+
+type ActionTemplateField struct {
+	FieldName    string      `msgpack:"fieldName" json:"fieldName"`
+	FieldLabel   string      `msgpack:"fieldLabel" json:"fieldLabel"`
+	DataType     string      `msgpack:"dataType" json:"dataType"` // string, float, int, bool, time
+	DefaultValue interface{} `msgpack:"defaultValue" json:"defaultValue"`
+}
+
+func NewActionTemplatesModel() *ActionTemplateStore {
+	return &ActionTemplateStore{}
+}

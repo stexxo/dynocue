@@ -99,7 +99,7 @@
 						label="Label"
 						value={cue.label}
 						onSave={(v) => {
-							if (cue) cuesStore.updateCueMetadata(cue.cueListId, cue.cueId, 'label', v);
+							if (cue) cuesStore.updateCueAttributes(cue.cueListId, cue.cueId, 'label', v);
 						}}
 					/>
 
@@ -107,12 +107,12 @@
 						<EditableTimeInput
 							label="Delay"
 							value={cue.delay}
-							onSave={(v) => cuesStore.updateCueMetadata(cue.cueListId, cue.cueId, 'delay', v)}
+							onSave={(v) => cuesStore.updateCueAttributes(cue.cueListId, cue.cueId, 'delay', v)}
 						/>
 						<EditableTimeInput
 							label="Follow"
 							value={cue.follow}
-							onSave={(v) => cuesStore.updateCueMetadata(cue.cueListId, cue.cueId, 'follow', v)}
+							onSave={(v) => cuesStore.updateCueAttributes(cue.cueListId, cue.cueId, 'follow', v)}
 						/>
 					</div>
 
@@ -123,7 +123,7 @@
 							inputClass="h-24"
 							value={cue.description}
 							onSave={(v) => {
-								if (cue) cuesStore.updateCueMetadata(cue.cueListId, cue.cueId, 'description', v);
+								if (cue) cuesStore.updateCueAttributes(cue.cueListId, cue.cueId, 'description', v);
 							}}
 						/>
 					</div>

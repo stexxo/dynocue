@@ -6,12 +6,14 @@ package cues
 
 import (
 	"errors"
+	"sync"
 
-	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/db"
 	"github.com/stexxo/dynocue/engine"
 )
 
@@ -19,22 +21,25 @@ type Cueing struct {
 	*core.SubsystemCore
 	persistence *system.PersistenceManager
 
-	model           *types.CueingModel
-	actionTemplates *types.ActionTemplatesModel
-	engine          *engine.TaskEngine
+	data   sync.RWMutex
+	db     *memdb.MemDB
+	engine *engine.TaskEngine
 }
 
 func New(logger logging.Logger) *Cueing {
 	p := &Cueing{
 		engine: engine.NewEngine(60),
 	}
-	p.model = types.NewCueingModel()
 	p.SubsystemCore = core.NewSubsystemCore("cueing", logger, p.onStart)
-	p.actionTemplates = types.NewActionTemplatesModel()
 	return p
 }
 
 func (p *Cueing) onStart() error {
+	err := p.initiateDatabase()
+	if err != nil {
+		return err
+	}
+
 	pm, err := system.RegisterWithPersistence(p.Messenger(), p.Logger(), p.Name(), SaveRequestSubject, LoadRequestSubject)
 	if err != nil {
 		return err
@@ -52,7 +57,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](p.Messenger(), true, EnumerateCueListsRequestSubject, p.EnumerateCueLists),
 		messaging.Reply[GetCueListByNumberRequest, GetCueListByNumberResponse](p.Messenger(), true, GetCueListByNumberRequestSubject, p.GetCueListByNumber),
 		messaging.Reply[GetCueListByIdRequest, GetCueListByIdResponse](p.Messenger(), true, GetCueListByIdRequestSubject, p.GetCueListById),
-		messaging.Reply[UpdateCueListMetadataRequest, UpdateCueListMetadataResponse](p.Messenger(), true, UpdateCueListMetadataRequestSubject, p.UpdateCueListMetadata),
+		messaging.Reply[UpdateCueListAttributesRequest, UpdateCueListAttributesResponse](p.Messenger(), true, UpdateCueListAttributesRequestSubject, p.UpdateCueListAttributes),
 		messaging.Reply[RenumberCueListsRequest, RenumberCueListsResponse](p.Messenger(), true, RenumberCueListRequestSubject, p.RenumberCueList),
 		messaging.Reply[DeleteCueListsRequest, DeleteCueListsResponse](p.Messenger(), true, DeleteCueListRequestSubject, p.DeleteCueList),
 
@@ -61,7 +66,7 @@ func (p *Cueing) onStart() error {
 		messaging.Reply[EnumerateCuesRequest, EnumerateCuesResponse](p.Messenger(), true, EnumerateCuesRequestSubject, p.EnumerateCues),
 		messaging.Reply[GetCueByNumberRequest, GetCueByNumberResponse](p.Messenger(), true, GetCueByNumberRequestSubject, p.GetCueByNumber),
 		messaging.Reply[GetCueByIdRequest, GetCueByIdResponse](p.Messenger(), true, GetCueByIdRequestSubject, p.GetCueById),
-		messaging.Reply[UpdateCueMetadataRequest, UpdateCueMetadataResponse](p.Messenger(), true, UpdateCueMetadataRequestSubject, p.UpdateCueMetadata),
+		messaging.Reply[UpdateCueAttributesRequest, UpdateCueAttributesResponse](p.Messenger(), true, UpdateCueAttributesRequestSubject, p.UpdateCueAttributes),
 		messaging.Reply[RenumberCueRequest, RenumberCueResponse](p.Messenger(), true, RenumberCueRequestSubject, p.RenumberCue),
 		messaging.Reply[DeleteCueRequest, DeleteCueResponse](p.Messenger(), true, DeleteCueRequestSubject, p.DeleteCue),
 
@@ -87,11 +92,20 @@ func (p *Cueing) onStart() error {
 const SaveRequestSubject = "request.cueing.persistence.save"
 
 func (p *Cueing) Save(sub string, in *string) (*string, error) {
+	p.data.RLock()
+	defer p.data.RUnlock()
+
 	p.Logger().Debug("attempting to save contents of subsystem show to stores")
 
-	err := p.persistence.WriteToObjectStore("model", &p.model)
-	if err != nil {
-		return nil, err
+	for tableName := range persistentSchema.Tables {
+		buf, err := db.SerializeTable(p.db, tableName)
+		if err != nil {
+			return nil, err
+		}
+		err = p.persistence.WriteToObjectStore(tableName, buf)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return new(""), nil
@@ -101,13 +115,27 @@ const LoadRequestSubject = "request.cueing.persistence.load"
 const LoadNotifyEventSubject = "event.cueing.persistence.loaded"
 
 func (p *Cueing) Load(sub string, in *string) (*string, error) {
+	p.data.Lock()
+	defer p.data.Unlock()
+
 	p.Logger().Debug("attempting to load contents of subsystem cueing to stores")
-	model := types.NewCueingModel()
-	err := p.persistence.ReadFromObjectStore("model", model)
+
+	err := p.initiateDatabase()
 	if err != nil {
 		return nil, err
 	}
-	p.model = model
+
+	for tableName := range persistentSchema.Tables {
+		buf, err := p.persistence.ReadFromObjectStore(tableName)
+		if err != nil {
+			return nil, err
+		}
+		err = db.RestoreTable(p.db, tableName, buf)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = messaging.Publish(p.Messenger(), LoadNotifyEventSubject, "")
 	if err != nil {
 		return nil, err

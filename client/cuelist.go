@@ -32,7 +32,7 @@ func (c *Client) CreateCueList(num float64, cueListType string) (float64, error)
 	return -1, fmt.Errorf("failed to create cue list: %s", resp.Error)
 }
 
-func (c *Client) EnumerateCueLists() ([]types.CueListMetadata, error) {
+func (c *Client) EnumerateCueLists() ([]types.CueListAttributes, error) {
 	resp, err := messaging.Request[cues.EnumerateCueListsResponse](c.messenger, cues.EnumerateCueListsRequestSubject, &cues.EnumerateCueListsRequest{})
 	if err != nil {
 		return nil, err
@@ -45,13 +45,13 @@ func (c *Client) EnumerateCueLists() ([]types.CueListMetadata, error) {
 	return nil, fmt.Errorf("failed to enumerate cue lists: %s", resp.Error)
 }
 
-func (c *Client) GetCueListByNumber(number float64) (*types.CueListMetadata, error) {
+func (c *Client) GetCueListByNumber(number float64) (*types.CueListAttributes, error) {
 	resp, err := messaging.Request[cues.GetCueListByNumberResponse](c.messenger, cues.GetCueListByNumberRequestSubject, &cues.GetCueListByNumberRequest{Number: number})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return &resp.Response.CueListMetadata, nil
+		return &resp.Response.Attributes, nil
 	}
 
 	if resp.Error == cues.CueListNotFound {
@@ -61,13 +61,13 @@ func (c *Client) GetCueListByNumber(number float64) (*types.CueListMetadata, err
 	return nil, fmt.Errorf("failed to get cue list: %s", resp.Error)
 }
 
-func (c *Client) GetCueListById(id string) (*types.CueListMetadata, error) {
+func (c *Client) GetCueListById(id string) (*types.CueListAttributes, error) {
 	resp, err := messaging.Request[cues.GetCueListByIdResponse](c.messenger, cues.GetCueListByIdRequestSubject, &cues.GetCueListByIdRequest{Id: id})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return &resp.Response.CueListMetadata, nil
+		return &resp.Response.Attributes, nil
 	}
 
 	if resp.Error == cues.CueListNotFound {
@@ -77,21 +77,21 @@ func (c *Client) GetCueListById(id string) (*types.CueListMetadata, error) {
 	return nil, fmt.Errorf("failed to get cue list: %s", resp.Error)
 }
 
-func (c *Client) UpdateCueListField(id string, field string, value interface{}) (*types.CueListMetadata, error) {
-	resp, err := messaging.Request[cues.UpdateCueListMetadataResponse](c.messenger, cues.UpdateCueListMetadataRequestSubject, &cues.UpdateCueListMetadataRequest{Id: id, Field: field, Value: value})
+func (c *Client) UpdateCueListField(id string, field string, value interface{}) (*types.CueListAttributes, error) {
+	resp, err := messaging.Request[cues.UpdateCueListAttributesResponse](c.messenger, cues.UpdateCueListAttributesRequestSubject, &cues.UpdateCueListAttributesRequest{Id: id, Field: field, Value: value})
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.Success {
-		return &resp.Response.Metadata, nil
+		return &resp.Response.Attributes, nil
 	}
 
 	if resp.Error == cues.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
-	return nil, fmt.Errorf("failed to update cue list metadata: %s", resp.Error)
+	return nil, fmt.Errorf("failed to update cue list attributes: %s", resp.Error)
 }
 
 func (c *Client) RenumberCueList(id string, newNumber float64) error {
@@ -123,9 +123,9 @@ func (c *Client) DeleteCueList(id string) error {
 	return nil
 }
 
-func (c *Client) OnCueListCreated(handler EventCallback[types.CueListMetadata]) error {
+func (c *Client) OnCueListCreated(handler EventCallback[types.CueListAttributes]) error {
 	err := messaging.Subscribe[cues.CueListCreatedEvent](c.messenger, false, cues.CueListCreatedEventSubject, func(s string, c *cues.CueListCreatedEvent) {
-		handler(s, &c.CueListMetadata)
+		handler(s, &c.Attributes)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue list creation events: %w", err)
@@ -133,12 +133,12 @@ func (c *Client) OnCueListCreated(handler EventCallback[types.CueListMetadata]) 
 	return nil
 }
 
-func (c *Client) OnCueListMetadataUpdated(handler EventCallback[types.CueListMetadata]) error {
-	err := messaging.Subscribe[cues.CueListMetadataUpdatedEvent](c.messenger, false, cues.CueListMetadataUpdatedEventSubject, func(s string, c *cues.CueListMetadataUpdatedEvent) {
-		handler(s, &c.Metadata)
+func (c *Client) OnCueListAttributesUpdated(handler EventCallback[types.CueListAttributes]) error {
+	err := messaging.Subscribe[cues.CueListAttributesUpdatedEvent](c.messenger, false, cues.CueListAttributesUpdatedEventSubject, func(s string, c *cues.CueListAttributesUpdatedEvent) {
+		handler(s, &c.Attributes)
 	})
 	if err != nil {
-		return fmt.Errorf("failed to subscribe to cue list metadata update events: %w", err)
+		return fmt.Errorf("failed to subscribe to cue list attributes update events: %w", err)
 	}
 	return nil
 }
