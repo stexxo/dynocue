@@ -15,9 +15,8 @@ import (
 var ErrActionExists = fmt.Errorf("action with provided number already exists")
 var ErrActionNotFound = fmt.Errorf("action not found")
 
-func (c *Client) CreateAction(cueListId string, cueId string, templateId string) (*types.Action, error) {
+func (c *Client) CreateAction(cueId string, templateId string) (*types.Action, error) {
 	resp, err := messaging.Request[cues.CreateActionResponse](c.messenger, cues.CreateActionRequestSubject, &cues.CreateActionRequest{
-		CueListId:  cueListId,
 		CueId:      cueId,
 		TemplateId: templateId,
 	})
@@ -35,10 +34,9 @@ func (c *Client) CreateAction(cueListId string, cueId string, templateId string)
 	return nil, fmt.Errorf("failed to create action: %s", resp.Error)
 }
 
-func (c *Client) EnumerateActions(cueListId string, cueId string) ([]types.Action, error) {
+func (c *Client) EnumerateActions(cueId string) ([]types.Action, error) {
 	resp, err := messaging.Request[cues.EnumerateActionsResponse](c.messenger, cues.EnumerateActionsRequestSubject, &cues.EnumerateActionsRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
+		CueId: cueId,
 	})
 	if err != nil {
 		return nil, err
@@ -50,11 +48,9 @@ func (c *Client) EnumerateActions(cueListId string, cueId string) ([]types.Actio
 	return nil, fmt.Errorf("failed to enumerate actions: %s", resp.Error)
 }
 
-func (c *Client) GetActionById(cueListId string, cueId string, actionId string) (*types.Action, error) {
+func (c *Client) GetActionById(actionId string) (*types.Action, error) {
 	resp, err := messaging.Request[cues.GetActionByIdResponse](c.messenger, cues.GetActionByIdRequestSubject, &cues.GetActionByIdRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		ActionId:  actionId,
+		ActionId: actionId,
 	})
 	if err != nil {
 		return nil, err
@@ -70,55 +66,49 @@ func (c *Client) GetActionById(cueListId string, cueId string, actionId string) 
 	return nil, fmt.Errorf("failed to get action: %s", resp.Error)
 }
 
-func (c *Client) UpdateAction(cueListId string, cueId string, actionId string, field string, value any) (*types.Action, error) {
+func (c *Client) UpdateAction(actionId string, field string, value any) error {
 	resp, err := messaging.Request[cues.UpdateActionResponse](c.messenger, cues.UpdateActionRequestSubject, &cues.UpdateActionRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		ActionId:  actionId,
-		Field:     field,
-		Value:     value,
+		ActionId: actionId,
+		Field:    field,
+		Value:    value,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.Success {
-		return &resp.Response.Action, nil
+		return nil
 	}
 
 	if resp.Error == cues.ActionNotFound {
-		return nil, ErrActionNotFound
+		return ErrActionNotFound
 	}
 
-	return nil, fmt.Errorf("failed to update action: %s", resp.Error)
+	return fmt.Errorf("failed to update action: %s", resp.Error)
 }
 
-func (c *Client) UpdateActionField(cueListId string, cueId string, actionId string, fieldName string, value any) (*types.Action, error) {
+func (c *Client) UpdateActionField(actionId string, fieldName string, value any) error {
 	resp, err := messaging.Request[cues.UpdateActionFieldResponse](c.messenger, cues.UpdateActionFieldRequestSubject, &cues.UpdateActionFieldRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
 		ActionId:  actionId,
 		FieldName: fieldName,
 		Value:     value,
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.Success {
-		return &resp.Response.Action, nil
+		return nil
 	}
 
 	if resp.Error == cues.ActionNotFound {
-		return nil, ErrActionNotFound
+		return ErrActionNotFound
 	}
 
-	return nil, fmt.Errorf("failed to update action field: %s", resp.Error)
+	return fmt.Errorf("failed to update action field: %s", resp.Error)
 }
 
-func (c *Client) DeleteAction(cueListId string, cueId string, actionId string) error {
+func (c *Client) DeleteAction(actionId string) error {
 	resp, err := messaging.Request[cues.DeleteActionResponse](c.messenger, cues.DeleteActionRequestSubject, &cues.DeleteActionRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		ActionId:  actionId,
+		ActionId: actionId,
 	})
 	if err != nil {
 		return err

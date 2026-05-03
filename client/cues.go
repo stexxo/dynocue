@@ -35,7 +35,7 @@ func (c *Client) CreateCue(cueListId string, cueNumber float64) (float64, error)
 	return -1, fmt.Errorf("failed to create cue: %s", resp.Error)
 }
 
-func (c *Client) EnumerateCues(cueListId string) ([]types.CueAttributes, error) {
+func (c *Client) EnumerateCues(cueListId string) ([]types.Cue, error) {
 	resp, err := messaging.Request[cues.EnumerateCuesResponse](c.messenger, cues.EnumerateCuesRequestSubject, &cues.EnumerateCuesRequest{
 		CueListId: cueListId,
 	})
@@ -54,16 +54,16 @@ func (c *Client) EnumerateCues(cueListId string) ([]types.CueAttributes, error) 
 	return nil, fmt.Errorf("failed to enumerate cues: %s", resp.Error)
 }
 
-func (c *Client) GetCueByNumber(cueListNumber float64, cueNumber float64) (*types.CueAttributes, error) {
+func (c *Client) GetCueByNumber(cueListId string, cueNumber float64) (*types.Cue, error) {
 	resp, err := messaging.Request[cues.GetCueByNumberResponse](c.messenger, cues.GetCueByNumberRequestSubject, &cues.GetCueByNumberRequest{
-		CueListNumber: cueListNumber,
-		CueNumber:     cueNumber,
+		CueListId: cueListId,
+		CueNumber: cueNumber,
 	})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return &resp.Response.Attributes, nil
+		return &resp.Response.Cue, nil
 	}
 
 	if resp.Error == cues.CueNotFound {
@@ -77,16 +77,15 @@ func (c *Client) GetCueByNumber(cueListNumber float64, cueNumber float64) (*type
 	return nil, fmt.Errorf("failed to get cue: %s", resp.Error)
 }
 
-func (c *Client) GetCueById(cueListId string, cueId string) (*types.CueAttributes, error) {
+func (c *Client) GetCueById(cueListId string, cueId string) (*types.Cue, error) {
 	resp, err := messaging.Request[cues.GetCueByIdResponse](c.messenger, cues.GetCueByIdRequestSubject, &cues.GetCueByIdRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
+		CueId: cueId,
 	})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return &resp.Response.Attributes, nil
+		return &resp.Response.Cue, nil
 	}
 
 	if resp.Error == cues.CueNotFound {
@@ -100,37 +99,11 @@ func (c *Client) GetCueById(cueListId string, cueId string) (*types.CueAttribute
 	return nil, fmt.Errorf("failed to get cue: %s", resp.Error)
 }
 
-func (c *Client) UpdateCueAttributes(cueListId string, cueId string, field string, value any) (*types.CueAttributes, error) {
+func (c *Client) UpdateCueAttributes(cueListId string, cueId string, field string, value any) error {
 	resp, err := messaging.Request[cues.UpdateCueAttributesResponse](c.messenger, cues.UpdateCueAttributesRequestSubject, &cues.UpdateCueAttributesRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		Field:     field,
-		Value:     value,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.Success {
-		return &resp.Response.Attributes, nil
-	}
-
-	if resp.Error == cues.CueNotFound {
-		return nil, ErrCueNotFound
-	}
-
-	if resp.Error == cues.CueListNotFound {
-		return nil, ErrCueListNotFound
-	}
-
-	return nil, fmt.Errorf("failed to update cue attributes: %s", resp.Error)
-}
-
-func (c *Client) RenumberCue(cueListId string, cueId string, newNumber float64) error {
-	resp, err := messaging.Request[cues.RenumberCueResponse](c.messenger, cues.RenumberCueRequestSubject, &cues.RenumberCueRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
-		NewNumber: newNumber,
+		CueId: cueId,
+		Field: field,
+		Value: value,
 	})
 	if err != nil {
 		return err
@@ -148,27 +121,31 @@ func (c *Client) RenumberCue(cueListId string, cueId string, newNumber float64) 
 		return ErrCueListNotFound
 	}
 
-	if resp.Error == cues.CueNumberExists {
-		return ErrCueExists
-	}
-
-	return fmt.Errorf("failed to renumber cue: %s", resp.Error)
+	return fmt.Errorf("failed to update cue attributes: %s", resp.Error)
 }
 
-func (c *Client) DeleteCue(cueListId string, cueId string) error {
-	err := messaging.Publish(c.messenger, cues.DeleteCueRequestSubject, &cues.DeleteCueRequest{
-		CueListId: cueListId,
-		CueId:     cueId,
+func (c *Client) DeleteCue(cueId string) error {
+	resp, err := messaging.Request[cues.DeleteCueResponse](c.messenger, cues.DeleteCueRequestSubject, &cues.DeleteCueRequest{
+		CueId: cueId,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to publish delete cue request: %w", err)
+		return fmt.Errorf("failed to delete cue: %w", err)
 	}
-	return nil
+
+	if resp.Success {
+		return nil
+	}
+
+	if resp.Error == cues.CueNotFound {
+		return ErrCueNotFound
+	}
+
+	return fmt.Errorf("failed to delete cue: %s", resp.Error)
 }
 
-func (c *Client) OnCueCreated(handler EventCallback[types.CueAttributes]) error {
+func (c *Client) OnCueCreated(handler EventCallback[cues.CueCreatedEvent]) error {
 	err := messaging.Subscribe[cues.CueCreatedEvent](c.messenger, false, cues.CueCreatedEventSubject, func(s string, e *cues.CueCreatedEvent) {
-		handler(s, &e.Attributes)
+		handler(s, e)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue creation events: %w", err)
@@ -176,32 +153,12 @@ func (c *Client) OnCueCreated(handler EventCallback[types.CueAttributes]) error 
 	return nil
 }
 
-func (c *Client) OnCueAttributesUpdated(handler EventCallback[types.CueAttributes]) error {
-	err := messaging.Subscribe[cues.CueAttributesUpdatedEvent](c.messenger, false, cues.CueAttributesUpdatedEventSubject, func(s string, e *cues.CueAttributesUpdatedEvent) {
-		handler(s, &e.Attributes)
+func (c *Client) OnCueAttributesUpdated(handler EventCallback[cues.CueUpdatedEvent]) error {
+	err := messaging.Subscribe[cues.CueUpdatedEvent](c.messenger, false, cues.CueAttributesUpdatedEventSubject, func(s string, e *cues.CueUpdatedEvent) {
+		handler(s, e)
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to cue attributes update events: %w", err)
-	}
-	return nil
-}
-
-type CueRenumberEvent struct {
-	CueListId string  `json:"cueListId"`
-	CueId     string  `json:"cueId"`
-	NewNumber float64 `json:"newNumber"`
-}
-
-func (c *Client) OnCueRenumber(handler EventCallback[CueRenumberEvent]) error {
-	err := messaging.Subscribe[cues.RenumberCueEvent](c.messenger, false, cues.RenumberCueEventSubject, func(s string, e *cues.RenumberCueEvent) {
-		handler(s, &CueRenumberEvent{
-			CueListId: e.CueListId,
-			CueId:     e.CueId,
-			NewNumber: e.NewNumber,
-		})
-	})
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to cue renumber events: %w", err)
 	}
 	return nil
 }

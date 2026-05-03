@@ -44,6 +44,24 @@ func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 	return nil, fmt.Errorf("failed to get action template: %s", resp.Error)
 }
 
+func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string, fields []types.ActionTemplateField) error {
+	resp, err := messaging.Request[cues.RegisterActionTemplateResponse](c.messenger, cues.RegisterActionTemplateRequestSubject, &cues.RegisterActionTemplateRequest{
+		Id:            id,
+		SubsystemName: subsystemName,
+		Name:          name,
+		Subject:       subject,
+		Fields:        fields,
+	})
+	if err != nil {
+		return err
+	}
+	if resp.Success {
+		return nil
+	}
+
+	return fmt.Errorf("failed to register action template: %s", resp.Error)
+}
+
 func (c *Client) OnActionTemplateRegistered(handler EventCallback[cues.RegisterActionTemplateEvent]) error {
 	return messaging.Subscribe[cues.RegisterActionTemplateEvent](c.messenger, true, cues.RegisterActionTemplateEventSubject, func(sub string, msg *cues.RegisterActionTemplateEvent) {
 		handler(sub, msg)

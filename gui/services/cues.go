@@ -32,9 +32,8 @@ func NewCuesService(manager *client.Manager, app *application.App, logger loggin
 
 func (c *CuesService) onNewClient(cl *client.Client) error {
 	return errors.Join(
-		cl.OnCueCreated(func(s string, t *types.CueAttributes) { c.app.Event.Emit(s, t) }),
-		cl.OnCueAttributesUpdated(func(s string, t *types.CueAttributes) { c.app.Event.Emit(s, t) }),
-		cl.OnCueRenumber(func(s string, r *client.CueRenumberEvent) { c.app.Event.Emit(s, r) }),
+		cl.OnCueCreated(func(s string, t *cues.CueCreatedEvent) { c.app.Event.Emit(s, t) }),
+		cl.OnCueAttributesUpdated(func(s string, t *cues.CueUpdatedEvent) { c.app.Event.Emit(s, t) }),
 		cl.OnCueDeleted(func(s string, e *cues.CueDeletedEvent) { c.app.Event.Emit(s, e) }),
 	)
 }
@@ -53,8 +52,8 @@ func (c *CuesService) CreateCue(cueListId string, cueNumber float64) bool {
 	return true
 }
 
-func (c *CuesService) EnumerateCues(cueListId string) ([]types.CueAttributes, bool) {
-	var out []types.CueAttributes
+func (c *CuesService) EnumerateCues(cueListId string) ([]types.Cue, bool) {
+	var out []types.Cue
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.EnumerateCues(cueListId)
 		if err != nil {
@@ -72,10 +71,10 @@ func (c *CuesService) EnumerateCues(cueListId string) ([]types.CueAttributes, bo
 	return out, true
 }
 
-func (c *CuesService) GetCueByNumber(cueListNumber float64, cueNumber float64) (*types.CueAttributes, bool) {
-	var out *types.CueAttributes
+func (c *CuesService) GetCueByNumber(cueListId string, cueNumber float64) (*types.Cue, bool) {
+	var out *types.Cue
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		md, err := c.GetCueByNumber(cueListNumber, cueNumber)
+		md, err := c.GetCueByNumber(cueListId, cueNumber)
 		if err != nil {
 			return err
 		}
@@ -91,8 +90,8 @@ func (c *CuesService) GetCueByNumber(cueListNumber float64, cueNumber float64) (
 	return out, true
 }
 
-func (c *CuesService) GetCueById(cueListId string, cueId string) (*types.CueAttributes, bool) {
-	var out *types.CueAttributes
+func (c *CuesService) GetCueById(cueListId string, cueId string) (*types.Cue, bool) {
+	var out *types.Cue
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.GetCueById(cueListId, cueId)
 		if err != nil {
@@ -112,8 +111,7 @@ func (c *CuesService) GetCueById(cueListId string, cueId string) (*types.CueAttr
 
 func (c *CuesService) UpdateCueAttributes(cueListId string, cueId string, field string, value any) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		_, err := c.UpdateCueAttributes(cueListId, cueId, field, value)
-		return err
+		return c.UpdateCueAttributes(cueListId, cueId, field, value)
 	})
 
 	if err != nil {
@@ -124,22 +122,9 @@ func (c *CuesService) UpdateCueAttributes(cueListId string, cueId string, field 
 	return true
 }
 
-func (c *CuesService) RenumberCue(cueListId string, cueId string, newNumber float64) bool {
+func (c *CuesService) DeleteCue(cueId string) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
-		return c.RenumberCue(cueListId, cueId, newNumber)
-	})
-
-	if err != nil {
-		c.logger.Error("failed to renumber cue", "err", err)
-		return false
-	}
-
-	return true
-}
-
-func (c *CuesService) DeleteCue(cueListId string, cueId string) bool {
-	err := c.clientManager.WithClient(func(c *client.Client) error {
-		return c.DeleteCue(cueListId, cueId)
+		return c.DeleteCue(cueId)
 	})
 
 	if err != nil {

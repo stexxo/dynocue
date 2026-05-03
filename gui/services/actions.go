@@ -38,10 +38,10 @@ func (s *ActionsService) onNewClient(cl *client.Client) error {
 	)
 }
 
-func (s *ActionsService) CreateAction(cueListId string, cueId string, templateId string) (*types.Action, bool) {
+func (s *ActionsService) CreateAction(cueId string, templateId string) (*types.Action, bool) {
 	var out *types.Action
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.CreateAction(cueListId, cueId, templateId)
+		action, err := c.CreateAction(cueId, templateId)
 		if err != nil {
 			return err
 		}
@@ -57,10 +57,10 @@ func (s *ActionsService) CreateAction(cueListId string, cueId string, templateId
 	return out, true
 }
 
-func (s *ActionsService) EnumerateActions(cueListId string, cueId string) ([]types.Action, bool) {
+func (s *ActionsService) EnumerateActions(cueId string) ([]types.Action, bool) {
 	var out []types.Action
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		actions, err := c.EnumerateActions(cueListId, cueId)
+		actions, err := c.EnumerateActions(cueId)
 		if err != nil {
 			return err
 		}
@@ -76,10 +76,10 @@ func (s *ActionsService) EnumerateActions(cueListId string, cueId string) ([]typ
 	return out, true
 }
 
-func (s *ActionsService) GetActionById(cueListId string, cueId string, actionId string) (*types.Action, bool) {
+func (s *ActionsService) GetActionById(actionId string) (*types.Action, bool) {
 	var out *types.Action
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.GetActionById(cueListId, cueId, actionId)
+		action, err := c.GetActionById(actionId)
 		if err != nil {
 			return err
 		}
@@ -95,47 +95,35 @@ func (s *ActionsService) GetActionById(cueListId string, cueId string, actionId 
 	return out, true
 }
 
-func (s *ActionsService) UpdateAction(cueListId string, cueId string, actionId string, field string, value any) (*types.Action, bool) {
-	var out *types.Action
+func (s *ActionsService) UpdateAction(actionId string, field string, value any) bool {
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.UpdateAction(cueListId, cueId, actionId, field, value)
-		if err != nil {
-			return err
-		}
-		out = action
-		return nil
+		return c.UpdateAction(actionId, field, value)
 	})
 
 	if err != nil {
 		s.logger.Error("failed to update action", "err", err)
-		return nil, false
+		return false
 	}
 
-	return out, true
+	return true
 }
 
-func (s *ActionsService) UpdateActionField(cueListId string, cueId string, actionId string, fieldName string, value any) (*types.Action, bool) {
-	var out *types.Action
+func (s *ActionsService) UpdateActionField(actionId string, fieldName string, value any) bool {
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.UpdateActionField(cueListId, cueId, actionId, fieldName, value)
-		if err != nil {
-			return err
-		}
-		out = action
-		return nil
+		return c.UpdateActionField(actionId, fieldName, value)
 	})
 
 	if err != nil {
 		s.logger.Error("failed to update action field", "err", err)
-		return nil, false
+		return false
 	}
 
-	return out, true
+	return true
 }
 
-func (s *ActionsService) DeleteAction(cueListId string, cueId string, actionId string) bool {
+func (s *ActionsService) DeleteAction(actionId string) bool {
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		return c.DeleteAction(cueListId, cueId, actionId)
+		return c.DeleteAction(actionId)
 	})
 
 	if err != nil {
