@@ -25,7 +25,7 @@ class ActionsStore {
 				cuesStore.cues.forEach((cues) => {
 					cues.forEach((cue) => {
 						if (!this.#actions.has(cue.cueId)) {
-							this.load(cue.cueListId, cue.cueId);
+							this.load(cue.cueId);
 						}
 					});
 				});
@@ -40,18 +40,18 @@ class ActionsStore {
 		});
 
 		Events.On('event.cueing.actions.created', (ev: any) => {
-			const event = ev.data as { cueListId: string; cueId: string };
-			this.load(event.cueListId, event.cueId);
+			const event = ev.data as { action: Action };
+			this.load(event.action.cueId);
 		});
 
 		Events.On('event.cueing.actions.updated', (ev: any) => {
-			const event = ev.data as { cueListId: string; cueId: string };
-			this.load(event.cueListId, event.cueId);
+			const event = ev.data as { cueId: string };
+			this.load(event.cueId);
 		});
 
 		Events.On('event.cueing.actions.deleted', (ev: any) => {
-			const event = ev.data as { cueListId: string; cueId: string };
-			this.load(event.cueListId, event.cueId);
+			const event = ev.data as { cueId: string };
+			this.load(event.cueId);
 		});
 
 		Events.On('event.system.persistence.loaded', () => {
@@ -63,8 +63,8 @@ class ActionsStore {
 		return this.#actions;
 	}
 
-	async load(cueListId: string, cueId: string) {
-		const [actions, ok] = await EnumerateActions(cueListId, cueId);
+	async load(cueId: string) {
+		const [actions, ok] = await EnumerateActions(cueId);
 		if (ok) {
 			this.#actions.set(cueId, actions);
 			// Re-assign to trigger Svelte reactivity for the Map
@@ -72,38 +72,32 @@ class ActionsStore {
 		}
 	}
 
-	async create(cueListId: string, cueId: string, templateId: string) {
-		const [action, ok] = await CreateAction(cueListId, cueId, templateId);
+	async create(cueId: string, templateId: string) {
+		const [action, ok] = await CreateAction(cueId, templateId);
 		if (!ok) {
-			console.error('Failed to create action', cueListId, cueId, templateId);
+			console.error('Failed to create action', cueId, templateId);
 		}
 		return action;
 	}
 
-	async update(cueListId: string, cueId: string, actionId: string, field: string, value: any) {
-		const [action, ok] = await UpdateAction(cueListId, cueId, actionId, field, value);
+	async update(actionId: string, field: string, value: any) {
+		const ok = await UpdateAction(actionId, field, value);
 		if (!ok) {
 			console.error('Failed to update action', actionId, field, value);
 		}
-		return action;
+		return ok;
 	}
 
-	async updateField(
-		cueListId: string,
-		cueId: string,
-		actionId: string,
-		fieldName: string,
-		value: any
-	) {
-		const [action, ok] = await UpdateActionField(cueListId, cueId, actionId, fieldName, value);
+	async updateField(actionId: string, fieldName: string, value: any) {
+		const ok = await UpdateActionField(actionId, fieldName, value);
 		if (!ok) {
 			console.error('Failed to update action field', actionId, fieldName, value);
 		}
-		return action;
+		return ok;
 	}
 
-	async deleteAction(cueListId: string, cueId: string, actionId: string) {
-		const ok = await DeleteAction(cueListId, cueId, actionId);
+	async deleteAction(actionId: string) {
+		const ok = await DeleteAction(actionId);
 		if (!ok) {
 			console.error('Failed to delete action', actionId);
 		}

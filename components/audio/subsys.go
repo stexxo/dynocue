@@ -5,6 +5,8 @@
 package audio
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -70,9 +72,14 @@ func (a *Audio) onStart() error {
 const SaveRequestSubject = "request.cueing.persistence.save"
 
 func (a *Audio) Save(sub string, in *string) (*string, error) {
-	a.Logger().Debug("attempting to save contents of subsystem show to stores")
+	a.Logger().Debug("attempting to save contents of subsystem audio to stores")
 
-	err := a.persistence.WriteToObjectStore("model", &a.model)
+	buf, err := json.Marshal(a.model)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.persistence.WriteToObjectStore("model", bytes.NewReader(buf))
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +92,18 @@ const LoadNotifyEventSubject = "event.cueing.persistence.loaded"
 
 func (a *Audio) Load(sub string, in *string) (*string, error) {
 	a.Logger().Debug("attempting to load contents of subsystem audio to stores")
-	model := types.NewAudioModel()
-	err := a.persistence.ReadFromObjectStore("model", model)
+
+	buf, err := a.persistence.ReadFromObjectStore("model")
 	if err != nil {
 		return nil, err
 	}
+
+	model := types.NewAudioModel()
+	err = json.Unmarshal(buf.Bytes(), model)
+	if err != nil {
+		return nil, err
+	}
+
 	a.model = model
 	err = messaging.Publish(a.Messenger(), LoadNotifyEventSubject, "")
 	if err != nil {

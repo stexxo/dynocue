@@ -6,17 +6,16 @@ import {
 	EnumerateCueLists,
 	CreateCueList,
 	UpdateCueListAttributesField,
-	DeleteCueList,
-	RenumberCueList
+	DeleteCueList
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuelistsservice';
-import { CueListAttributes } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { CueList } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 
 /**
  * Store for managing cue lists.
  */
 class CuelistsStore {
-	#cuelists = $state<CueListAttributes[]>([]);
+	#cuelists = $state<CueList[]>([]);
 
 	constructor() {
 		this.load();
@@ -29,9 +28,6 @@ class CuelistsStore {
 		Events.On('event.cueing.cuelists.deleted', () => {
 			this.load();
 		});
-		Events.On('event.cueing.cuelists.renumber', () => {
-			this.load();
-		});
 		Events.On('event.system.persistence.loaded', () => {
 			this.load();
 		});
@@ -41,8 +37,8 @@ class CuelistsStore {
 		return this.#cuelists;
 	}
 
-	cueList(id: string): CueListAttributes | undefined {
-		return this.#cuelists.find((list) => list.id === id);
+	cueList(id: string): CueList | undefined {
+		return this.#cuelists.find((list) => list.cueListId === id);
 	}
 
 	async load() {
@@ -70,13 +66,6 @@ class CuelistsStore {
 		const ok = await DeleteCueList(id);
 		if (!ok) {
 			console.error('Failed to delete cue list', id);
-		}
-	}
-
-	async renumberCuelist(id: string, newNum: number) {
-		const ok = await RenumberCueList(id, newNum);
-		if (!ok) {
-			console.error('Failed to renumber cue list', id, newNum);
 		}
 	}
 }

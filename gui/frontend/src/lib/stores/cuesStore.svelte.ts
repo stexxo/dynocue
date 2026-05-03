@@ -6,10 +6,9 @@ import {
 	EnumerateCues,
 	CreateCue,
 	UpdateCueAttributes,
-	DeleteCue,
-	RenumberCue
+	DeleteCue
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuesservice';
-import { CueAttributes } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { Cue } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 import { cuelistsStore } from './cuelistsStore.svelte';
 
@@ -17,14 +16,14 @@ import { cuelistsStore } from './cuelistsStore.svelte';
  * Store for managing cues within cue lists.
  */
 class CuesStore {
-	#cues = $state<Map<string, CueAttributes[]>>(new Map());
+	#cues = $state<Map<string, Cue[]>>(new Map());
 
 	constructor() {
 		$effect.root(() => {
 			$effect(() => {
 				cuelistsStore.cuelists.forEach((list) => {
-					if (!this.#cues.has(list.id)) {
-						this.load(list.id);
+					if (!this.#cues.has(list.cueListId)) {
+						this.load(list.cueListId);
 					}
 				});
 			});
@@ -39,18 +38,14 @@ class CuesStore {
 		});
 
 		Events.On('event.cueing.cue.created', (ev: any) => {
-			const event = ev.data as CueAttributes;
-			this.load(event.cueListId);
+			const event = ev.data as { cue: Cue };
+			this.load(event.cue.cueListId);
 		});
 		Events.On('event.cueing.cue.attributes.updated', (ev: any) => {
-			const event = ev.data as CueAttributes;
-			this.load(event.cueListId);
-		});
-		Events.On('event.cueing.cue.deleted', (ev: any) => {
 			const event = ev.data as { cueListId: string };
 			this.load(event.cueListId);
 		});
-		Events.On('event.cueing.cue.renumber', (ev: any) => {
+		Events.On('event.cueing.cue.deleted', (ev: any) => {
 			const event = ev.data as { cueListId: string };
 			this.load(event.cueListId);
 		});
@@ -59,7 +54,7 @@ class CuesStore {
 		});
 	}
 
-	get cues(): Map<string, CueAttributes[]> {
+	get cues(): Map<string, Cue[]> {
 		return this.#cues;
 	}
 
@@ -87,16 +82,9 @@ class CuesStore {
 	}
 
 	async deleteCue(cueListId: string, cueId: string) {
-		const ok = await DeleteCue(cueListId, cueId);
+		const ok = await DeleteCue(cueId);
 		if (!ok) {
-			console.error('Failed to delete cue', cueListId, cueId);
-		}
-	}
-
-	async renumberCue(cueListId: string, cueId: string, newNum: number) {
-		const ok = await RenumberCue(cueListId, cueId, newNum);
-		if (!ok) {
-			console.error('Failed to renumber cue', cueListId, cueId, newNum);
+			console.error('Failed to delete cue', cueId);
 		}
 	}
 }
