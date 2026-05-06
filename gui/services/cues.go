@@ -38,7 +38,7 @@ func (c *CuesService) onNewClient(cl *client.Client) error {
 	)
 }
 
-func (c *CuesService) CreateCue(cueListId string, cueNumber float64) bool {
+func (c *CuesService) CreateCue(cueListId string, cueNumber uint) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		_, err := c.CreateCue(cueListId, cueNumber)
 		return err

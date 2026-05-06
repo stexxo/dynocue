@@ -139,7 +139,7 @@ type GetCueListByIdResponse struct {
 }
 
 func (p *Cueing) GetCueListById(sub string, request *GetCueListByIdRequest) (*GetCueListByIdResponse, error) {
-	out, err := db.GetFirstDb[types.CueList](p.db, TableCueLists, IndexCueListId, request.Id)
+	out, err := db.GetFirstDb[types.CueList](p.db, TableCueLists, IndexId, request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ type CueListDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteCueList(sub string, request *DeleteCueListsRequest) (*DeleteCueListsResponse, error) {
-	err := db.DeleteItemFromDb[types.CueList](p.db, TableCueLists, IndexCueListId, request.Id)
+	err := db.DeleteItemFromDb[types.CueList](p.db, TableCueLists, IndexId, request.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +199,7 @@ const CueListAttributesUpdatedEventSubject = "event.cueing.cuelists.attributes.u
 
 type CueListAttributesUpdatedEvent struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	Field     string `msgpack:"field" json:"field"`
 }
 
 // UpdateCueListAttributes
@@ -214,13 +215,14 @@ type UpdateCueListAttributesRequest struct {
 type UpdateCueListAttributesResponse struct{}
 
 func (p *Cueing) UpdateCueListAttributes(sub string, request *UpdateCueListAttributesRequest) (*UpdateCueListAttributesResponse, error) {
-	err := db.UpdateStructInDb(p.db, TableCueLists, IndexCueListId, request.Id, request.Field, request.Value)
+	err := db.UpdateStructInDb[types.CueList](p.db, TableCueLists, IndexId, request.Id, request.Field, request.Value)
 	if err != nil {
 		return nil, err
 	}
 
 	err = messaging.Publish(p.Messenger(), CueListAttributesUpdatedEventSubject, &CueListAttributesUpdatedEvent{
 		CueListId: request.Id,
+		Field:     request.Field,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue list attributes", "error", err)

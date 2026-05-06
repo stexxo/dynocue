@@ -5,7 +5,8 @@
 package cues
 
 import (
-	"github.com/google/uuid"
+	"log/slog"
+
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -18,7 +19,7 @@ const RegisterActionTemplateRequestSubject = "request.cueing.actions.templates.r
 const RegisterActionTemplateEventSubject = "event.cueing.actions.templates.registered"
 
 type RegisterActionTemplateRequest struct {
-	Id            string                      `msgpack:"id" json:"id"`
+	TemplateId    string                      `msgpack:"templateId" json:"templateId"`
 	SubsystemName string                      `msgpack:"subsystemName" json:"subsystemName"`
 	Name          string                      `msgpack:"name" json:"name"`
 	Subject       string                      `msgpack:"subject" json:"subject"`
@@ -28,14 +29,15 @@ type RegisterActionTemplateRequest struct {
 type RegisterActionTemplateResponse struct{}
 
 type RegisterActionTemplateEvent struct {
-	Id   string `msgpack:"id" json:"id"`
-	Name string `msgpack:"name" json:"name"`
+	TemplateId string `msgpack:"templateId" json:"templateId"`
+	Name       string `msgpack:"name" json:"name"`
 }
 
 func (p *Cueing) RegisterActionType(sub string, req *RegisterActionTemplateRequest) (*RegisterActionTemplateResponse, error) {
 	err := db.WithWrite(p.runtimeDb, func(txn *memdb.Txn) error {
+		slog.Info("writing action template", "templateId", req.TemplateId, "name", req.Name)
 		return txn.Insert(TableActionTemplates, &types.ActionTemplate{
-			Id:            req.Id,
+			TemplateId:    req.TemplateId,
 			TemplateName:  req.Name,
 			Subject:       req.Subject,
 			Fields:        req.Fields,
@@ -46,7 +48,7 @@ func (p *Cueing) RegisterActionType(sub string, req *RegisterActionTemplateReque
 		return nil, err
 	}
 
-	err = messaging.Publish(p.Messenger(), RegisterActionTemplateEventSubject, &RegisterActionTemplateEvent{Id: uuid.NewString(), Name: req.Name})
+	err = messaging.Publish(p.Messenger(), RegisterActionTemplateEventSubject, &RegisterActionTemplateEvent{TemplateId: req.TemplateId, Name: req.Name})
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ type EnumerateActionTemplatesResponse struct {
 }
 
 func (p *Cueing) EnumerateActionTemplates(sub string, req *EnumerateActionTemplatesRequest) (*EnumerateActionTemplatesResponse, error) {
-	out, err := db.GetAllDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId)
+	out, err := db.GetAllDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexId)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +80,7 @@ type GetActionTemplateResponse struct {
 }
 
 func (p *Cueing) GetActionTemplate(sub string, req *GetActionTemplateRequest) (*GetActionTemplateResponse, error) {
-	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId, req.Id)
+	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexId, req.Id)
 	if err != nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}

@@ -23,14 +23,14 @@ const CreateCueRequestSubject = "request.cueing.cue.create"
 const CueCreatedEventSubject = "event.cueing.cue.created"
 
 type CreateCueRequest struct {
-	CueListId string  `msgpack:"cueListId" json:"cueListId"`
-	CueNumber float64 `msgpack:"cueNumber" json:"cueNumber"`
+	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	CueNumber uint   `msgpack:"cueNumber" json:"cueNumber"`
 }
 
 type CreateCueResponse struct {
-	CueListId string  `msgpack:"cueListId" json:"cueListId"`
-	CueId     string  `msgpack:"cueId" json:"cueId"`
-	CueNumber float64 `msgpack:"cueNumber" json:"cueNumber"`
+	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	CueId     string `msgpack:"cueId" json:"cueId"`
+	CueNumber uint   `msgpack:"cueNumber" json:"cueNumber"`
 }
 
 type CueCreatedEvent struct {
@@ -47,7 +47,7 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 	err := db.WithWrite(p.db, func(txn *memdb.Txn) error {
 		if req.CueNumber == 0 {
 			// Find last cue in this list
-			last, err := db.GetLastTxn[types.Cue](txn, TableCues, IndexNumber, req.CueListId)
+			last, err := db.GetLastTxn[types.Cue](txn, TableCues, IndexNumber+"_prefix", req.CueListId)
 			if errors.Is(err, db.ErrItemNotFound) {
 				cue.Number = 1
 			} else if err != nil {
@@ -99,7 +99,7 @@ type EnumerateCuesResponse struct {
 }
 
 func (p *Cueing) EnumerateCues(sub string, request *EnumerateCuesRequest) (*EnumerateCuesResponse, error) {
-	out, err := db.GetAllDb[types.Cue](p.db, TableCues, IndexNumber, request.CueListId)
+	out, err := db.GetAllDb[types.Cue](p.db, TableCues, IndexNumber+"_prefix", request.CueListId)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +207,7 @@ const CueAttributesUpdatedEventSubject = "event.cueing.cue.attributes.updated"
 type CueUpdatedEvent struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
 	CueId     string `msgpack:"cueId" json:"cueId"`
+	Field     string `msgpack:"field" json:"field"`
 }
 
 // UpdateCueAttributes
@@ -222,7 +223,7 @@ type UpdateCueAttributesRequest struct {
 type UpdateCueAttributesResponse struct{}
 
 func (p *Cueing) UpdateCueAttributes(sub string, request *UpdateCueAttributesRequest) (*UpdateCueAttributesResponse, error) {
-	err := db.UpdateStructInDb(p.db, TableCues, IndexCueId, request.CueId, request.Field, request.Value)
+	err := db.UpdateStructInDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId, request.Field, request.Value)
 	if err != nil {
 		p.Logger().Error("failed to update field in cue", "error", err)
 		return nil, err
@@ -236,6 +237,7 @@ func (p *Cueing) UpdateCueAttributes(sub string, request *UpdateCueAttributesReq
 	err = messaging.Publish(p.Messenger(), CueAttributesUpdatedEventSubject, &CueUpdatedEvent{
 		CueListId: cue.CueListId,
 		CueId:     request.CueId,
+		Field:     request.Field,
 	})
 	if err != nil {
 		p.Logger().Error("Failed to publish updated cue", "error", err)

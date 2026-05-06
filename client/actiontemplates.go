@@ -46,7 +46,7 @@ func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 
 func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string, fields []types.ActionTemplateField) error {
 	resp, err := messaging.Request[cues.RegisterActionTemplateResponse](c.messenger, cues.RegisterActionTemplateRequestSubject, &cues.RegisterActionTemplateRequest{
-		Id:            id,
+		TemplateId:    id,
 		SubsystemName: subsystemName,
 		Name:          name,
 		Subject:       subject,

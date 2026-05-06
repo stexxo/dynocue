@@ -37,7 +37,7 @@ type ActionCreatedEvent struct {
 }
 
 func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*CreateActionResponse, error) {
-	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexActionTemplateId, request.TemplateId)
+	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexId, request.TemplateId)
 	if err != nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
@@ -82,7 +82,7 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueIdKey, request.CueId)
+	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueId+"_prefix", request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ type GetActionByIdResponse struct {
 }
 
 func (p *Cueing) GetActionById(sub string, request *GetActionByIdRequest) (*GetActionByIdResponse, error) {
-	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexId, request.ActionId)
 	if err != nil {
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
@@ -132,7 +132,7 @@ type ActionDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*DeleteActionResponse, error) {
-	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexId, request.ActionId)
 	if err != nil {
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil, &messaging.FriendlyError{FriendlyErr: ActionNotFound}
@@ -140,7 +140,7 @@ func (p *Cueing) DeleteAction(sub string, request *DeleteActionRequest) (*Delete
 		return nil, err
 	}
 
-	err = db.DeleteItemFromDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	err = db.DeleteItemFromDb[types.Action](p.db, TableActions, IndexId, request.ActionId)
 	if err != nil {
 		return nil, err
 	}
@@ -175,16 +175,17 @@ type ActionUpdatedEvent struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
 	CueId     string `msgpack:"cueId" json:"cueId"`
 	ActionId  string `msgpack:"actionId" json:"actionId"`
+	Field     string `msgpack:"field" json:"field"`
 }
 
 func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*UpdateActionResponse, error) {
-	err := db.UpdateStructInDb(p.db, TableActions, IndexActionId, request.ActionId, request.Field, request.Value)
+	err := db.UpdateStructInDb[types.Action](p.db, TableActions, IndexId, request.ActionId, request.Field, request.Value)
 	if err != nil {
 		p.Logger().Error("failed to update field in action", "error", err)
 		return nil, err
 	}
 
-	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexActionId, request.ActionId)
+	action, err := db.GetFirstDb[types.Action](p.db, TableActions, IndexId, request.ActionId)
 	if err != nil {
 		p.Logger().Error("failed to get action for event", "error", err)
 		return nil, err
@@ -194,6 +195,7 @@ func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*Update
 		CueListId: action.CueListId,
 		CueId:     action.CueId,
 		ActionId:  request.ActionId,
+		Field:     request.Field,
 	})
 	if err != nil {
 		p.Logger().Error("failed to publish updated action", "error", err)
@@ -218,7 +220,7 @@ type UpdateActionFieldResponse struct{}
 func (p *Cueing) UpdateActionField(sub string, request *UpdateActionFieldRequest) (*UpdateActionFieldResponse, error) {
 	var action types.Action
 	err := db.WithWrite(p.db, func(txn *memdb.Txn) error {
-		original, err := db.GetFirstTxn[types.Action](txn, TableActions, IndexActionId, request.ActionId)
+		original, err := db.GetFirstTxn[types.Action](txn, TableActions, IndexId, request.ActionId)
 		if err != nil {
 			return err
 		}

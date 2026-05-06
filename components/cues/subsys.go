@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-memdb"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -126,6 +127,9 @@ func (p *Cueing) Load(sub string, in *string) (*string, error) {
 
 	for tableName := range persistentSchema.Tables {
 		buf, err := p.persistence.ReadFromObjectStore(tableName)
+		if errors.Is(err, jetstream.ErrObjectNotFound) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}

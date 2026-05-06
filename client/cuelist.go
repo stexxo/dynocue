@@ -16,8 +16,8 @@ import (
 var ErrCueListExists = errors.New("cue list with provided number already exists")
 var ErrCueListNotFound = errors.New("cue list not found")
 
-func (c *Client) CreateCueList(num float64, cueListType string) (uint, error) {
-	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: uint(num), CueListType: cueListType})
+func (c *Client) CreateCueList(num uint, cueListType string) (uint, error) {
+	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: num, CueListType: cueListType})
 	if err != nil {
 		return 0, err
 	}

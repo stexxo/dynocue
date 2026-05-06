@@ -5,7 +5,7 @@
 package types
 
 type ActionTemplate struct {
-	Id            string                `msgpack:"id" json:"id"`
+	TemplateId    string                `msgpack:"templateId" json:"templateId"`
 	TemplateName  string                `msgpack:"templateName" json:"templateName"`
 	SubsystemName string                `msgpack:"subsystemName" json:"subsystemName"`
 	Subject       string                `msgpack:"subject" json:"subject"`
@@ -14,7 +14,7 @@ type ActionTemplate struct {
 
 func (a *ActionTemplate) NewAction(cueListId string, cueId string) *Action {
 	action := NewAction(cueListId, cueId)
-	action.TemplateId = a.Id
+	action.TemplateId = a.TemplateId
 	action.Subject = a.Subject
 
 	for _, f := range a.Fields {

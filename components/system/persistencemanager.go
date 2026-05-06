@@ -57,8 +57,9 @@ func (pm *PersistenceManager) ObjectStore() jetstream.ObjectStore {
 }
 
 func (pm *PersistenceManager) WriteToObjectStore(key string, reader io.Reader) error {
+	key = fmt.Sprintf("%s/%s", pm.name, key)
 	pm.logger.Info("writing data to store", "key", key, "subsystem", pm.name)
-	_, err := pm.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: fmt.Sprintf("%s/%s", pm.name, key)}, reader)
+	_, err := pm.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: key}, reader)
 	if err != nil {
 		pm.logger.Error("failed to write object to store", "err", err)
 		return err
@@ -67,9 +68,10 @@ func (pm *PersistenceManager) WriteToObjectStore(key string, reader io.Reader) e
 }
 
 func (pm *PersistenceManager) ReadFromObjectStore(key string) (*bytes.Buffer, error) {
+	key = fmt.Sprintf("%s/%s", pm.name, key)
 	pm.logger.Info("reading data from store", "key", key, "subsystem", pm.name)
 
-	res, err := pm.objectStore.Get(context.Background(), fmt.Sprintf("%s/%s", pm.name, key))
+	res, err := pm.objectStore.Get(context.Background(), key)
 	if errors.Is(err, jetstream.ErrObjectNotFound) { // nothing to load
 		return nil, err
 	}

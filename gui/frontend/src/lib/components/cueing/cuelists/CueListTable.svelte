@@ -63,7 +63,7 @@
 								inputType="number"
 								value={list.number}
 								onSaveEdit={(v) => {
-									cuelistsStore.renumberCuelist(list.id, v);
+									cuelistsStore.setAttributesField(list.cueListId, "number", v);
 								}}
 								tdClass="w-40"
 							/>
@@ -71,7 +71,7 @@
 								inputType="text"
 								value={list.label}
 								onSaveEdit={(v) => {
-									cuelistsStore.setAttributesField(list.id, 'label', v);
+									cuelistsStore.setAttributesField(list.cueListId, 'label', v);
 								}}
 								tdClass="max-w-200"
 							/>
@@ -80,7 +80,7 @@
 								<button
 									class="btn btn-outline btn-secondary"
 									onclick={() => {
-										props.OnOpenCueList(list.id);
+										props.OnOpenCueList(list.cueListId);
 									}}>Open</button
 								>
 
@@ -115,7 +115,7 @@
 											<button
 												class="btn btn-outline btn-accent"
 												onclick={() => {
-													confirmDelete(list.id, list.number);
+													confirmDelete(list.cueListId, list.number);
 												}}>Delete</button
 											>
 										</li>

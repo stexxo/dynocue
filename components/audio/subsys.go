@@ -10,6 +10,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/components/audio/types"
 	"github.com/stexxo/dynocue/components/cues"
 	"github.com/stexxo/dynocue/components/system"
@@ -94,6 +95,9 @@ func (a *Audio) Load(sub string, in *string) (*string, error) {
 	a.Logger().Debug("attempting to load contents of subsystem audio to stores")
 
 	buf, err := a.persistence.ReadFromObjectStore("model")
+	if errors.Is(err, jetstream.ErrObjectNotFound) {
+		return new(""), nil
+	}
 	if err != nil {
 		return nil, err
 	}

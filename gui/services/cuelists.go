@@ -38,7 +38,7 @@ func (c *CueListsService) onNewClient(cl *client.Client) error {
 	)
 }
 
-func (c *CueListsService) CreateCueList(num float64, cueListType string) bool {
+func (c *CueListsService) CreateCueList(num uint, cueListType string) bool {
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		_, err := c.CreateCueList(num, cueListType)
 		return err
@@ -52,7 +52,7 @@ func (c *CueListsService) CreateCueList(num float64, cueListType string) bool {
 	return true
 }
 
-func (c *CueListsService) GetCueList(num float64) (*types.CueList, bool) {
+func (c *CueListsService) GetCueList(num uint) (*types.CueList, bool) {
 	var out *types.CueList
 	err := c.clientManager.WithClient(func(c *client.Client) error {
 		md, err := c.GetCueListByNumber(uint(num))

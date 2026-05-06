@@ -11,7 +11,7 @@ import (
 type Cue struct {
 	CueListId   string        `msgpack:"cueListId" json:"cueListId"`
 	CueId       string        `msgpack:"cueId" json:"cueId"`
-	Number      float64       `msgpack:"number" json:"number"`
+	Number      uint          `msgpack:"number" json:"number"`
 	Label       string        `msgpack:"label" json:"label"`
 	Description string        `msgpack:"description" json:"description"`
 	Delay       time.Duration `msgpack:"delay" json:"delay"`

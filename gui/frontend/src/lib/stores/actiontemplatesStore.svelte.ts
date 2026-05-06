@@ -47,6 +47,7 @@ class ActionTemplatesStore {
 
 	async load() {
 		const [templates, ok] = await EnumerateActionTemplates();
+		console.log(templates);
 		if (ok) {
 			this.#templates = templates;
 		}

@@ -11,7 +11,7 @@ import (
 
 var (
 	PlayActionTemplate = cues.RegisterActionTemplateRequest{
-		Id:            "action-play-v1",
+		TemplateId:    "action-play-v1",
 		Name:          "Play",
 		SubsystemName: "Audio",
 		Subject:       "action.audio.play",
@@ -21,7 +21,7 @@ var (
 	}
 
 	FadeActionTemplate = cues.RegisterActionTemplateRequest{
-		Id:            "action-fade-v1",
+		TemplateId:    "action-fade-v1",
 		Name:          "Fade",
 		SubsystemName: "Audio",
 		Subject:       "action.audio.fade",
@@ -33,7 +33,7 @@ var (
 	}
 
 	StopActionTemplate = cues.RegisterActionTemplateRequest{
-		Id:            "action-stop-v1",
+		TemplateId:    "action-stop-v1",
 		Name:          "Stop",
 		SubsystemName: "Audio",
 		Subject:       "action.audio.stop",
@@ -43,7 +43,7 @@ var (
 	}
 
 	PauseActionTemplate = cues.RegisterActionTemplateRequest{
-		Id:            "action-pause-v1",
+		TemplateId:    "action-pause-v1",
 		Name:          "Pause",
 		SubsystemName: "Audio",
 		Subject:       "action.audio.pause",

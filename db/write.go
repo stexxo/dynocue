@@ -39,9 +39,9 @@ func DeleteItemFromDb[T any](db *memdb.MemDB, table string, index string, key an
 	})
 }
 
-func UpdateStructInDb(db *memdb.MemDB, table, index string, key any, field string, value interface{}) error {
+func UpdateStructInDb[T any](db *memdb.MemDB, table, index string, key any, field string, value interface{}) error {
 	err := WithWrite(db, func(txn *memdb.Txn) error {
-		item, err := GetFirstTxn[any](txn, table, index, key)
+		item, err := GetFirstTxn[T](txn, table, index, key)
 		if err != nil {
 			return err
 		}

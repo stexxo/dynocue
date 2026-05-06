@@ -10,12 +10,9 @@ const (
 	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
 
-	IndexCueListId        = "id"
-	IndexNumber           = "number"
-	IndexCueId            = "id"
-	IndexActionId         = "id"
-	IndexActionTemplateId = "id"
-	IndexCueIdKey         = "cueId"
+	IndexId     = "id"
+	IndexCueId  = "cue_id"
+	IndexNumber = "number"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -23,8 +20,8 @@ var persistentSchema = &memdb.DBSchema{
 		TableCueLists: {
 			Name: TableCueLists,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexCueListId: {
-					Name:    IndexCueListId,
+				IndexId: {
+					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.UUIDFieldIndex{Field: "CueListId"},
 				},
@@ -38,8 +35,8 @@ var persistentSchema = &memdb.DBSchema{
 		TableCues: {
 			Name: TableCues,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexCueId: {
-					Name:    IndexCueId,
+				IndexId: {
+					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.UUIDFieldIndex{Field: "CueId"},
 				},
@@ -58,13 +55,13 @@ var persistentSchema = &memdb.DBSchema{
 		TableActions: {
 			Name: TableActions,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexActionId: {
-					Name:    IndexActionId,
+				IndexId: {
+					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "ActionId"},
 				},
-				IndexCueIdKey: {
-					Name:    IndexCueIdKey,
+				IndexCueId: {
+					Name:    IndexCueId,
 					Unique:  false,
 					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
@@ -73,15 +70,15 @@ var persistentSchema = &memdb.DBSchema{
 	},
 }
 
-var volatileSchema = &memdb.DBSchema{
+var runtimeSchema = &memdb.DBSchema{
 	Tables: map[string]*memdb.TableSchema{
 		TableActionTemplates: {
 			Name: TableActionTemplates,
 			Indexes: map[string]*memdb.IndexSchema{
-				IndexActionTemplateId: {
-					Name:    IndexActionTemplateId,
+				IndexId: {
+					Name:    IndexId,
 					Unique:  true,
-					Indexer: &memdb.StringFieldIndex{Field: "Id"},
+					Indexer: &memdb.StringFieldIndex{Field: "TemplateId"},
 				},
 			},
 		},
@@ -95,7 +92,7 @@ func (p *Cueing) initiateDatabase() error {
 	}
 	p.db = pdb
 
-	rdb, err := memdb.NewMemDB(volatileSchema)
+	rdb, err := memdb.NewMemDB(runtimeSchema)
 	if err != nil {
 		return err
 	}

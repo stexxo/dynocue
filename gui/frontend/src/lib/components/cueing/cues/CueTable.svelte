@@ -19,6 +19,9 @@
 	const props: CueTableProps = $props();
 	let cues = $derived(cuesStore.cues.get(props.CueListId));
 
+	$effect(() => {
+		console.log(props.CueListId);
+	});
 	let cueToDelete = $state<{ cueListId: string; cueId: string; number: number } | null>(null);
 	let deleteModal: ReturnType<typeof ConfirmationModal>;
 
@@ -64,7 +67,7 @@
 								inputType="number"
 								value={list.number}
 								onSaveEdit={(v) => {
-									cuesStore.renumberCue(list.cueListId, list.cueId, v);
+									cuesStore.updateCueAttributes(list.cueListId, list.cueId, "number", v);
 								}}
 								tdClass="w-40 text-center"
 							/>

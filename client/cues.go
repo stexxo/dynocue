@@ -16,23 +16,23 @@ import (
 var ErrCueExists = errors.New("cue with provided number already exists")
 var ErrCueNotFound = errors.New("cue not found")
 
-func (c *Client) CreateCue(cueListId string, cueNumber float64) (float64, error) {
+func (c *Client) CreateCue(cueListId string, cueNumber uint) (uint, error) {
 	resp, err := messaging.Request[cues.CreateCueResponse](c.messenger, cues.CreateCueRequestSubject, &cues.CreateCueRequest{
 		CueListId: cueListId,
 		CueNumber: cueNumber,
 	})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	if resp.Success {
 		return resp.Response.CueNumber, nil
 	}
 
 	if resp.Error == cues.CueNumberExists {
-		return -1, ErrCueExists
+		return 0, ErrCueExists
 	}
 
-	return -1, fmt.Errorf("failed to create cue: %s", resp.Error)
+	return 0, fmt.Errorf("failed to create cue: %s", resp.Error)
 }
 
 func (c *Client) EnumerateCues(cueListId string) ([]types.Cue, error) {
