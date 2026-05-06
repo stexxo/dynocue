@@ -67,7 +67,7 @@
 								inputType="number"
 								value={list.number}
 								onSaveEdit={(v) => {
-									cuesStore.updateCueAttributes(list.cueListId, list.cueId, "number", v);
+									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'number', v);
 								}}
 								tdClass="w-40 text-center"
 							/>

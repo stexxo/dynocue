@@ -66,7 +66,7 @@ class ActionsStore {
 	async load(cueId: string) {
 		const [actions, ok] = await EnumerateActions(cueId);
 		if (ok) {
-			console.log(actions)
+			console.log(actions);
 			this.#actions.set(cueId, actions);
 			// Re-assign to trigger Svelte reactivity for the Map
 			this.#actions = new Map(this.#actions);

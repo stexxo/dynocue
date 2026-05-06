@@ -115,16 +115,14 @@
 							<EditableTextInput
 								label={field.fieldLabel || field.fieldName}
 								value={field.value}
-								onSave={(v) =>
-									actionsStore.updateField(action.actionId, field.fieldName, v)}
+								onSave={(v) => actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{:else if field.dataType === 'float' || field.dataType === 'int'}
 							<EditableTextInput
 								label={field.fieldLabel || field.fieldName}
 								value={field.value}
 								inputType="number"
-								onSave={(v) =>
-									actionsStore.updateField(action.actionId, field.fieldName, v)}
+								onSave={(v) => actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{:else if field.dataType === 'bool'}
 							<div class="form-control flex flex-col justify-center">
@@ -147,8 +145,7 @@
 							<EditableTimeInput
 								label={field.fieldLabel || field.fieldName}
 								value={field.value}
-								onSave={(v) =>
-									actionsStore.updateField(action.actionId, field.fieldName, v)}
+								onSave={(v) => actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{/if}
 					{/each}

@@ -63,7 +63,7 @@
 								inputType="number"
 								value={list.number}
 								onSaveEdit={(v) => {
-									cuelistsStore.setAttributesField(list.cueListId, "number", v);
+									cuelistsStore.setAttributesField(list.cueListId, 'number', v);
 								}}
 								tdClass="w-40"
 							/>
