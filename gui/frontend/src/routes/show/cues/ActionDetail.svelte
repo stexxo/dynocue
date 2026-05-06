@@ -73,6 +73,12 @@
 			</button>
 		</td>
 		<EditableTableData
+			value={action.number}
+			inputType="number"
+			onSaveEdit={(v) => actionsStore.update(action.actionId, 'number', parseInt(v))}
+			tdClass="w-16 border-none"
+		/>
+		<EditableTableData
 			value={action.label}
 			inputType="text"
 			onSaveEdit={(v) => actionsStore.update(action.actionId, 'label', v)}

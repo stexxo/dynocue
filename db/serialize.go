@@ -3,7 +3,7 @@ package db
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/gob"
+	"encoding/json"
 	"io"
 
 	"github.com/hashicorp/go-memdb"
@@ -14,7 +14,7 @@ func SerializeTable(db *memdb.MemDB, tableName string) (*bytes.Buffer, error) {
 
 	// Create gzip writer
 	gw := gzip.NewWriter(&buf)
-	enc := gob.NewEncoder(gw)
+	enc := json.NewEncoder(gw)
 
 	txn := db.Txn(false)
 	defer txn.Abort()
@@ -40,21 +40,19 @@ func SerializeTable(db *memdb.MemDB, tableName string) (*bytes.Buffer, error) {
 	return &buf, nil
 }
 
-func RestoreTable(db *memdb.MemDB, tableName string, data io.Reader) error {
+func RestoreTable[T any](db *memdb.MemDB, tableName string, data io.Reader) error {
 	gr, err := gzip.NewReader(data)
 	if err != nil {
 		return err
 	}
 	defer gr.Close()
 
-	dec := gob.NewDecoder(gr)
+	dec := json.NewDecoder(gr)
 	txn := db.Txn(true)
 
 	for {
-		// Use a pointer to your specific struct type here
-		// or a generic interface if gob.Register was used
-		var obj interface{}
-		err := dec.Decode(&obj)
+		obj := new(T)
+		err := dec.Decode(obj)
 		if err == io.EOF {
 			break
 		}

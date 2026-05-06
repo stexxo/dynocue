@@ -15,10 +15,11 @@ import (
 var ErrActionExists = fmt.Errorf("action with provided number already exists")
 var ErrActionNotFound = fmt.Errorf("action not found")
 
-func (c *Client) CreateAction(cueId string, templateId string) (*types.Action, error) {
+func (c *Client) CreateAction(cueId string, templateId string, actionNumber uint) (*types.Action, error) {
 	resp, err := messaging.Request[cues.CreateActionResponse](c.messenger, cues.CreateActionRequestSubject, &cues.CreateActionRequest{
-		CueId:      cueId,
-		TemplateId: templateId,
+		CueId:        cueId,
+		TemplateId:   templateId,
+		ActionNumber: actionNumber,
 	})
 	if err != nil {
 		return nil, err

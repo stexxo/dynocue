@@ -1,7 +1,11 @@
 package cues
 
 import (
+	"io"
+
 	"github.com/hashicorp/go-memdb"
+	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/stexxo/dynocue/db"
 )
 
 const (
@@ -68,8 +72,44 @@ var persistentSchema = &memdb.DBSchema{
 					Unique:  false,
 					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
+				IndexNumber: {
+					Name:   IndexNumber,
+					Unique: true,
+					Indexer: &memdb.CompoundIndex{
+						Indexes: []memdb.Indexer{
+							&memdb.StringFieldIndex{Field: "CueId"},
+							&memdb.UintFieldIndex{Field: "Number"},
+						},
+					},
+				},
+				IndexNumberPrefix: {
+					Name: IndexNumberPrefix,
+					Indexer: &memdb.CompoundIndex{
+						Indexes: []memdb.Indexer{
+							&memdb.StringFieldIndex{Field: "CueId"},
+						},
+					},
+				},
+				IndexCueIdPrefix: {
+					Name:    IndexCueIdPrefix,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
+				},
 			},
 		},
+	},
+}
+
+type TableRestorer func(memDb *memdb.MemDB, reader io.Reader) error
+
+var tableRestore = map[string]TableRestorer{
+	TableCueLists: func(memDb *memdb.MemDB, reader io.Reader) error {
+		return db.RestoreTable[types.CueList](memDb, TableCueLists, reader)
+	},
+	TableCues: func(memDb *memdb.MemDB, reader io.Reader) error {
+		return db.RestoreTable[types.Cue](memDb, TableCues, reader)
+	},
+	TableActions: func(memDb *memdb.MemDB, reader io.Reader) error {
+		return db.RestoreTable[types.Action](memDb, TableActions, reader)
 	},
 }
 

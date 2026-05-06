@@ -139,15 +139,16 @@ func (p *Cueing) Load(sub string, in *string) (*string, error) {
 		}
 	}
 
-	for tableName := range persistentSchema.Tables {
-		buf, err := p.persistence.ReadFromObjectStore(tableName)
+	for tableName, tableRestore := range tableRestore {
+		res, err := p.persistence.ReadFromObjectStore(tableName)
 		if errors.Is(err, jetstream.ErrObjectNotFound) {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		err = db.RestoreTable(p.db, tableName, buf)
+		defer res.Close()
+		err = tableRestore(p.db, res)
 		if err != nil {
 			return nil, err
 		}

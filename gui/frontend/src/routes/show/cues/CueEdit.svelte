@@ -200,6 +200,7 @@
 							<thead class="sticky top-0 z-30 bg-base-100">
 								<tr>
 									<th class="w-16"></th>
+									<th class="w-16">#</th>
 									<th class="w-64">Label</th>
 									<th class="w-40">Template</th>
 									<th class="w-32">Delay</th>

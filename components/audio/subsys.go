@@ -103,10 +103,7 @@ func (a *Audio) Load(sub string, in *string) (*string, error) {
 	}
 
 	model := types.NewAudioModel()
-	err = json.Unmarshal(buf.Bytes(), model)
-	if err != nil {
-		return nil, err
-	}
+	json.NewDecoder(buf).Decode(model)
 
 	a.model = model
 	err = messaging.Publish(a.Messenger(), LoadNotifyEventSubject, "")

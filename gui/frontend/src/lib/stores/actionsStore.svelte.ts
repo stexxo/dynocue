@@ -73,8 +73,8 @@ class ActionsStore {
 		}
 	}
 
-	async create(cueId: string, templateId: string) {
-		const [action, ok] = await CreateAction(cueId, templateId);
+	async create(cueId: string, templateId: string, actionNumber: number = 0) {
+		const [action, ok] = await CreateAction(cueId, templateId, actionNumber);
 		if (!ok) {
 			console.error('Failed to create action', cueId, templateId);
 		}

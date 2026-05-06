@@ -145,7 +145,7 @@ type GetCueByIdResponse struct {
 }
 
 func (p *Cueing) GetCueById(sub string, request *GetCueByIdRequest) (*GetCueByIdResponse, error) {
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
@@ -173,7 +173,7 @@ type CueDeletedEvent struct {
 }
 
 func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueResponse, error) {
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
@@ -181,7 +181,7 @@ func (p *Cueing) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCueRes
 		return nil, err
 	}
 
-	err = db.DeleteItemFromDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	err = db.DeleteItemFromDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
 		return nil, err
 	}
@@ -223,13 +223,13 @@ type UpdateCueAttributesRequest struct {
 type UpdateCueAttributesResponse struct{}
 
 func (p *Cueing) UpdateCueAttributes(sub string, request *UpdateCueAttributesRequest) (*UpdateCueAttributesResponse, error) {
-	err := db.UpdateStructInDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId, request.Field, request.Value)
+	err := db.UpdateStructInDb[types.Cue](p.db, TableCues, IndexId, request.CueId, request.Field, request.Value)
 	if err != nil {
 		p.Logger().Error("failed to update field in cue", "error", err)
 		return nil, err
 	}
 
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
 		return nil, err
 	}

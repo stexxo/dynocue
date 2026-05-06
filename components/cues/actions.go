@@ -24,8 +24,9 @@ const CreateActionRequestSubject = "request.cueing.actions.create"
 const ActionCreatedEventSubject = "event.cueing.actions.created"
 
 type CreateActionRequest struct {
-	CueId      string `msgpack:"cueId" json:"cueId" validate:"required"`
-	TemplateId string `msgpack:"templateId" json:"templateId" validate:"required"`
+	CueId        string `msgpack:"cueId" json:"cueId" validate:"required"`
+	TemplateId   string `msgpack:"templateId" json:"templateId" validate:"required"`
+	ActionNumber uint   `msgpack:"actionNumber" json:"actionNumber"`
 }
 
 type CreateActionResponse struct {
@@ -48,8 +49,29 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 	}
 
 	action := template.NewAction(cue.CueListId, request.CueId)
+	action.Number = request.ActionNumber
 
 	err = db.WithWrite(p.db, func(txn *memdb.Txn) error {
+		if action.Number == 0 {
+			// Find last action in this cue
+			last, err := db.GetLastTxn[types.Action](txn, TableActions, IndexNumberPrefix, request.CueId)
+			if errors.Is(err, db.ErrItemNotFound) {
+				action.Number = 1
+			} else if err != nil {
+				return err
+			} else {
+				action.Number = last.Number + 1
+			}
+		} else {
+			existing, err := txn.First(TableActions, IndexNumber, request.CueId, action.Number)
+			if err != nil {
+				return err
+			}
+			if existing != nil {
+				return &messaging.FriendlyError{FriendlyErr: ActionNumberExists}
+			}
+		}
+
 		return txn.Insert(TableActions, action)
 	})
 	if err != nil {
@@ -80,7 +102,7 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueIdPrefix, request.CueId)
+	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexNumberPrefix, request.CueId)
 	if err != nil {
 		return nil, err
 	}

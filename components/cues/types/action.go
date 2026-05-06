@@ -14,6 +14,7 @@ type Action struct {
 	CueListId  string         `msgpack:"cueListId" json:"cueListId"`
 	CueId      string         `msgpack:"cueId" json:"cueId"`
 	ActionId   string         `msgpack:"actionId" json:"actionId"`
+	Number     uint           `msgpack:"number" json:"number"`
 	Subject    string         `msgpack:"subject" json:"subject"`
 	Label      string         `msgpack:"label" json:"label"`
 	TemplateId string         `msgpack:"templateId" json:"templateId"`

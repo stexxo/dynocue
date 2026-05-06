@@ -5,7 +5,6 @@
 package system
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -67,7 +66,7 @@ func (pm *PersistenceManager) WriteToObjectStore(key string, reader io.Reader) e
 	return nil
 }
 
-func (pm *PersistenceManager) ReadFromObjectStore(key string) (*bytes.Buffer, error) {
+func (pm *PersistenceManager) ReadFromObjectStore(key string) (jetstream.ObjectResult, error) {
 	key = fmt.Sprintf("%s/%s", pm.name, key)
 	pm.logger.Info("reading data from store", "key", key, "subsystem", pm.name)
 
@@ -78,17 +77,6 @@ func (pm *PersistenceManager) ReadFromObjectStore(key string) (*bytes.Buffer, er
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			pm.logger.Error("failed to close object to store", "err", err)
-		}
-	}()
 
-	buf := &bytes.Buffer{}
-	_, err = io.Copy(buf, res)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf, nil
+	return res, nil
 }

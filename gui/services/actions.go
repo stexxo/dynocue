@@ -38,10 +38,10 @@ func (s *ActionsService) onNewClient(cl *client.Client) error {
 	)
 }
 
-func (s *ActionsService) CreateAction(cueId string, templateId string) (*types.Action, bool) {
+func (s *ActionsService) CreateAction(cueId string, templateId string, actionNumber uint) (*types.Action, bool) {
 	var out *types.Action
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.CreateAction(cueId, templateId)
+		action, err := c.CreateAction(cueId, templateId, actionNumber)
 		if err != nil {
 			return err
 		}
