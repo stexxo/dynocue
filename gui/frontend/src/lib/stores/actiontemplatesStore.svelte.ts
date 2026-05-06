@@ -32,7 +32,7 @@ class ActionTemplatesStore {
 	}
 
 	async getTemplate(id: string): Promise<ActionTemplate | undefined> {
-		const template = this.#templates.find((t) => t.id === id);
+		const template = this.#templates.find((t) => t.templateId === id);
 		if (template) {
 			return template;
 		}

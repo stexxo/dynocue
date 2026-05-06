@@ -125,6 +125,20 @@ func (p *Cueing) Load(sub string, in *string) (*string, error) {
 		return nil, err
 	}
 
+	// Clear persistent tables before loading new data
+	for tableName := range persistentSchema.Tables {
+		err := db.WithWrite(p.db, func(txn *memdb.Txn) error {
+			_, err := txn.DeleteAll(tableName, IndexId)
+			if errors.Is(err, memdb.ErrNotFound) {
+				return nil
+			}
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for tableName := range persistentSchema.Tables {
 		buf, err := p.persistence.ReadFromObjectStore(tableName)
 		if errors.Is(err, jetstream.ErrObjectNotFound) {

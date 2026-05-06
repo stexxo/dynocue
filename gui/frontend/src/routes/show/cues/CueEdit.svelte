@@ -62,7 +62,7 @@
 	});
 
 	let selectedTemplate = $derived.by(() => {
-		return actionTemplatesStore.templates.find((t) => t.id === selectedTemplateId) ?? null;
+		return actionTemplatesStore.templates.find((t) => t.templateId === selectedTemplateId) ?? null;
 	});
 
 	async function createAction() {
@@ -171,9 +171,9 @@
 													<li>
 														<button
 															class="flex flex-col items-start"
-															class:active={selectedTemplateId === template.id}
+															class:active={selectedTemplateId === template.templateId}
 															onclick={() => {
-																selectedTemplateId = template.id;
+																selectedTemplateId = template.templateId;
 																dropdownOpen = false;
 																searchTerm = '';
 															}}

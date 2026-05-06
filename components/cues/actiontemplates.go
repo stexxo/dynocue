@@ -73,14 +73,14 @@ func (p *Cueing) EnumerateActionTemplates(sub string, req *EnumerateActionTempla
 const GetActionTemplateRequestSubject = "request.cueing.actions.templates.get"
 
 type GetActionTemplateRequest struct {
-	Id string
+	TemplateId string `msgpack:"templateId" json:"templateId"`
 }
 type GetActionTemplateResponse struct {
 	Template *types.ActionTemplate `msgpack:"template" json:"template"`
 }
 
 func (p *Cueing) GetActionTemplate(sub string, req *GetActionTemplateRequest) (*GetActionTemplateResponse, error) {
-	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexId, req.Id)
+	template, err := db.GetFirstDb[types.ActionTemplate](p.runtimeDb, TableActionTemplates, IndexId, req.TemplateId)
 	if err != nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}

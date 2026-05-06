@@ -28,7 +28,7 @@ func (c *Client) EnumerateActionTemplates() ([]types.ActionTemplate, error) {
 
 func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 	resp, err := messaging.Request[cues.GetActionTemplateResponse](c.messenger, cues.GetActionTemplateRequestSubject, &cues.GetActionTemplateRequest{
-		Id: id,
+		TemplateId: id,
 	})
 	if err != nil {
 		return nil, err

@@ -86,17 +86,21 @@ var runtimeSchema = &memdb.DBSchema{
 }
 
 func (p *Cueing) initiateDatabase() error {
-	pdb, err := memdb.NewMemDB(persistentSchema)
-	if err != nil {
-		return err
+	if p.db == nil {
+		pdb, err := memdb.NewMemDB(persistentSchema)
+		if err != nil {
+			return err
+		}
+		p.db = pdb
 	}
-	p.db = pdb
 
-	rdb, err := memdb.NewMemDB(runtimeSchema)
-	if err != nil {
-		return err
+	if p.runtimeDb == nil {
+		rdb, err := memdb.NewMemDB(runtimeSchema)
+		if err != nil {
+			return err
+		}
+		p.runtimeDb = rdb
 	}
-	p.runtimeDb = rdb
 
 	return nil
 }
