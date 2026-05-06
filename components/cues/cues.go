@@ -47,7 +47,7 @@ func (p *Cueing) CreateCue(sub string, req *CreateCueRequest) (*CreateCueRespons
 	err := db.WithWrite(p.db, func(txn *memdb.Txn) error {
 		if req.CueNumber == 0 {
 			// Find last cue in this list
-			last, err := db.GetLastTxn[types.Cue](txn, TableCues, IndexNumber+"_prefix", req.CueListId)
+			last, err := db.GetLastTxn[types.Cue](txn, TableCues, IndexNumberPrefix, req.CueListId)
 			if errors.Is(err, db.ErrItemNotFound) {
 				cue.Number = 1
 			} else if err != nil {
@@ -99,7 +99,7 @@ type EnumerateCuesResponse struct {
 }
 
 func (p *Cueing) EnumerateCues(sub string, request *EnumerateCuesRequest) (*EnumerateCuesResponse, error) {
-	out, err := db.GetAllDb[types.Cue](p.db, TableCues, IndexNumber+"_prefix", request.CueListId)
+	out, err := db.GetAllDb[types.Cue](p.db, TableCues, IndexNumberPrefix, request.CueListId)
 	if err != nil {
 		return nil, err
 	}

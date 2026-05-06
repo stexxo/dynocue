@@ -13,6 +13,9 @@ const (
 	IndexId     = "id"
 	IndexCueId  = "cue_id"
 	IndexNumber = "number"
+
+	IndexCueIdPrefix  = "cue_id_prefix"
+	IndexNumberPrefix = "number_prefix"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -23,7 +26,7 @@ var persistentSchema = &memdb.DBSchema{
 				IndexId: {
 					Name:    IndexId,
 					Unique:  true,
-					Indexer: &memdb.UUIDFieldIndex{Field: "CueListId"},
+					Indexer: &memdb.StringFieldIndex{Field: "CueListId"},
 				},
 				IndexNumber: {
 					Name:    IndexNumber,
@@ -38,7 +41,7 @@ var persistentSchema = &memdb.DBSchema{
 				IndexId: {
 					Name:    IndexId,
 					Unique:  true,
-					Indexer: &memdb.UUIDFieldIndex{Field: "CueId"},
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
 				IndexNumber: {
 					Name:   IndexNumber,

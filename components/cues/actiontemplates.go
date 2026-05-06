@@ -5,8 +5,6 @@
 package cues
 
 import (
-	"log/slog"
-
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -35,7 +33,6 @@ type RegisterActionTemplateEvent struct {
 
 func (p *Cueing) RegisterActionType(sub string, req *RegisterActionTemplateRequest) (*RegisterActionTemplateResponse, error) {
 	err := db.WithWrite(p.runtimeDb, func(txn *memdb.Txn) error {
-		slog.Info("writing action template", "templateId", req.TemplateId, "name", req.Name)
 		return txn.Insert(TableActionTemplates, &types.ActionTemplate{
 			TemplateId:    req.TemplateId,
 			TemplateName:  req.Name,

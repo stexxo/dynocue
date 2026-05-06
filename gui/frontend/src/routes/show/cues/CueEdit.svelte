@@ -67,7 +67,7 @@
 
 	async function createAction() {
 		if (!cueListId || !cueId || !selectedTemplateId) return;
-		await actionsStore.create(cueListId, cueId, selectedTemplateId);
+		await actionsStore.create(cueId, selectedTemplateId);
 	}
 
 	export function show(listId: string, id: string) {
@@ -207,8 +207,8 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each actions as action (action.id)}
-									<ActionDetail {cueListId} {cueId} actionId={action.id} />
+								{#each actions as action (action.actionId)}
+									<ActionDetail {cueListId} {cueId} actionId={action.actionId} />
 								{/each}
 							</tbody>
 						</table>

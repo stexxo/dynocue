@@ -42,11 +42,9 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 
-	// We still need CueListId for the action struct itself.
-	// We might need to fetch the cue to get its CueListId if it's not provided in the request anymore.
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexCueId, request.CueId)
+	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
-		return nil, err
+		return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
 	}
 
 	action := template.NewAction(cue.CueListId, request.CueId)
@@ -82,7 +80,7 @@ type EnumerateActionsResponse struct {
 }
 
 func (p *Cueing) EnumerateActions(sub string, request *EnumerateActionsRequest) (*EnumerateActionsResponse, error) {
-	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueId+"_prefix", request.CueId)
+	out, err := db.GetAllDb[types.Action](p.db, TableActions, IndexCueIdPrefix, request.CueId)
 	if err != nil {
 		return nil, err
 	}

@@ -23,12 +23,12 @@
 	let action = $derived.by(() => {
 		if (!cueId) return null;
 		const actions = actionsStore.actions.get(cueId);
-		return actions?.find((a) => a.id === actionId) ?? null;
+		return actions?.find((a) => a.actionId === actionId) ?? null;
 	});
 
 	let template = $derived.by(() => {
 		if (!action) return null;
-		return actionTemplatesStore.templates.find((t) => t.id === action.templateId) ?? null;
+		return actionTemplatesStore.templates.find((t) => t.templateId === action.templateId) ?? null;
 	});
 	let isExpanded = $state(false);
 </script>
@@ -75,7 +75,7 @@
 		<EditableTableData
 			value={action.label}
 			inputType="text"
-			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'label', v)}
+			onSaveEdit={(v) => actionsStore.update(action.actionId, 'label', v)}
 			tdClass="w-64 border-none"
 		/>
 		<td>
@@ -85,14 +85,14 @@
 		</td>
 		<EditableTimeData
 			value={action.delay}
-			onSaveEdit={(v) => actionsStore.update(cueListId, cueId, action.id, 'delay', v)}
+			onSaveEdit={(v) => actionsStore.update(action.actionId, 'delay', v)}
 			tdClass="border-none"
 		/>
 		<td>
 			<div class="flex gap-2">
 				<button
 					class="btn text-error btn-ghost btn-xs"
-					onclick={() => actionsStore.deleteAction(cueListId, cueId, action.id)}
+					onclick={() => actionsStore.deleteAction(action.actionId)}
 				>
 					Delete
 				</button>
@@ -110,7 +110,7 @@
 								label={field.fieldLabel || field.fieldName}
 								value={field.value}
 								onSave={(v) =>
-									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+									actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{:else if field.dataType === 'float' || field.dataType === 'int'}
 							<EditableTextInput
@@ -118,7 +118,7 @@
 								value={field.value}
 								inputType="number"
 								onSave={(v) =>
-									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+									actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{:else if field.dataType === 'bool'}
 							<div class="form-control flex flex-col justify-center">
@@ -130,9 +130,7 @@
 										checked={field.value}
 										onchange={(e) =>
 											actionsStore.updateField(
-												cueListId,
-												cueId,
-												action.id,
+												action.actionId,
 												field.fieldName,
 												e.currentTarget.checked
 											)}
@@ -144,7 +142,7 @@
 								label={field.fieldLabel || field.fieldName}
 								value={field.value}
 								onSave={(v) =>
-									actionsStore.updateField(cueListId, cueId, action.id, field.fieldName, v)}
+									actionsStore.updateField(action.actionId, field.fieldName, v)}
 							/>
 						{/if}
 					{/each}

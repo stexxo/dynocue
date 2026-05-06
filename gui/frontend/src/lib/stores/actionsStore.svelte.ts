@@ -9,7 +9,7 @@ import {
 	UpdateActionField,
 	DeleteAction
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/actionsservice';
-import { Action } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types/models';
+import { Action } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 import { cuesStore } from './cuesStore.svelte';
 
@@ -66,6 +66,7 @@ class ActionsStore {
 	async load(cueId: string) {
 		const [actions, ok] = await EnumerateActions(cueId);
 		if (ok) {
+			console.log(actions)
 			this.#actions.set(cueId, actions);
 			// Re-assign to trigger Svelte reactivity for the Map
 			this.#actions = new Map(this.#actions);
