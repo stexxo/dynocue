@@ -52,31 +52,35 @@ func (m *CueingModel) CreateCueList(number uint, cueListType string) (string, ui
 }
 
 func (m *CueingModel) EnumerateCueLists() ([]types.CueList, error) {
-	out, err := db.GetAllDb[types.CueList](m.persistent, TableCueLists, IndexNumber)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+	return db.GetAllDb[types.CueList](m.persistent, TableCueLists, IndexNumber)
 }
 
 func (m *CueingModel) GetCueListByNumber(number uint) (*types.CueList, error) {
 	out, err := db.GetFirstDb[types.CueList](m.persistent, TableCueLists, IndexNumber, number)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return nil, ErrCueListNotFound
+	}
 	if err != nil {
 		return nil, err
-	}
-	if out == nil {
-		return nil, ErrCueListNotFound
 	}
 	return out, nil
 }
 
 func (m *CueingModel) GetCueListById(id string) (*types.CueList, error) {
 	out, err := db.GetFirstDb[types.CueList](m.persistent, TableCueLists, IndexId, id)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return nil, ErrCueListNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
-	if out == nil {
-		return nil, ErrCueListNotFound
-	}
 	return out, nil
+}
+
+func (m *CueingModel) DeleteCueListById(id string) error {
+	return db.DeleteItemFromDb[types.CueList](m.persistent, TableCueLists, IndexId, id)
+}
+
+func (m *CueingModel) UpdateCueListAttribute(id string, field string, value interface{}) error {
+	return db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
 }
