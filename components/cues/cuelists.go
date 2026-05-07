@@ -149,16 +149,6 @@ func (p *Cueing) GetCueListById(sub string, request *GetCueListByIdRequest) (*Ge
 	}, nil
 }
 
-// RenumberCueList
-
-const RenumberCueListRequestSubject = "request.cueing.cuelists.renumber"
-const RenumberCueListEventSubject = "event.cueing.cuelists.renumber"
-
-type RenumberCueListsRequest struct {
-	Id        string  `msgpack:"id" json:"id" validate:"required"`
-	NewNumber float64 `msgpack:"newNumber" json:"newNumber" validate:"required,gt=0"`
-}
-
 // DeleteCueList
 
 const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"

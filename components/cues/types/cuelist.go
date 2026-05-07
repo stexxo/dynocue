@@ -4,6 +4,10 @@
 
 package types
 
+const (
+	CueListTypeSequential = "SEQUENTIAL"
+)
+
 type CueList struct {
 	CueListId   string `msgpack:"cueListId" json:"cueListId"`
 	Number      uint   `msgpack:"number" json:"number"`
