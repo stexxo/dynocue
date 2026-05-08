@@ -47,7 +47,7 @@ func TestCreateCueList(t *testing.T) {
 		assert.NotEmpty(t, id)
 
 		id, number, err = m.CreateCueList(10, types.CueListTypeSequential)
-		assert.ErrorIs(t, err, ErrCueListExists)
+		assert.ErrorIs(t, err, ErrNumberExists)
 	})
 }
 

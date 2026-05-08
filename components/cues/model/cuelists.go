@@ -15,30 +15,16 @@ var ErrCueListNotFound = errors.New("cue list not found")
 func (m *CueingModel) CreateCueList(number uint, cueListType string) (string, uint, error) {
 	cl := types.CueList{
 		CueListId:   uuid.NewString(),
-		Number:      number,
 		CueListType: cueListType,
 	}
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
-		if cl.Number == 0 {
-			last, err := db.GetLastTxn[types.CueList](txn, TableCueLists, IndexNumber)
-			if errors.Is(err, db.ErrItemNotFound) {
-				cl.Number = 1
-			} else if err != nil {
-				return err
-			} else {
-				cl.Number = last.Number + 1
-			}
-		} else {
-			existing, err := txn.First(TableCueLists, IndexNumber, cl.Number)
-			if err != nil {
-				return err
-			}
-			if existing != nil {
-				return ErrCueListExists
-			}
+		num, err := getNextNumber[types.CueList](txn, number, TableCueLists, IndexNumber, nil, IndexNumber, []any{number}, func(t *types.CueList) uint { return t.Number })
+		if err != nil {
+			return err
 		}
 
+		cl.Number = num
 		if err := txn.Insert(TableCueLists, &cl); err != nil {
 			return err
 		}
