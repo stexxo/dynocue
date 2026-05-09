@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
@@ -72,7 +73,7 @@ func (m *CueingModel) GetCueById(cueId string) (*types.Cue, error) {
 	return out, nil
 }
 
-func (m *CueingModel) DeleteCue(cueId string) error {
+func (m *CueingModel) DeleteCueById(cueId string) error {
 	return db.DeleteItemFromDb[types.Cue](m.persistent, TableCues, IndexId, cueId)
 }
 
