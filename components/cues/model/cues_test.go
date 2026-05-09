@@ -1,6 +1,8 @@
 package model
 
 import (
+	"math/rand/v2"
+	"runtime"
 	"testing"
 
 	"github.com/stexxo/dynocue/components/cues/types"
@@ -185,4 +187,111 @@ func TestUpdateCueAttribute(t *testing.T) {
 		err := m.UpdateCueAttribute(id, "label", "New Label")
 		assert.NoError(t, err)
 	})
+}
+
+func BenchmarkCreateCueWith0(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	for b.Loop() {
+		m.CreateCue(id, 0)
+	}
+}
+
+func BenchmarkCreateNumberedCue(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+
+	i := uint(1)
+	for b.Loop() {
+		m.CreateCue(id, i)
+		i++
+	}
+}
+
+func BenchmarkCreateCueParallel(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	b.SetParallelism(runtime.NumCPU())
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			m.CreateCue(id, 0)
+		}
+	})
+}
+
+func BenchmarkGetCueByNumber(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	for range 1000 {
+		_, _, _ = m.CreateCue(id, 0)
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = m.GetCueByNumber(id, uint(b.N%1000))
+	}
+}
+
+func BenchmarkGetCueById(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	ids := map[uint]string{}
+	for i := range 1000 {
+		id, _, _ := m.CreateCue(id, uint(i+1))
+		ids[uint(i+1)] = id
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = m.GetCueById(ids[uint(b.N%1000)])
+	}
+}
+
+func BenchmarkEnumerateCues(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	for range 1000 {
+		_, _, _ = m.CreateCue(id, 0)
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = m.EnumerateCues(id)
+	}
+}
+
+func BenchmarkDeleteCueByid(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(0, types.CueListTypeSequential)
+
+	var ids []string
+	for range 100 {
+		id, _, _ := m.CreateCue(id, 0)
+		ids = append(ids, id)
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		idx := rand.IntN(len(ids))
+		targetId := ids[idx]
+
+		_ = m.DeleteCueById(targetId)
+
+		b.StopTimer()
+		newId, _, _ := m.CreateCue(id, 0)
+		ids[idx] = newId
+		b.StartTimer()
+	}
+}
+
+func BenchmarkUpdateCueAttribute(b *testing.B) {
+	m, _ := NewCueingModel()
+	id, _, _ := m.CreateCueList(0, types.CueListTypeSequential)
+
+	ids := map[uint]string{}
+	for i := range 1000 {
+		id, _, _ := m.CreateCue(id, uint(i+1))
+		ids[uint(i+1)] = id
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_ = m.UpdateCueAttribute(ids[uint(b.N%1000)], "label", "Updated Label")
+	}
 }
