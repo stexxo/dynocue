@@ -109,14 +109,23 @@ func TestDeleteCueListById(t *testing.T) {
 }
 
 func TestUpdateCueListAttribute(t *testing.T) {
-	m, _ := NewCueingModel()
-	id, _, _ := m.CreateCueList(10, types.CueListTypeSequential)
+	t.Run("Update CueList that doesn't exist", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		err := m.UpdateCueListAttribute("notreal", "label", "New Label")
+		assert.ErrorIs(t, err, ErrCueListNotFound)
+	})
 
-	err := m.UpdateCueListAttribute(id, "label", "New Label")
-	assert.NoError(t, err)
+	t.Run("Update Cue that exists", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		id, _, _ := m.CreateCueList(10, types.CueListTypeSequential)
 
-	cl, _ := m.GetCueListById(id)
-	assert.Equal(t, "New Label", cl.Label)
+		err := m.UpdateCueListAttribute(id, "label", "New Label")
+		assert.NoError(t, err)
+
+		cl, _ := m.GetCueListById(id)
+		assert.Equal(t, "New Label", cl.Label)
+	})
+
 }
 
 func BenchmarkCreateCueList(b *testing.B) {

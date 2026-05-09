@@ -45,6 +45,9 @@ func UpdateStructInDb[T any](db *memdb.MemDB, table, index string, key any, fiel
 		if err != nil {
 			return err
 		}
+		if item == nil {
+			return ErrItemNotFound
+		}
 
 		// Deep copy of the item to avoid modifying the one in the database
 		clone := util.DeepCopyStruct(item)

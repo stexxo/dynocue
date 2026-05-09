@@ -9,7 +9,6 @@ import (
 	"github.com/stexxo/dynocue/db"
 )
 
-var ErrCueListExists = errors.New("cue list with given number already exists")
 var ErrCueListNotFound = errors.New("cue list not found")
 
 func (m *CueingModel) CreateCueList(number uint, cueListType string) (string, uint, error) {
@@ -64,9 +63,26 @@ func (m *CueingModel) GetCueListById(id string) (*types.CueList, error) {
 }
 
 func (m *CueingModel) DeleteCueListById(id string) error {
-	return db.DeleteItemFromDb[types.CueList](m.persistent, TableCueLists, IndexId, id)
+	err := db.DeleteItemFromDb[types.CueList](m.persistent, TableCueLists, IndexId, id)
+	if err != nil {
+		return err
+	}
+
+	err = m.DeleteAllCuesByCueListId(id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *CueingModel) UpdateCueListAttribute(id string, field string, value interface{}) error {
-	return db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
+	err := db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return ErrCueListNotFound
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }
