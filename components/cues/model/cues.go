@@ -12,6 +12,8 @@ import (
 var ErrCueNotFound = errors.New("cue not found")
 
 func (m *CueingModel) CreateCue(cueListId string, number uint) (string, uint, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	cue := types.Cue{
 		CueListId: cueListId,
 		CueId:     uuid.NewString(),
@@ -48,10 +50,14 @@ func (m *CueingModel) CreateCue(cueListId string, number uint) (string, uint, er
 }
 
 func (m *CueingModel) EnumerateCues(cueListId string) ([]types.Cue, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	return db.GetAllDb[types.Cue](m.persistent, TableCues, IndexNumberPrefix, cueListId)
 }
 
 func (m *CueingModel) GetCueByNumber(cueListId string, number uint) (*types.Cue, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	out, err := db.GetFirstDb[types.Cue](m.persistent, TableCues, IndexNumber, cueListId, number)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return nil, ErrCueNotFound
@@ -63,6 +69,8 @@ func (m *CueingModel) GetCueByNumber(cueListId string, number uint) (*types.Cue,
 }
 
 func (m *CueingModel) GetCueById(cueId string) (*types.Cue, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	out, err := db.GetFirstDb[types.Cue](m.persistent, TableCues, IndexId, cueId)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return nil, ErrCueNotFound
@@ -74,10 +82,14 @@ func (m *CueingModel) GetCueById(cueId string) (*types.Cue, error) {
 }
 
 func (m *CueingModel) DeleteCueById(cueId string) error {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	return db.DeleteItemFromDb[types.Cue](m.persistent, TableCues, IndexId, cueId)
 }
 
 func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
 		cues, err := db.GetAllTxn[types.Cue](txn, TableCues, IndexNumberPrefix, cueListId)
 		if err != nil {
@@ -96,6 +108,8 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 }
 
 func (m *CueingModel) UpdateCueAttribute(cueId string, field string, value interface{}) error {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
 	err := db.UpdateStructInDb[types.Cue](m.persistent, TableCues, IndexId, cueId, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrCueNotFound
