@@ -22,11 +22,10 @@ type Action struct {
 	Fields     []ActionFields `msgpack:"fields" json:"fields"`
 }
 
-func NewAction(cueListId string, cueId string) *Action {
+func NewAction(cueId string) *Action {
 	return &Action{
-		ActionId:  uuid.NewString(),
-		CueListId: cueListId,
-		CueId:     cueId,
+		ActionId: uuid.NewString(),
+		CueId:    cueId,
 	}
 }
 

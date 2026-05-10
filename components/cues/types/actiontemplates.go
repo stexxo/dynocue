@@ -12,10 +12,11 @@ type ActionTemplate struct {
 	Fields        []ActionTemplateField `msgpack:"fields" json:"fields"`
 }
 
-func (a *ActionTemplate) NewAction(cueListId string, cueId string) *Action {
-	action := NewAction(cueListId, cueId)
+func (a *ActionTemplate) NewAction(cueId string, number uint) *Action {
+	action := NewAction(cueId)
 	action.TemplateId = a.TemplateId
 	action.Subject = a.Subject
+	action.Number = number
 
 	for _, f := range a.Fields {
 		action.Fields = append(action.Fields, ActionFields{FieldName: f.FieldName, FieldLabel: f.FieldLabel, DataType: f.DataType, Value: f.DefaultValue})
