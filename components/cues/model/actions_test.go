@@ -8,6 +8,8 @@ import (
 )
 
 func TestCreateAction(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 
@@ -36,6 +38,13 @@ func TestCreateAction(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, id)
 		assert.Equal(t, uint(1), number)
+
+		t.Run("number already exists", func(t *testing.T) {
+			id, number, err := m.CreateAction(cueId, "test-template", 1)
+			assert.ErrorIs(t, err, ErrNumberExists)
+			assert.Empty(t, id)
+			assert.Empty(t, number)
+		})
 	})
 
 	t.Run("Cue not Found", func(t *testing.T) {
@@ -46,6 +55,7 @@ func TestCreateAction(t *testing.T) {
 
 	t.Run("Template Not Found", func(t *testing.T) {
 		m, _ := NewCueingModel()
+
 		//Create CueList
 		clId, _, err := m.CreateCueList(1, types.CueListTypeSequential)
 		assert.NoError(t, err)

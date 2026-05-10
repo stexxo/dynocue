@@ -10,6 +10,8 @@ import (
 )
 
 func TestCreateCueList(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Create with 0 number with no other cuelists", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		id, number, err := m.CreateCueList(0, types.CueListTypeSequential)
@@ -52,6 +54,8 @@ func TestCreateCueList(t *testing.T) {
 }
 
 func TestEnumerateCueLists(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	_, _, _ = m.CreateCueList(1, types.CueListTypeSequential)
 	_, _, _ = m.CreateCueList(2, types.CueListTypeSequential)
@@ -64,6 +68,8 @@ func TestEnumerateCueLists(t *testing.T) {
 }
 
 func TestGetCueListByNumber(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	_, _, _ = m.CreateCueList(10, types.CueListTypeSequential)
 
@@ -81,6 +87,8 @@ func TestGetCueListByNumber(t *testing.T) {
 }
 
 func TestGetCueListById(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	id, _, _ := m.CreateCueList(10, types.CueListTypeSequential)
 
@@ -98,6 +106,8 @@ func TestGetCueListById(t *testing.T) {
 }
 
 func TestDeleteCueListById(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	id, _, _ := m.CreateCueList(10, types.CueListTypeSequential)
 
@@ -109,6 +119,8 @@ func TestDeleteCueListById(t *testing.T) {
 }
 
 func TestUpdateCueListAttribute(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Update CueList that doesn't exist", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		err := m.UpdateCueListAttribute("notreal", "label", "New Label")

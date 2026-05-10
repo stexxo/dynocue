@@ -7,6 +7,8 @@ import (
 )
 
 func TestCreateModel(t *testing.T) {
+	t.Parallel()
+
 	m, err := NewCueingModel()
 	assert.NoError(t, err)
 	assert.NotNil(t, m)

@@ -8,6 +8,8 @@ import (
 )
 
 func TestRegisterActionTemplate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		err := m.RegisterActionTemplate(&types.ActionTemplate{
@@ -36,6 +38,8 @@ func TestRegisterActionTemplate(t *testing.T) {
 }
 
 func TestGetActionTemplateById(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		err := m.RegisterActionTemplate(&types.ActionTemplate{
@@ -58,6 +62,8 @@ func TestGetActionTemplateById(t *testing.T) {
 }
 
 func TestEnumerateActionTemplates(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	err := m.RegisterActionTemplate(&types.ActionTemplate{
 		TemplateId:   "test-template",
@@ -72,6 +78,8 @@ func TestEnumerateActionTemplates(t *testing.T) {
 }
 
 func TestDeleteActionTemplate(t *testing.T) {
+	t.Parallel()
+
 	m, _ := NewCueingModel()
 	err := m.RegisterActionTemplate(&types.ActionTemplate{
 		TemplateId:   "test-template",

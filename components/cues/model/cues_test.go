@@ -10,6 +10,8 @@ import (
 )
 
 func TestCreateCue(t *testing.T) {
+	t.Parallel()
+
 	t.Run("CueList Doesnt exist", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		id, num, err := m.CreateCue("notreal", 10)
@@ -63,6 +65,8 @@ func TestCreateCue(t *testing.T) {
 }
 
 func TestEnumerateCues(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Get all", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
@@ -78,6 +82,8 @@ func TestEnumerateCues(t *testing.T) {
 }
 
 func TestGetCueByNumber(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
@@ -112,6 +118,8 @@ func TestGetCueByNumber(t *testing.T) {
 }
 
 func TestGetCueById(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
@@ -132,6 +140,8 @@ func TestGetCueById(t *testing.T) {
 }
 
 func TestDeleteCueById(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
@@ -150,6 +160,8 @@ func TestDeleteCueById(t *testing.T) {
 }
 
 func TestDeleteAllCuesByCueListId(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Success", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
@@ -174,6 +186,8 @@ func TestDeleteAllCuesByCueListId(t *testing.T) {
 }
 
 func TestUpdateCueAttribute(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Update Cue that doesn't exist", func(t *testing.T) {
 		m, _ := NewCueingModel()
 		err := m.UpdateCueAttribute("notreal", "label", "New Label")
