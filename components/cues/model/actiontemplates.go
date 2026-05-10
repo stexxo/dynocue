@@ -30,11 +30,19 @@ func (m *CueingModel) RegisterActionTemplate(template *types.ActionTemplate) err
 
 func (m *CueingModel) GetActionTemplateById(templateId string) (*types.ActionTemplate, error) {
 	item, err := db.GetFirstDb[types.ActionTemplate](m.runtime, TableActionTemplates, IndexId, templateId)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return nil, errors.Join(err, ErrActionTemplateNotFound)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if item == nil {
-		return nil, ErrActionTemplateNotFound
-	}
 	return item, nil
+}
+
+func (m *CueingModel) EnumerateActionTemplates() ([]types.ActionTemplate, error) {
+	return db.GetAllDb[types.ActionTemplate](m.runtime, TableActionTemplates, IndexId)
+}
+
+func (m *CueingModel) DeleteActionTemplateById(templateId string) error {
+	return db.DeleteItemFromDb[types.ActionTemplate](m.runtime, TableActionTemplates, IndexId, templateId)
 }
