@@ -1,6 +1,8 @@
 package model
 
 import (
+	"math/rand/v2"
+	"runtime"
 	"testing"
 
 	"github.com/stexxo/dynocue/components/cues/types"
@@ -184,4 +186,108 @@ func TestDeleteAction(t *testing.T) {
 		err := m.DeleteAction("non-existent")
 		assert.NoError(t, err)
 	})
+}
+
+func setupBenchmarkAction(b *testing.B) (m *CueingModel, cueId string) {
+	m, _ = NewCueingModel()
+	clId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	cueId, _, _ = m.CreateCue(clId, 0)
+	_ = m.RegisterActionTemplate(&types.ActionTemplate{
+		TemplateId:    "test-template",
+		TemplateName:  "test-template",
+		Subject:       "test-subject",
+		SubsystemName: "test-subsystem",
+		Fields: []types.ActionTemplateField{
+			{FieldName: "test-field-float", FieldLabel: "Test Field Float", DataType: "float", DefaultValue: 0.0},
+			{FieldName: "test-field-string", FieldLabel: "Test Field String", DataType: "string", DefaultValue: ""},
+		},
+	})
+	return m, cueId
+}
+
+func BenchmarkCreateActionWith0(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	for b.Loop() {
+		_, _, _ = m.CreateAction(cueId, "test-template", 0)
+	}
+}
+
+func BenchmarkCreateNumberedAction(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	i := uint(1)
+	for b.Loop() {
+		_, _, _ = m.CreateAction(cueId, "test-template", i)
+		i++
+	}
+}
+
+func BenchmarkCreateActionParallel(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	b.SetParallelism(runtime.NumCPU())
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _, _ = m.CreateAction(cueId, "test-template", 0)
+		}
+	})
+}
+
+func BenchmarkGetActionById(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	ids := make([]string, 1000)
+	for i := range 1000 {
+		id, _, _ := m.CreateAction(cueId, "test-template", uint(i+1))
+		ids[i] = id
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_, _ = m.GetActionById(ids[b.N%1000])
+	}
+}
+
+func BenchmarkUpdateAction(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	ids := make([]string, 1000)
+	for i := range 1000 {
+		id, _, _ := m.CreateAction(cueId, "test-template", uint(i+1))
+		ids[i] = id
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_ = m.UpdateAction(ids[b.N%1000], "label", "Updated Label")
+	}
+}
+
+func BenchmarkUpdateActionField(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	ids := make([]string, 1000)
+	for i := range 1000 {
+		id, _, _ := m.CreateAction(cueId, "test-template", uint(i+1))
+		ids[i] = id
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		_ = m.UpdateActionField(ids[b.N%1000], "test-field-float", 1.5)
+	}
+}
+
+func BenchmarkDeleteAction(b *testing.B) {
+	m, cueId := setupBenchmarkAction(b)
+	ids := make([]string, 100)
+	for i := range 100 {
+		id, _, _ := m.CreateAction(cueId, "test-template", uint(i+1))
+		ids[i] = id
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		idx := rand.IntN(len(ids))
+		targetId := ids[idx]
+
+		_ = m.DeleteAction(targetId)
+
+		b.StopTimer()
+		newId, _, _ := m.CreateAction(cueId, "test-template", 0)
+		ids[idx] = newId
+		b.StartTimer()
+	}
 }
