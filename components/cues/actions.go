@@ -43,12 +43,12 @@ func (p *Cueing) CreateAction(sub string, request *CreateActionRequest) (*Create
 		return nil, &messaging.FriendlyError{FriendlyErr: ActionTemplateNotFound}
 	}
 
-	cue, err := db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
+	_, err = db.GetFirstDb[types.Cue](p.db, TableCues, IndexId, request.CueId)
 	if err != nil {
 		return nil, &messaging.FriendlyError{FriendlyErr: CueNotFound}
 	}
 
-	action := template.NewAction(cue.CueListId, request.CueId, request.ActionNumber)
+	action := template.NewAction(request.CueId, request.ActionNumber)
 	action.Number = request.ActionNumber
 
 	err = db.WithWrite(p.db, func(txn *memdb.Txn) error {
