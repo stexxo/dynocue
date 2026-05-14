@@ -49,6 +49,8 @@ func (m *CueingModel) CreateAction(cueId, templateId string, number uint) (strin
 		return "", 0, err
 	}
 
+	m.registry.Emit(ResourceAction, OperationCreated, a.ActionId)
+
 	return a.ActionId, a.Number, nil
 }
 
@@ -68,7 +70,12 @@ func (m *CueingModel) GetActionById(actionId string) (*types.Action, error) {
 func (m *CueingModel) DeleteAction(actionId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	return db.DeleteItemFromDb[types.Action](m.persistent, TableActions, IndexId, actionId)
+	err := db.DeleteItemFromDb[types.Action](m.persistent, TableActions, IndexId, actionId)
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceAction, OperationDeleted, actionId)
+	return nil
 }
 
 func (m *CueingModel) UpdateAction(actionId string, field string, value any) error {
@@ -81,6 +88,7 @@ func (m *CueingModel) UpdateAction(actionId string, field string, value any) err
 	if err != nil {
 		return err
 	}
+	m.registry.Emit(ResourceAction, OperationUpdated, actionId)
 	return nil
 }
 
@@ -88,7 +96,7 @@ func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
 
-	return db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
+	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
 		original, err := db.GetFirstTxn[types.Action](txn, TableActions, IndexId, actionId)
 		if errors.Is(err, db.ErrItemNotFound) {
 			return ErrActionNotFound
@@ -115,4 +123,9 @@ func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value
 
 		return txn.Insert(TableActions, &action)
 	})
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceAction, OperationUpdated, actionId)
+	return nil
 }

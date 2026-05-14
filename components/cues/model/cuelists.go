@@ -36,6 +36,7 @@ func (m *CueingModel) CreateCueList(number uint, cueListType string) (string, ui
 	if err != nil {
 		return "", 0, err
 	}
+	m.registry.Emit(ResourceCueList, OperationCreated, cl.CueListId)
 	return cl.CueListId, cl.Number, nil
 }
 
@@ -84,6 +85,7 @@ func (m *CueingModel) DeleteCueListById(id string) error {
 		return err
 	}
 
+	m.registry.Emit(ResourceCueList, OperationDeleted, id)
 	return nil
 }
 
@@ -97,5 +99,6 @@ func (m *CueingModel) UpdateCueListAttribute(id string, field string, value inte
 	if err != nil {
 		return err
 	}
+	m.registry.Emit(ResourceCueList, OperationUpdated, id)
 	return nil
 }

@@ -27,6 +27,7 @@ func (m *CueingModel) RegisterActionTemplate(template *types.ActionTemplate) err
 	if err != nil {
 		return err
 	}
+	m.registry.Emit(ResourceActionTemplate, OperationCreated, template.TemplateId)
 	return nil
 }
 
@@ -52,5 +53,10 @@ func (m *CueingModel) EnumerateActionTemplates() ([]types.ActionTemplate, error)
 func (m *CueingModel) DeleteActionTemplateById(templateId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	return db.DeleteItemFromDb[types.ActionTemplate](m.runtime, TableActionTemplates, IndexId, templateId)
+	err := db.DeleteItemFromDb[types.ActionTemplate](m.runtime, TableActionTemplates, IndexId, templateId)
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceActionTemplate, OperationDeleted, templateId)
+	return nil
 }
