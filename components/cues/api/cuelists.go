@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/components/cues/model"
+	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
 
@@ -15,6 +16,7 @@ const (
 func (c *CueingApi) registerCueListApis() error {
 	return errors.Join(
 		messaging.Reply[CreateCueListRequest, CreateCueListResponse](c.messenger, true, CreateCueListRequestSubject, c.CreateCueList),
+		messaging.Reply[EnumerateCueListsRequest, EnumerateCueListsResponse](c.messenger, true, EnumerateCueListsRequestSubject, c.EnumerateCueLists),
 	)
 }
 
@@ -39,4 +41,19 @@ func (c *CueingApi) CreateCueList(sub string, request *CreateCueListRequest) (*C
 		return nil, err
 	}
 	return &CreateCueListResponse{Id: id, Number: num}, nil
+}
+
+const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
+
+type EnumerateCueListsRequest struct{}
+type EnumerateCueListsResponse struct {
+	CueLists []types.CueList `msgpack:"cueLists" json:"cueLists"`
+}
+
+func (c *CueingApi) EnumerateCueLists(sub string, request *EnumerateCueListsRequest) (*EnumerateCueListsResponse, error) {
+	cueLists, err := c.model.EnumerateCueLists()
+	if err != nil {
+		return nil, err
+	}
+	return &EnumerateCueListsResponse{CueLists: cueLists}, nil
 }
