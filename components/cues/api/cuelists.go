@@ -32,8 +32,8 @@ type CreateCueListRequest struct {
 }
 
 type CreateCueListResponse struct {
-	Id     string `msgpack:"id" json:"id"`
-	Number uint   `msgpack:"number" json:"number"`
+	CueListId string `msgpack:"cueListId" json:"cueListId"`
+	Number    uint   `msgpack:"number" json:"number"`
 }
 
 func (c *CueingApi) CreateCueList(sub string, request *CreateCueListRequest) (*CreateCueListResponse, error) {
@@ -44,7 +44,7 @@ func (c *CueingApi) CreateCueList(sub string, request *CreateCueListRequest) (*C
 	if err != nil {
 		return nil, err
 	}
-	return &CreateCueListResponse{Id: id, Number: num}, nil
+	return &CreateCueListResponse{CueListId: id, Number: num}, nil
 }
 
 const EnumerateCueListsRequestSubject = "request.cueing.cuelists.enumerate"
@@ -88,7 +88,7 @@ func (c *CueingApi) GetCueListByNumber(sub string, request *GetCueListByNumberRe
 const GetCueListByIdRequestSubject = "request.cueing.cuelists.get.id"
 
 type GetCueListByIdRequest struct {
-	Id string `msgpack:"id" json:"id" validate:"required"`
+	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 }
 
 type GetCueListByIdResponse struct {
@@ -96,7 +96,7 @@ type GetCueListByIdResponse struct {
 }
 
 func (c *CueingApi) GetCueListById(sub string, request *GetCueListByIdRequest) (*GetCueListByIdResponse, error) {
-	out, err := c.model.GetCueListById(request.Id)
+	out, err := c.model.GetCueListById(request.CueListId)
 	if errors.Is(err, model.ErrCueListNotFound) {
 		return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: CueListNotFound})
 	}
@@ -112,13 +112,13 @@ func (c *CueingApi) GetCueListById(sub string, request *GetCueListByIdRequest) (
 const DeleteCueListRequestSubject = "request.cueing.cuelists.delete"
 
 type DeleteCueListRequest struct {
-	Id string `msgpack:"id" json:"id" validate:"required"`
+	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
 }
 
 type DeleteCueListResponse struct{}
 
 func (c *CueingApi) DeleteCueList(sub string, request *DeleteCueListRequest) (*DeleteCueListResponse, error) {
-	err := c.model.DeleteCueListById(request.Id)
+	err := c.model.DeleteCueListById(request.CueListId)
 	if err != nil {
 		return nil, err
 	}
@@ -129,15 +129,15 @@ func (c *CueingApi) DeleteCueList(sub string, request *DeleteCueListRequest) (*D
 const UpdateCueListAttributesRequestSubject = "request.cueing.cuelists.attributes.update"
 
 type UpdateCueListAttributesRequest struct {
-	Id    string      `msgpack:"id" json:"id" validate:"required"`
-	Field string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=cueListType"`
-	Value interface{} `msgpack:"value" json:"value" validate:"required"`
+	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=cueListType"`
+	Value     interface{} `msgpack:"value" json:"value" validate:"required"`
 }
 
 type UpdateCueListAttributesResponse struct{}
 
 func (c *CueingApi) UpdateCueListAttributes(sub string, request *UpdateCueListAttributesRequest) (*UpdateCueListAttributesResponse, error) {
-	err := c.model.UpdateCueListAttribute(request.Id, request.Field, request.Value)
+	err := c.model.UpdateCueListAttribute(request.CueListId, request.Field, request.Value)
 	if errors.Is(err, model.ErrCueListNotFound) {
 		return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: CueListNotFound})
 	}
