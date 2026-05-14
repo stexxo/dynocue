@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+
 	"github.com/stexxo/dynocue/components/cues/model"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -12,9 +14,12 @@ type CueingApi struct {
 
 func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger) (*CueingApi, error) {
 	c := &CueingApi{model: model, messenger: messaging}
-	err := c.registerCueListApis()
+	err := errors.Join(
+		c.registerCueListApis(),
+	)
 	if err != nil {
 		return nil, err
 	}
+
 	return c, nil
 }
