@@ -10,6 +10,11 @@ type CueingApi struct {
 	messenger *messaging.Messenger
 }
 
-func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger) *CueingApi {
-	return &CueingApi{model: model, messenger: messaging}
+func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger) (*CueingApi, error) {
+	c := &CueingApi{model: model, messenger: messaging}
+	err := c.registerCueListApis()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
