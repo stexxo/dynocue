@@ -6,29 +6,30 @@ import (
 )
 
 func (c *CueingApi) registerCueListEvents() {
-	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationCreated, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.CueListCreated))
-	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationUpdated, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.CueListUpdated))
-	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationDeleted, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.DeleteCueListEvent))
+	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationCreated, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.CueListChanged))
+	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationUpdated, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.CueListChanged))
+	c.model.RegisterEventHandler(model.ResourceCueList, model.OperationDeleted, eventHandler[CueListChangeEvent](c.messenger, c.logger, c.CueListChanged))
 }
 
-const CueListCreatedEventSubject = "event.cueing.cuelists.created"
+const (
+	CueListCreatedEventSubject           = "event.cueing.cuelists.created"
+	CueListAttributesUpdatedEventSubject = "event.cueing.cuelists.updated"
+	DeleteCueListEventSubject            = "event.cueing.cuelists.deleted"
+)
 
 type CueListChangeEvent struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
 }
 
-func (c *CueingApi) CueListCreated(ev util.Event) (string, *CueListChangeEvent) {
-	return CueListCreatedEventSubject, &CueListChangeEvent{CueListId: ev.Identifier}
-}
-
-const CueListAttributesUpdatedEventSubject = "event.cueing.cuelists.updated"
-
-func (c *CueingApi) CueListUpdated(ev util.Event) (string, *CueListChangeEvent) {
-	return CueListAttributesUpdatedEventSubject, &CueListChangeEvent{CueListId: ev.Identifier}
-}
-
-const DeleteCueListEventSubject = "event.cueing.cuelists.deleted"
-
-func (c *CueingApi) DeleteCueListEvent(ev util.Event) (string, *CueListChangeEvent) {
-	return DeleteCueListEventSubject, &CueListChangeEvent{CueListId: ev.Identifier}
+func (c *CueingApi) CueListChanged(ev util.Event) (string, *CueListChangeEvent) {
+	var sub string
+	switch ev.Operation {
+	case model.OperationUpdated:
+		sub = CueListAttributesUpdatedEventSubject
+	case model.OperationDeleted:
+		sub = DeleteCueListEventSubject
+	case model.OperationCreated:
+		sub = CueListCreatedEventSubject
+	}
+	return sub, &CueListChangeEvent{CueListId: ev.EventData[model.MetadataCueListId]}
 }

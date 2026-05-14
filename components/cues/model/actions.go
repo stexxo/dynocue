@@ -70,11 +70,18 @@ func (m *CueingModel) GetActionById(actionId string) (*types.Action, error) {
 func (m *CueingModel) DeleteAction(actionId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	err := db.DeleteItemFromDb[types.Action](m.persistent, TableActions, IndexId, actionId)
+	a, err := m.GetActionById(actionId)
+	if errors.Is(err, ErrActionNotFound) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceAction, OperationDeleted, actionId)
+	err = db.DeleteItemFromDb[types.Action](m.persistent, TableActions, IndexId, actionId)
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceAction, OperationDeleted, MetadataCueListId, a.CueListId, MetadataCueId, a.CueId, MetadataActionId, actionId)
 	return nil
 }
 

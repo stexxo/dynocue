@@ -19,24 +19,45 @@ func TestCueEventsMethods(t *testing.T) {
 	api := &CueingApi{}
 
 	t.Run("CueCreated returns correct subject and payload", func(t *testing.T) {
-		ev := util.Event{Identifier: "test-cue-id"}
-		sub, payload := api.CueCreated(ev)
+		ev := util.Event{
+			Operation: model.OperationCreated,
+			EventData: map[string]string{
+				model.MetadataCueListId: "cl-1",
+				model.MetadataCueId:     "cue-1",
+			},
+		}
+		sub, payload := api.CueChanged(ev)
 		assert.Equal(t, CueCreatedEventSubject, sub)
-		assert.Equal(t, "test-cue-id", payload.CueId)
+		assert.Equal(t, "cl-1", payload.CueListId)
+		assert.Equal(t, "cue-1", payload.CueId)
 	})
 
 	t.Run("CueUpdated returns correct subject and payload", func(t *testing.T) {
-		ev := util.Event{Identifier: "test-cue-id"}
-		sub, payload := api.CueUpdated(ev)
+		ev := util.Event{
+			Operation: model.OperationUpdated,
+			EventData: map[string]string{
+				model.MetadataCueListId: "cl-1",
+				model.MetadataCueId:     "cue-1",
+			},
+		}
+		sub, payload := api.CueChanged(ev)
 		assert.Equal(t, CueAttributesUpdatedEventSubject, sub)
-		assert.Equal(t, "test-cue-id", payload.CueId)
+		assert.Equal(t, "cl-1", payload.CueListId)
+		assert.Equal(t, "cue-1", payload.CueId)
 	})
 
-	t.Run("DeleteCueEvent returns correct subject and payload", func(t *testing.T) {
-		ev := util.Event{Identifier: "test-cue-id"}
-		sub, payload := api.DeleteCueEvent(ev)
+	t.Run("CueDeleted returns correct subject and payload", func(t *testing.T) {
+		ev := util.Event{
+			Operation: model.OperationDeleted,
+			EventData: map[string]string{
+				model.MetadataCueListId: "cl-1",
+				model.MetadataCueId:     "cue-1",
+			},
+		}
+		sub, payload := api.CueChanged(ev)
 		assert.Equal(t, DeleteCueEventSubject, sub)
-		assert.Equal(t, "test-cue-id", payload.CueId)
+		assert.Equal(t, "cl-1", payload.CueListId)
+		assert.Equal(t, "cue-1", payload.CueId)
 	})
 }
 
@@ -52,9 +73,8 @@ func TestRegisterCueEvents(t *testing.T) {
 	_, err = NewCueingApi(m, messenger, nil)
 	require.NoError(t, err)
 
-	// Create a cue list first since cues need one
-	clId, _, err := m.CreateCueList(1, types.CueListTypeSequential)
-	require.NoError(t, err)
+	// Seed data
+	clId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
 
 	t.Run("CueCreated event is published", func(t *testing.T) {
 		wg := sync.WaitGroup{}
@@ -70,10 +90,9 @@ func TestRegisterCueEvents(t *testing.T) {
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
 
-		id, _, err := m.CreateCue(clId, 1)
+		cueId, _, err := m.CreateCue(clId, 0)
 		require.NoError(t, err)
 
-		// Wait for event with timeout
 		done := make(chan struct{})
 		go func() {
 			wg.Wait()
@@ -82,14 +101,14 @@ func TestRegisterCueEvents(t *testing.T) {
 
 		select {
 		case <-done:
-			assert.Equal(t, id, receivedId)
+			assert.Equal(t, cueId, receivedId)
 		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for cue created event")
+			t.Fatal("timed out waiting for CueCreated event")
 		}
 	})
 
 	t.Run("CueUpdated event is published", func(t *testing.T) {
-		id, _, _ := m.CreateCue(clId, 2)
+		cueId, _, _ := m.CreateCue(clId, 0)
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -104,7 +123,7 @@ func TestRegisterCueEvents(t *testing.T) {
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
 
-		err = m.UpdateCueAttribute(id, "label", "new cue label")
+		err = m.UpdateCueAttribute(cueId, "label", "new label")
 		require.NoError(t, err)
 
 		done := make(chan struct{})
@@ -115,14 +134,14 @@ func TestRegisterCueEvents(t *testing.T) {
 
 		select {
 		case <-done:
-			assert.Equal(t, id, receivedId)
+			assert.Equal(t, cueId, receivedId)
 		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for cue updated event")
+			t.Fatal("timed out waiting for CueUpdated event")
 		}
 	})
 
 	t.Run("CueDeleted event is published", func(t *testing.T) {
-		id, _, _ := m.CreateCue(clId, 3)
+		cueId, _, _ := m.CreateCue(clId, 0)
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
@@ -137,7 +156,7 @@ func TestRegisterCueEvents(t *testing.T) {
 		require.NoError(t, err)
 		defer sub.Unsubscribe()
 
-		err = m.DeleteCueById(id)
+		err = m.DeleteCueById(cueId)
 		require.NoError(t, err)
 
 		done := make(chan struct{})
@@ -148,9 +167,9 @@ func TestRegisterCueEvents(t *testing.T) {
 
 		select {
 		case <-done:
-			assert.Equal(t, id, receivedId)
+			assert.Equal(t, cueId, receivedId)
 		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for cue deleted event")
+			t.Fatal("timed out waiting for CueDeleted event")
 		}
 	})
 }

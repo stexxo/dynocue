@@ -44,7 +44,7 @@ func (e *EventRegistry) Emit(resource, operation string, metadata ...string) {
 	}
 
 	ev := Event{Resource: resource, Operation: operation}
-	if len(metadata) > 0 && len(metadata[0])%2 == 0 {
+	if len(metadata) > 0 {
 		ev.EventData = make(map[string]string)
 		for pair := range slices.Chunk(metadata, 2) {
 			ev.EventData[pair[0]] = pair[1]

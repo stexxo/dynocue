@@ -36,7 +36,7 @@ func eventHandler[T any](m *messaging.Messenger, l logging.Logger, evFn func(uti
 		sub, body := evFn(event)
 		err := messaging.Publish(m, sub, body)
 		if err != nil {
-			l.Error("failed to publish event", "error", err, "resource", event.Resource, "operation", event.Operation, "identifier", event.Identifier)
+			l.Error("failed to publish event", "error", err, "resource", event.Resource, "operation", event.Operation)
 		}
 	}
 }

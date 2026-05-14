@@ -85,11 +85,18 @@ func (m *CueingModel) GetCueById(cueId string) (*types.Cue, error) {
 func (m *CueingModel) DeleteCueById(cueId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	err := db.DeleteItemFromDb[types.Cue](m.persistent, TableCues, IndexId, cueId)
+	cue, err := m.GetCueById(cueId)
+	if errors.Is(err, ErrCueNotFound) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceCue, OperationDeleted, cueId)
+	err = db.DeleteItemFromDb[types.Cue](m.persistent, TableCues, IndexId, cueId)
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceCue, OperationDeleted, MetadataCueListId, cue.CueListId, MetadataCueId, cueId)
 	return nil
 }
 
@@ -136,7 +143,7 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 	for cueId, actions := range deleted {
 		m.registry.Emit(ResourceCue, OperationDeleted, MetadataCueListId, cueListId, MetadataCueId, cueId)
 		for _, actionid := range actions {
-			m.registry.Emit(ResourceCue, OperationDeleted, MetadataCueListId, cueListId, MetadataCueId, cueId, MetadataActionId, actionid)
+			m.registry.Emit(ResourceAction, OperationDeleted, MetadataCueListId, cueListId, MetadataCueId, cueId, MetadataActionId, actionid)
 		}
 	}
 
