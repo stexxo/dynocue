@@ -6,7 +6,7 @@ package services
 
 import (
 	"github.com/stexxo/dynocue/client"
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -29,7 +29,7 @@ func NewActionTemplatesService(manager *client.Manager, app *application.App, lo
 }
 
 func (s *ActionTemplatesService) onNewClient(cl *client.Client) error {
-	return cl.OnActionTemplateRegistered(func(subject string, event *cues.RegisterActionTemplateEvent) {
+	return cl.OnActionTemplateRegistered(func(subject string, event *api.ActionTemplateChangeEvent) {
 		s.app.Event.Emit(subject, event)
 	})
 }

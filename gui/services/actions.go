@@ -8,7 +8,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/client"
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -32,29 +32,27 @@ func NewActionsService(manager *client.Manager, app *application.App, logger log
 
 func (s *ActionsService) onNewClient(cl *client.Client) error {
 	return errors.Join(
-		cl.OnActionCreated(func(sub string, event *cues.ActionCreatedEvent) { s.app.Event.Emit(sub, event) }),
-		cl.OnActionUpdated(func(sub string, event *cues.ActionUpdatedEvent) { s.app.Event.Emit(sub, event) }),
-		cl.OnActionDeleted(func(sub string, event *cues.ActionDeletedEvent) { s.app.Event.Emit(sub, event) }),
+		cl.OnActionCreated(func(sub string, event *api.ActionChangeEvent) { s.app.Event.Emit(sub, event) }),
+		cl.OnActionUpdated(func(sub string, event *api.ActionChangeEvent) { s.app.Event.Emit(sub, event) }),
+		cl.OnActionDeleted(func(sub string, event *api.ActionChangeEvent) { s.app.Event.Emit(sub, event) }),
 	)
 }
 
-func (s *ActionsService) CreateAction(cueId string, templateId string, actionNumber uint) (*types.Action, bool) {
-	var out *types.Action
+func (s *ActionsService) CreateAction(cueId string, templateId string, actionNumber uint) bool {
 	err := s.clientManager.WithClient(func(c *client.Client) error {
-		action, err := c.CreateAction(cueId, templateId, actionNumber)
+		_, _, err := c.CreateAction(cueId, templateId, actionNumber)
 		if err != nil {
 			return err
 		}
-		out = action
 		return nil
 	})
 
 	if err != nil {
 		s.logger.Error("failed to create action", "err", err)
-		return nil, false
+		return false
 	}
 
-	return out, true
+	return true
 }
 
 func (s *ActionsService) EnumerateActions(cueId string) ([]types.Action, bool) {

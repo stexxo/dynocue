@@ -8,7 +8,7 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/client"
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -32,9 +32,9 @@ func NewCueListsService(manager *client.Manager, app *application.App, logger lo
 
 func (c *CueListsService) onNewClient(cl *client.Client) error {
 	return errors.Join(
-		cl.OnCueListCreated(func(s string, t *cues.CueListCreatedEvent) { c.app.Event.Emit(s, t) }),
-		cl.OnCueListAttributesUpdated(func(s string, t *cues.CueListAttributesUpdatedEvent) { c.app.Event.Emit(s, t) }),
-		cl.OnCueListDeleted(func(s string, t *cues.CueListDeletedEvent) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListCreated(func(s string, t *api.CueListChangeEvent) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListAttributesUpdated(func(s string, t *api.CueListChangeEvent) { c.app.Event.Emit(s, t) }),
+		cl.OnCueListDeleted(func(s string, t *api.CueListChangeEvent) { c.app.Event.Emit(s, t) }),
 	)
 }
 
