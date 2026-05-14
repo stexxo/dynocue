@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -15,29 +16,29 @@ import (
 var ErrActionTemplateNotFound = fmt.Errorf("action template not found")
 
 func (c *Client) EnumerateActionTemplates() ([]types.ActionTemplate, error) {
-	resp, err := messaging.Request[cues.EnumerateActionTemplatesResponse](c.messenger, cues.EnumerateActionTemplatesRequestSubject, &cues.EnumerateActionTemplatesRequest{})
+	resp, err := messaging.Request[api.EnumerateActionTemplatesResponse](c.messenger, api.EnumerateActionTemplatesRequestSubject, &api.EnumerateActionTemplatesRequest{})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return resp.Response.ActionTemplates, nil
+		return resp.Response.Templates, nil
 	}
 
 	return nil, fmt.Errorf("failed to enumerate action templates: %s", resp.Error)
 }
 
 func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
-	resp, err := messaging.Request[cues.GetActionTemplateResponse](c.messenger, cues.GetActionTemplateRequestSubject, &cues.GetActionTemplateRequest{
+	resp, err := messaging.Request[api.GetActionTemplateByIdResponse](c.messenger, api.GetActionTemplateByIdRequestSubject, &api.GetActionTemplateByIdRequest{
 		TemplateId: id,
 	})
 	if err != nil {
 		return nil, err
 	}
 	if resp.Success {
-		return resp.Response.Template, nil
+		return &resp.Response.Template, nil
 	}
 
-	if resp.Error == cues.ActionTemplateNotFound {
+	if resp.Error == api.ActionTemplateNotFound {
 		return nil, ErrActionTemplateNotFound
 	}
 
@@ -45,7 +46,7 @@ func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 }
 
 func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string, fields []types.ActionTemplateField) error {
-	resp, err := messaging.Request[cues.RegisterActionTemplateResponse](c.messenger, cues.RegisterActionTemplateRequestSubject, &cues.RegisterActionTemplateRequest{
+	resp, err := messaging.Request[api.RegisterActionTemplateResponse](c.messenger, api.RegisterActionTemplateRequestSubject, &api.RegisterActionTemplateRequest{
 		TemplateId:    id,
 		SubsystemName: subsystemName,
 		Name:          name,
@@ -62,8 +63,8 @@ func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string,
 	return fmt.Errorf("failed to register action template: %s", resp.Error)
 }
 
-func (c *Client) OnActionTemplateRegistered(handler EventCallback[cues.RegisterActionTemplateEvent]) error {
-	return messaging.Subscribe[cues.RegisterActionTemplateEvent](c.messenger, true, cues.RegisterActionTemplateEventSubject, func(sub string, msg *cues.RegisterActionTemplateEvent) {
+func (c *Client) OnActionTemplateRegistered(handler EventCallback[api.RegisterActionTemplateEvent]) error {
+	return messaging.Subscribe[api.RegisterActionTemplateEvent](c.messenger, true, api.RegisterActionTemplateEventSubject, func(sub string, msg *api.RegisterActionTemplateEvent) {
 		handler(sub, msg)
 	})
 }

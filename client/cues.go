@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -17,18 +17,18 @@ var ErrCueExists = errors.New("cue with provided number already exists")
 var ErrCueNotFound = errors.New("cue not found")
 
 func (c *Client) CreateCue(cueListId string, cueNumber uint) (uint, error) {
-	resp, err := messaging.Request[cues.CreateCueResponse](c.messenger, cues.CreateCueRequestSubject, &cues.CreateCueRequest{
+	resp, err := messaging.Request[api.CreateCueResponse](c.messenger, api.CreateCueRequestSubject, &api.CreateCueRequest{
 		CueListId: cueListId,
-		CueNumber: cueNumber,
+		Number:    cueNumber,
 	})
 	if err != nil {
 		return 0, err
 	}
 	if resp.Success {
-		return resp.Response.CueNumber, nil
+		return resp.Response.Number, nil
 	}
 
-	if resp.Error == cues.CueNumberExists {
+	if resp.Error == api.CueNumberExists {
 		return 0, ErrCueExists
 	}
 
@@ -36,7 +36,7 @@ func (c *Client) CreateCue(cueListId string, cueNumber uint) (uint, error) {
 }
 
 func (c *Client) EnumerateCues(cueListId string) ([]types.Cue, error) {
-	resp, err := messaging.Request[cues.EnumerateCuesResponse](c.messenger, cues.EnumerateCuesRequestSubject, &cues.EnumerateCuesRequest{
+	resp, err := messaging.Request[api.EnumerateCuesResponse](c.messenger, api.EnumerateCuesRequestSubject, &api.EnumerateCuesRequest{
 		CueListId: cueListId,
 	})
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *Client) EnumerateCues(cueListId string) ([]types.Cue, error) {
 		return resp.Response.Cues, nil
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
@@ -55,9 +55,9 @@ func (c *Client) EnumerateCues(cueListId string) ([]types.Cue, error) {
 }
 
 func (c *Client) GetCueByNumber(cueListId string, cueNumber float64) (*types.Cue, error) {
-	resp, err := messaging.Request[cues.GetCueByNumberResponse](c.messenger, cues.GetCueByNumberRequestSubject, &cues.GetCueByNumberRequest{
+	resp, err := messaging.Request[api.GetCueByNumberResponse](c.messenger, api.GetCueByNumberRequestSubject, &api.GetCueByNumberRequest{
 		CueListId: cueListId,
-		CueNumber: cueNumber,
+		Number:    cueNumber,
 	})
 	if err != nil {
 		return nil, err
@@ -66,11 +66,11 @@ func (c *Client) GetCueByNumber(cueListId string, cueNumber float64) (*types.Cue
 		return &resp.Response.Cue, nil
 	}
 
-	if resp.Error == cues.CueNotFound {
+	if resp.Error == api.CueNotFound {
 		return nil, ErrCueNotFound
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
@@ -78,7 +78,7 @@ func (c *Client) GetCueByNumber(cueListId string, cueNumber float64) (*types.Cue
 }
 
 func (c *Client) GetCueById(cueListId string, cueId string) (*types.Cue, error) {
-	resp, err := messaging.Request[cues.GetCueByIdResponse](c.messenger, cues.GetCueByIdRequestSubject, &cues.GetCueByIdRequest{
+	resp, err := messaging.Request[api.GetCueByIdResponse](c.messenger, api.GetCueByIdRequestSubject, &api.GetCueByIdRequest{
 		CueId: cueId,
 	})
 	if err != nil {
@@ -88,11 +88,11 @@ func (c *Client) GetCueById(cueListId string, cueId string) (*types.Cue, error) 
 		return &resp.Response.Cue, nil
 	}
 
-	if resp.Error == cues.CueNotFound {
+	if resp.Error == api.CueNotFound {
 		return nil, ErrCueNotFound
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
@@ -100,7 +100,7 @@ func (c *Client) GetCueById(cueListId string, cueId string) (*types.Cue, error) 
 }
 
 func (c *Client) UpdateCueAttributes(cueListId string, cueId string, field string, value any) error {
-	resp, err := messaging.Request[cues.UpdateCueAttributesResponse](c.messenger, cues.UpdateCueAttributesRequestSubject, &cues.UpdateCueAttributesRequest{
+	resp, err := messaging.Request[api.UpdateCueAttributesResponse](c.messenger, api.UpdateCueAttributesRequestSubject, &api.UpdateCueAttributesRequest{
 		CueId: cueId,
 		Field: field,
 		Value: value,
@@ -113,11 +113,11 @@ func (c *Client) UpdateCueAttributes(cueListId string, cueId string, field strin
 		return nil
 	}
 
-	if resp.Error == cues.CueNotFound {
+	if resp.Error == api.CueNotFound {
 		return ErrCueNotFound
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return ErrCueListNotFound
 	}
 
@@ -125,7 +125,7 @@ func (c *Client) UpdateCueAttributes(cueListId string, cueId string, field strin
 }
 
 func (c *Client) DeleteCue(cueId string) error {
-	resp, err := messaging.Request[cues.DeleteCueResponse](c.messenger, cues.DeleteCueRequestSubject, &cues.DeleteCueRequest{
+	resp, err := messaging.Request[api.DeleteCueResponse](c.messenger, api.DeleteCueRequestSubject, &api.DeleteCueRequest{
 		CueId: cueId,
 	})
 	if err != nil {
@@ -136,15 +136,15 @@ func (c *Client) DeleteCue(cueId string) error {
 		return nil
 	}
 
-	if resp.Error == cues.CueNotFound {
+	if resp.Error == api.CueNotFound {
 		return ErrCueNotFound
 	}
 
 	return fmt.Errorf("failed to delete cue: %s", resp.Error)
 }
 
-func (c *Client) OnCueCreated(handler EventCallback[cues.CueCreatedEvent]) error {
-	err := messaging.Subscribe[cues.CueCreatedEvent](c.messenger, false, cues.CueCreatedEventSubject, func(s string, e *cues.CueCreatedEvent) {
+func (c *Client) OnCueCreated(handler EventCallback[api.CueChangeEvent]) error {
+	err := messaging.Subscribe[api.CueChangeEvent](c.messenger, false, api.CueCreatedEventSubject, func(s string, e *api.CueChangeEvent) {
 		handler(s, e)
 	})
 	if err != nil {
@@ -153,8 +153,8 @@ func (c *Client) OnCueCreated(handler EventCallback[cues.CueCreatedEvent]) error
 	return nil
 }
 
-func (c *Client) OnCueAttributesUpdated(handler EventCallback[cues.CueUpdatedEvent]) error {
-	err := messaging.Subscribe[cues.CueUpdatedEvent](c.messenger, false, cues.CueAttributesUpdatedEventSubject, func(s string, e *cues.CueUpdatedEvent) {
+func (c *Client) OnCueAttributesUpdated(handler EventCallback[api.CueChangeEvent]) error {
+	err := messaging.Subscribe[api.CueChangeEvent](c.messenger, false, api.CueAttributesUpdatedEventSubject, func(s string, e *api.CueChangeEvent) {
 		handler(s, e)
 	})
 	if err != nil {
@@ -163,8 +163,8 @@ func (c *Client) OnCueAttributesUpdated(handler EventCallback[cues.CueUpdatedEve
 	return nil
 }
 
-func (c *Client) OnCueDeleted(handler EventCallback[cues.CueDeletedEvent]) error {
-	err := messaging.Subscribe[cues.CueDeletedEvent](c.messenger, false, cues.DeleteCueEventSubject, func(s string, e *cues.CueDeletedEvent) {
+func (c *Client) OnCueDeleted(handler EventCallback[api.CueChangeEvent]) error {
+	err := messaging.Subscribe[api.CueChangeEvent](c.messenger, false, api.DeleteCueEventSubject, func(s string, e *api.CueChangeEvent) {
 		handler(s, e)
 	})
 	if err != nil {

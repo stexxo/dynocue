@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -17,7 +17,7 @@ var ErrCueListExists = errors.New("cue list with provided number already exists"
 var ErrCueListNotFound = errors.New("cue list not found")
 
 func (c *Client) CreateCueList(num uint, cueListType string) (uint, error) {
-	resp, err := messaging.Request[cues.CreateCueListResponse](c.messenger, cues.CreateCueListRequestSubject, &cues.CreateCueListRequest{Number: num, CueListType: cueListType})
+	resp, err := messaging.Request[api.CreateCueListResponse](c.messenger, api.CreateCueListRequestSubject, &api.CreateCueListRequest{Number: num, CueListType: cueListType})
 	if err != nil {
 		return 0, err
 	}
@@ -25,7 +25,7 @@ func (c *Client) CreateCueList(num uint, cueListType string) (uint, error) {
 		return resp.Response.Number, nil
 	}
 
-	if resp.Error == cues.CueListNumberExists {
+	if resp.Error == api.CueListNumberExists {
 		return 0, ErrCueListExists
 	}
 
@@ -33,7 +33,7 @@ func (c *Client) CreateCueList(num uint, cueListType string) (uint, error) {
 }
 
 func (c *Client) EnumerateCueLists() ([]types.CueList, error) {
-	resp, err := messaging.Request[cues.EnumerateCueListsResponse](c.messenger, cues.EnumerateCueListsRequestSubject, &cues.EnumerateCueListsRequest{})
+	resp, err := messaging.Request[api.EnumerateCueListsResponse](c.messenger, api.EnumerateCueListsRequestSubject, &api.EnumerateCueListsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *Client) EnumerateCueLists() ([]types.CueList, error) {
 }
 
 func (c *Client) GetCueListByNumber(number uint) (*types.CueList, error) {
-	resp, err := messaging.Request[cues.GetCueListByNumberResponse](c.messenger, cues.GetCueListByNumberRequestSubject, &cues.GetCueListByNumberRequest{Number: float64(number)})
+	resp, err := messaging.Request[api.GetCueListByNumberResponse](c.messenger, api.GetCueListByNumberRequestSubject, &api.GetCueListByNumberRequest{Number: float64(number)})
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (c *Client) GetCueListByNumber(number uint) (*types.CueList, error) {
 		return &resp.Response.CueList, nil
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
@@ -62,7 +62,7 @@ func (c *Client) GetCueListByNumber(number uint) (*types.CueList, error) {
 }
 
 func (c *Client) GetCueListById(id string) (*types.CueList, error) {
-	resp, err := messaging.Request[cues.GetCueListByIdResponse](c.messenger, cues.GetCueListByIdRequestSubject, &cues.GetCueListByIdRequest{Id: id})
+	resp, err := messaging.Request[api.GetCueListByIdResponse](c.messenger, api.GetCueListByIdRequestSubject, &api.GetCueListByIdRequest{CueListId: id})
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Client) GetCueListById(id string) (*types.CueList, error) {
 		return &resp.Response.CueList, nil
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return nil, ErrCueListNotFound
 	}
 
@@ -78,7 +78,7 @@ func (c *Client) GetCueListById(id string) (*types.CueList, error) {
 }
 
 func (c *Client) UpdateCueListField(id string, field string, value any) error {
-	resp, err := messaging.Request[cues.UpdateCueListAttributesResponse](c.messenger, cues.UpdateCueListAttributesRequestSubject, &cues.UpdateCueListAttributesRequest{Id: id, Field: field, Value: value})
+	resp, err := messaging.Request[api.UpdateCueListAttributesResponse](c.messenger, api.UpdateCueListAttributesRequestSubject, &api.UpdateCueListAttributesRequest{CueListId: id, Field: field, Value: value})
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (c *Client) UpdateCueListField(id string, field string, value any) error {
 		return nil
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return ErrCueListNotFound
 	}
 
@@ -95,7 +95,7 @@ func (c *Client) UpdateCueListField(id string, field string, value any) error {
 }
 
 func (c *Client) DeleteCueList(id string) error {
-	resp, err := messaging.Request[cues.DeleteCueListsResponse](c.messenger, cues.DeleteCueListRequestSubject, &cues.DeleteCueListsRequest{Id: id})
+	resp, err := messaging.Request[api.DeleteCueListResponse](c.messenger, api.DeleteCueListRequestSubject, &api.DeleteCueListRequest{CueListId: id})
 	if err != nil {
 		return fmt.Errorf("failed to delete cue list: %w", err)
 	}
@@ -104,15 +104,15 @@ func (c *Client) DeleteCueList(id string) error {
 		return nil
 	}
 
-	if resp.Error == cues.CueListNotFound {
+	if resp.Error == api.CueListNotFound {
 		return ErrCueListNotFound
 	}
 
 	return fmt.Errorf("failed to delete cue list: %s", resp.Error)
 }
 
-func (c *Client) OnCueListCreated(handler EventCallback[cues.CueListCreatedEvent]) error {
-	err := messaging.Subscribe[cues.CueListCreatedEvent](c.messenger, false, cues.CueListCreatedEventSubject, func(s string, c *cues.CueListCreatedEvent) {
+func (c *Client) OnCueListCreated(handler EventCallback[api.CueListChangeEvent]) error {
+	err := messaging.Subscribe[api.CueListChangeEvent](c.messenger, false, api.CueListCreatedEventSubject, func(s string, c *api.CueListChangeEvent) {
 		handler(s, c)
 	})
 	if err != nil {
@@ -121,8 +121,8 @@ func (c *Client) OnCueListCreated(handler EventCallback[cues.CueListCreatedEvent
 	return nil
 }
 
-func (c *Client) OnCueListAttributesUpdated(handler EventCallback[cues.CueListAttributesUpdatedEvent]) error {
-	err := messaging.Subscribe[cues.CueListAttributesUpdatedEvent](c.messenger, false, cues.CueListAttributesUpdatedEventSubject, func(s string, c *cues.CueListAttributesUpdatedEvent) {
+func (c *Client) OnCueListAttributesUpdated(handler EventCallback[api.CueListChangeEvent]) error {
+	err := messaging.Subscribe[api.CueListChangeEvent](c.messenger, false, api.CueListAttributesUpdatedEventSubject, func(s string, c *api.CueListChangeEvent) {
 		handler(s, c)
 	})
 	if err != nil {
@@ -131,8 +131,8 @@ func (c *Client) OnCueListAttributesUpdated(handler EventCallback[cues.CueListAt
 	return nil
 }
 
-func (c *Client) OnCueListDeleted(handler EventCallback[cues.CueListDeletedEvent]) error {
-	err := messaging.Subscribe[cues.CueListDeletedEvent](c.messenger, false, cues.DeleteCueListEventSubject, func(s string, c *cues.CueListDeletedEvent) {
+func (c *Client) OnCueListDeleted(handler EventCallback[api.CueListChangeEvent]) error {
+	err := messaging.Subscribe[api.CueListChangeEvent](c.messenger, false, api.DeleteCueListEventSubject, func(s string, c *api.CueListChangeEvent) {
 		handler(s, c)
 	})
 	if err != nil {
