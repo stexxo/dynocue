@@ -223,7 +223,7 @@ type UpdateCueAttributesRequest struct {
 type UpdateCueAttributesResponse struct{}
 
 func (p *Cueing) UpdateCueAttributes(sub string, request *UpdateCueAttributesRequest) (*UpdateCueAttributesResponse, error) {
-	err := db.UpdateStructInDb[types.Cue](p.db, TableCues, IndexId, request.CueId, request.Field, request.Value)
+	_, err := db.UpdateStructInDb[types.Cue](p.db, TableCues, IndexId, request.CueId, request.Field, request.Value)
 	if err != nil {
 		p.Logger().Error("failed to update field in cue", "error", err)
 		return nil, err

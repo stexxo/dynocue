@@ -20,6 +20,7 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 	err := errors.Join(
 		c.registerCueListApis(),
 		c.registerCueApis(),
+		c.registerActionApis(),
 	)
 	if err != nil {
 		return nil, err
@@ -27,6 +28,7 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 
 	c.registerCueListEvents()
 	c.registerCueEvents()
+	c.registerActionEvents()
 
 	return c, nil
 }

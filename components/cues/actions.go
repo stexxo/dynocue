@@ -199,7 +199,7 @@ type ActionUpdatedEvent struct {
 }
 
 func (p *Cueing) UpdateAction(sub string, request *UpdateActionRequest) (*UpdateActionResponse, error) {
-	err := db.UpdateStructInDb[types.Action](p.db, TableActions, IndexId, request.ActionId, request.Field, request.Value)
+	_, err := db.UpdateStructInDb[types.Action](p.db, TableActions, IndexId, request.ActionId, request.Field, request.Value)
 	if err != nil {
 		p.Logger().Error("failed to update field in action", "error", err)
 		return nil, err

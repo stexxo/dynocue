@@ -7,6 +7,7 @@ import (
 
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupActionTest(t *testing.T) (m *CueingModel, cueId string) {
@@ -186,6 +187,26 @@ func TestDeleteAction(t *testing.T) {
 		err := m.DeleteAction("non-existent")
 		assert.NoError(t, err)
 	})
+}
+
+func TestEnumerateActions(t *testing.T) {
+	m, cueId := setupActionTest(t)
+
+	_ = m.RegisterActionTemplate(&types.ActionTemplate{
+		TemplateId:   "test",
+		TemplateName: "test",
+	})
+
+	_, _, err := m.CreateAction(cueId, "test", 1)
+	require.NoError(t, err)
+	_, _, err = m.CreateAction(cueId, "test", 2)
+	require.NoError(t, err)
+
+	actions, err := m.EnumerateActions(cueId)
+	assert.NoError(t, err)
+	assert.Len(t, actions, 2)
+	assert.Equal(t, uint(1), actions[0].Number)
+	assert.Equal(t, uint(2), actions[1].Number)
 }
 
 func setupBenchmarkAction(b *testing.B) (m *CueingModel, cueId string) {

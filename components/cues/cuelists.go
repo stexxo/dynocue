@@ -205,7 +205,7 @@ type UpdateCueListAttributesRequest struct {
 type UpdateCueListAttributesResponse struct{}
 
 func (p *Cueing) UpdateCueListAttributes(sub string, request *UpdateCueListAttributesRequest) (*UpdateCueListAttributesResponse, error) {
-	err := db.UpdateStructInDb[types.CueList](p.db, TableCueLists, IndexId, request.Id, request.Field, request.Value)
+	_, err := db.UpdateStructInDb[types.CueList](p.db, TableCueLists, IndexId, request.Id, request.Field, request.Value)
 	if err != nil {
 		return nil, err
 	}

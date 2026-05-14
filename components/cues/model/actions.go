@@ -99,6 +99,12 @@ func (m *CueingModel) UpdateAction(actionId string, field string, value any) err
 	return nil
 }
 
+func (m *CueingModel) EnumerateActions(cueId string) ([]types.Action, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
+	return db.GetAllDb[types.Action](m.persistent, TableActions, IndexNumberPrefix, cueId)
+}
+
 func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value any) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
