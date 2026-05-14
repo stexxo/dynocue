@@ -80,7 +80,8 @@ for ext in "${!EXT_STYLE_MAP[@]}"; do
     echo "Processing .$ext files..."
     
     # Find files and apply license
-    find . -name "*.$ext" -type f "${EXCLUDE_DIRS[@]}" | while read -r file; do
+    # We search from the parent directory (project root)
+    find "$(dirname "$0")/.." -name "*.$ext" -type f "${EXCLUDE_DIRS[@]}" | while read -r file; do
         apply_license "$file" "$style"
     done
 done
