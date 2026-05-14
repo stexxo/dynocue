@@ -13,6 +13,6 @@ const (
 	OperationDeleted = "deleted"
 )
 
-func (m *CueingModel) RegisterEventHandler(resource, action string, fn util.HandlerFn) {
-	m.registry.Register(resource, action, fn)
+func (m *CueingModel) RegisterEventHandler(resource, operation string, fn util.HandlerFn) {
+	m.registry.Register(resource, operation, fn)
 }

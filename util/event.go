@@ -4,7 +4,7 @@ import "sync"
 
 type Event struct {
 	Resource   string
-	Action     string
+	Operation  string
 	Identifier string
 }
 
@@ -21,26 +21,26 @@ func NewEventRegistry() *EventRegistry {
 	}
 }
 
-func (e *EventRegistry) Register(resource, action string, handler HandlerFn) {
+func (e *EventRegistry) Register(resource, operation string, handler HandlerFn) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	if _, ok := e.registry[resource]; !ok {
 		e.registry[resource] = make(map[string][]HandlerFn)
 	}
-	e.registry[resource][action] = append(e.registry[resource][action], handler)
+	e.registry[resource][operation] = append(e.registry[resource][operation], handler)
 }
 
-func (e *EventRegistry) Emit(resource, action, identifier string) {
+func (e *EventRegistry) Emit(resource, operation, identifier string) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	actions, ok := e.registry[resource]
+	operations, ok := e.registry[resource]
 	if !ok {
 		return
 	}
 
-	for _, handler := range actions[action] {
-		go handler(Event{Resource: resource, Action: action, Identifier: identifier})
+	for _, handler := range operations[operation] {
+		go handler(Event{Resource: resource, Operation: operation, Identifier: identifier})
 	}
 }
