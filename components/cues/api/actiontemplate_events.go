@@ -11,8 +11,8 @@ func (c *CueingApi) registerActionTemplateEvents() {
 }
 
 const (
-	ActionTemplateCreatedEventSubject = "event.cueing.actiontemplate.created"
-	DeleteActionTemplateEventSubject  = "event.cueing.actiontemplate.deleted"
+	ActionTemplateCreatedEventSubject = "event.cueing.actions.templates.created"
+	DeleteActionTemplateEventSubject  = "event.cueing.actions.templates.deleted"
 )
 
 type ActionTemplateChangeEvent struct {

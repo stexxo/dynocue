@@ -12,9 +12,9 @@ func (c *CueingApi) registerActionEvents() {
 }
 
 const (
-	ActionCreatedEventSubject           = "event.cueing.action.created"
-	ActionAttributesUpdatedEventSubject = "event.cueing.action.attributes.updated"
-	ActionDeletedEventSubject           = "event.cueing.action.deleted"
+	ActionCreatedEventSubject           = "event.cueing.actions.created"
+	ActionAttributesUpdatedEventSubject = "event.cueing.actions.updated"
+	ActionDeletedEventSubject           = "event.cueing.actions.deleted"
 )
 
 type ActionChangeEvent struct {

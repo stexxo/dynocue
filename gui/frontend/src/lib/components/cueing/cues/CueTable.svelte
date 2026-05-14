@@ -19,9 +19,6 @@
 	const props: CueTableProps = $props();
 	let cues = $derived(cuesStore.cues.get(props.CueListId));
 
-	$effect(() => {
-		console.log(props.CueListId);
-	});
 	let cueToDelete = $state<{ cueListId: string; cueId: string; number: number } | null>(null);
 	let deleteModal: ReturnType<typeof ConfirmationModal>;
 

@@ -22,7 +22,7 @@ class CuelistsStore {
 		Events.On('event.cueing.cuelists.created', () => {
 			this.load();
 		});
-		Events.On('event.cueing.cuelists.attributes.updated', () => {
+		Events.On('event.cueing.cuelists.updated', () => {
 			this.load();
 		});
 		Events.On('event.cueing.cuelists.deleted', () => {

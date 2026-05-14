@@ -13,7 +13,7 @@ func (c *CueingApi) registerCueEvents() {
 
 const (
 	CueCreatedEventSubject           = "event.cueing.cues.created"
-	CueAttributesUpdatedEventSubject = "event.cueing.cues.attributes.updated"
+	CueAttributesUpdatedEventSubject = "event.cueing.cues.updated"
 	DeleteCueEventSubject            = "event.cueing.cues.deleted"
 )
 

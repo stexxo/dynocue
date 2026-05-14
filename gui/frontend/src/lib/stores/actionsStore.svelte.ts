@@ -32,7 +32,7 @@ class ActionsStore {
 			});
 		});
 
-		Events.On('event.cueing.cue.deleted', (ev: any) => {
+		Events.On('event.cueing.cues.deleted', (ev: any) => {
 			const event = ev.data as { cueId: string };
 			if (this.#actions.delete(event.cueId)) {
 				this.#actions = new Map(this.#actions);
@@ -40,18 +40,15 @@ class ActionsStore {
 		});
 
 		Events.On('event.cueing.actions.created', (ev: any) => {
-			const event = ev.data as { action: Action };
-			this.load(event.action.cueId);
+			this.load(ev.data.cueId);
 		});
 
 		Events.On('event.cueing.actions.updated', (ev: any) => {
-			const event = ev.data as { cueId: string };
-			this.load(event.cueId);
+			this.load(ev.data.cueId);
 		});
 
 		Events.On('event.cueing.actions.deleted', (ev: any) => {
-			const event = ev.data as { cueId: string };
-			this.load(event.cueId);
+			this.load(ev.data.cueId);
 		});
 
 		Events.On('event.system.persistence.loaded', () => {
@@ -66,7 +63,6 @@ class ActionsStore {
 	async load(cueId: string) {
 		const [actions, ok] = await EnumerateActions(cueId);
 		if (ok) {
-			console.log(actions);
 			this.#actions.set(cueId, actions);
 			// Re-assign to trigger Svelte reactivity for the Map
 			this.#actions = new Map(this.#actions);
@@ -74,11 +70,10 @@ class ActionsStore {
 	}
 
 	async create(cueId: string, templateId: string, actionNumber: number = 0) {
-		const [action, ok] = await CreateAction(cueId, templateId, actionNumber);
+		const ok = await CreateAction(cueId, templateId, actionNumber);
 		if (!ok) {
 			console.error('Failed to create action', cueId, templateId);
 		}
-		return action;
 	}
 
 	async update(actionId: string, field: string, value: any) {

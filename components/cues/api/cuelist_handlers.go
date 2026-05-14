@@ -130,7 +130,7 @@ const UpdateCueListAttributesRequestSubject = "request.cueing.cuelists.attribute
 
 type UpdateCueListAttributesRequest struct {
 	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=number,ne=cueListType"`
+	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=cueListType"`
 	Value     interface{} `msgpack:"value" json:"value" validate:"required"`
 }
 

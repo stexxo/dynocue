@@ -37,17 +37,14 @@ class CuesStore {
 			}
 		});
 
-		Events.On('event.cueing.cue.created', (ev: any) => {
-			const event = ev.data as { cue: Cue };
-			this.load(event.cue.cueListId);
+		Events.On('event.cueing.cues.created', (ev: any) => {
+			this.load(ev.data.cueListId);
 		});
-		Events.On('event.cueing.cue.attributes.updated', (ev: any) => {
-			const event = ev.data as { cueListId: string };
-			this.load(event.cueListId);
+		Events.On('event.cueing.cues.updated', (ev: any) => {
+			this.load(ev.data.cueListId);
 		});
-		Events.On('event.cueing.cue.deleted', (ev: any) => {
-			const event = ev.data as { cueListId: string };
-			this.load(event.cueListId);
+		Events.On('event.cueing.cues.deleted', (ev: any) => {
+			this.load(ev.data.cueListId);
 		});
 		Events.On('event.system.persistence.loaded', () => {
 			this.#cues = new Map();
