@@ -1,0 +1,79 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+
+version: '3'
+
+includes:
+  common: ./build/Taskfile.yml
+  windows: ./build/windows/Taskfile.yml
+  darwin: ./build/darwin/Taskfile.yml
+  linux: ./build/linux/Taskfile.yml
+
+vars:
+  APP_NAME: "dynocue"
+  BIN_DIR: "out/bin"
+  REPORTS_DIR: "out/reports"
+  MAIN_DIR: "./cmd/dynocue"
+  COVERAGE_FILE: "{{.REPORTS_DIR}}/coverage.out"
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+
+tasks:
+  tidy:
+    desc: "Clean up and sync go.mod dependencies"
+    cmds:
+      - go mod tidy
+
+  lint:
+    desc: "Execute static analysis using golangci-lint"
+    cmds:
+      - echo "Executing static analysis..."
+      - go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run -v --tests=false --concurrency {{default 4 .NPROC}} ./...
+      - cd frontend && yarn lint
+    vars:
+      NPROC:
+        sh: nproc 2>/dev/null || echo 4
+
+  test:
+    desc: "Execute unit tests and generate coverage reports"
+    cmds:
+      - mkdir -p {{.REPORTS_DIR}}
+      - go test -v -parallel 8 -coverprofile={{.COVERAGE_FILE}} ./... > {{.REPORTS_DIR}}/unit-tests.log
+      - echo "\n--- Statement Coverage Summary ---"
+      - go tool cover -func={{.COVERAGE_FILE}}
+      - go run github.com/boumenot/gocover-cobertura@latest < {{.COVERAGE_FILE}} > {{.REPORTS_DIR}}/coverage.xml
+      - go run github.com/jstemmer/go-junit-report/v2@latest -in {{.REPORTS_DIR}}/unit-tests.log -out {{.REPORTS_DIR}}/unit-tests.xml
+
+  build:
+    summary: Builds the application
+    cmds:
+      - task: "{{OS}}:build"
+
+  all:
+    desc: "Lint, test, and build all platforms"
+    cmds:
+      - task: lint
+      - task: test
+      - task: build
+
+  dev:
+    summary: Runs the application in development mode
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  clean:
+    desc: "Cleanup build artifacts"
+    cmds:
+      - rm -rf out/
+      - rm -rf gui/frontend/dist/
+      - rm -rf gui/frontend/bindings
+      - rm -rf gui/frontend/bindings
+      - rm -rf gui/frontend/node_modules
+
+  format:
+    cmds:
+      - go fmt ./...
+      - cd gui/frontend; yarn run format
+      - ./scripts/manage_headers.sh

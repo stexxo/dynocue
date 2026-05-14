@@ -1,0 +1,89 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import {
+	EnumerateCues,
+	CreateCue,
+	UpdateCueAttributes,
+	DeleteCue
+} from '../../../bindings/github.com/stexxo/dynocue/gui/services/cuesservice';
+import { Cue } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import { Events } from '@wailsio/runtime';
+import { cuelistsStore } from './cuelistsStore.svelte';
+
+/**
+ * Store for managing cues within cue lists.
+ */
+class CuesStore {
+	#cues = $state<Map<string, Cue[]>>(new Map());
+
+	constructor() {
+		$effect.root(() => {
+			$effect(() => {
+				cuelistsStore.cuelists.forEach((list) => {
+					if (!this.#cues.has(list.cueListId)) {
+						this.load(list.cueListId);
+					}
+				});
+			});
+		});
+
+		Events.On('event.cueing.cuelists.deleted', (ev: any) => {
+			// Wails emits just the ID as per cueing.go: cl.OnCueListDeleted(func(s string, id *string) { c.app.Event.Emit(s, *id) })
+			const cueListId = ev.data as string;
+			if (this.#cues.delete(cueListId)) {
+				this.#cues = new Map(this.#cues);
+			}
+		});
+
+		Events.On('event.cueing.cues.created', (ev: any) => {
+			this.load(ev.data.cueListId);
+		});
+		Events.On('event.cueing.cues.updated', (ev: any) => {
+			this.load(ev.data.cueListId);
+		});
+		Events.On('event.cueing.cues.deleted', (ev: any) => {
+			this.load(ev.data.cueListId);
+		});
+		Events.On('event.system.persistence.loaded', () => {
+			this.#cues = new Map();
+		});
+	}
+
+	get cues(): Map<string, Cue[]> {
+		return this.#cues;
+	}
+
+	async load(cueListId: string) {
+		const [cues, ok] = await EnumerateCues(cueListId);
+		if (ok) {
+			this.#cues.set(cueListId, cues);
+			// Re-assign to trigger Svelte reactivity for the Map
+			this.#cues = new Map(this.#cues);
+		}
+	}
+
+	async create(cueListId: string, num: number) {
+		const ok = await CreateCue(cueListId, num);
+		if (!ok) {
+			console.error('Failed to create cue', cueListId, num);
+		}
+	}
+
+	async updateCueAttributes(cueListId: string, cueId: string, field: string, value: any) {
+		const ok = await UpdateCueAttributes(cueListId, cueId, field, value);
+		if (!ok) {
+			console.error('Failed to set cue attributes');
+		}
+	}
+
+	async deleteCue(cueListId: string, cueId: string) {
+		const ok = await DeleteCue(cueId);
+		if (!ok) {
+			console.error('Failed to delete cue', cueId);
+		}
+	}
+}
+
+export const cuesStore = new CuesStore();

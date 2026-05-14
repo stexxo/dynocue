@@ -1,0 +1,103 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+
+name: Build DynoCue
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.osName }} - ${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+            osName: linux
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            osName: linux
+          - os: windows-2025
+            arch: amd64
+            osName: windows
+          - os: macos-26
+            arch: arm64
+            osName: mac
+          - os: macos-26-intel
+            arch: amd64
+            osName: mac
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Cache Go Binaries
+        id: cache-go-bin
+        uses: actions/cache@v5
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'yarn'
+          cache-dependency-path: gui/frontend/yarn.lock
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install Task
+        if: steps.cache-go-bin.outputs.cache-hit != 'true'
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Cache Linux dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        id: cache-apt
+        uses: actions/cache@v5
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev
+
+      - name: Install Wails v3 CLI
+        if: steps.cache-go-bin.outputs.cache-hit != 'true'
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+
+      - name: Build Application
+        run: task build ARCH=${{ matrix.arch }}
+
+      - name: Upload Artifacts
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.osName }}-${{ matrix.arch }}
+          path: out/bin/

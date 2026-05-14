@@ -1,0 +1,50 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+
+version: '3'
+
+includes:
+  common: ../Taskfile.yml
+
+tasks:
+  build:
+    summary: Builds the application for Linux
+    cmds:
+      # Linux requires CGO - use Docker when cross-compiling from non-Linux OR when no C compiler is available
+      - task: build:native
+        vars:
+          ARCH: '{{.ARCH}}'
+          DEV: '{{.DEV}}'
+          OUTPUT: '{{.OUTPUT}}'
+    vars:
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
+      OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
+      HAS_CC:
+        sh: '(command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1) && echo "true" || echo "false"'
+
+  build:native:
+    summary: Builds the application natively on Linux
+    internal: true
+    deps:
+      - task: common:go:mod:tidy
+      - task: common:build:frontend
+        vars:
+          BUILD_FLAGS:
+            ref: .BUILD_FLAGS
+          DEV:
+            ref: .DEV
+      - task: common:generate:icons
+    cmds:
+      - go build {{.BUILD_FLAGS}} -o {{.OUTPUT}} {{.MAIN_DIR}}
+    vars:
+      BUILD_FLAGS: '-trimpath {{if eq .DEV "true"}}-buildvcs=false -tags gtk4 -gcflags=all="-l"{{else}}-tags production,gtk4 -trimpath -buildvcs=false -ldflags="-w -s"{{end}}'
+      DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
+      OUTPUT: '{{ .OUTPUT | default .DEFAULT_OUTPUT }}'
+    env:
+      GOOS: linux
+      CGO_ENABLED: 1
+      GOARCH: '{{.ARCH | default ARCH}}'
+
