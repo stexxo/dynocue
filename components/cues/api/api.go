@@ -21,6 +21,7 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 		c.registerCueListApis(),
 		c.registerCueApis(),
 		c.registerActionApis(),
+		c.registerActionTemplateApis(),
 	)
 	if err != nil {
 		return nil, err
@@ -29,6 +30,7 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 	c.registerCueListEvents()
 	c.registerCueEvents()
 	c.registerActionEvents()
+	c.registerActionTemplateEvents()
 
 	return c, nil
 }

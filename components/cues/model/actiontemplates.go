@@ -27,7 +27,7 @@ func (m *CueingModel) RegisterActionTemplate(template *types.ActionTemplate) err
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceActionTemplate, OperationCreated, template.TemplateId)
+	m.registry.Emit(ResourceActionTemplate, OperationCreated, MetadataActionTemplateId, template.TemplateId)
 	return nil
 }
 
@@ -57,6 +57,6 @@ func (m *CueingModel) DeleteActionTemplateById(templateId string) error {
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceActionTemplate, OperationDeleted, templateId)
+	m.registry.Emit(ResourceActionTemplate, OperationDeleted, MetadataActionTemplateId, templateId)
 	return nil
 }
