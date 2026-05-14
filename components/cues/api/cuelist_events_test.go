@@ -64,7 +64,7 @@ func TestRegisterCueListEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	messenger := messaging.NewMessenger(&messaging.MessengerCfg{Conn: nc})
-	_, err = NewCueingApi(m, messenger, nil)
+	_, err = NewCueingApi(m, nil, messenger, nil)
 	require.NoError(t, err)
 
 	t.Run("CueListCreated event is published", func(t *testing.T) {

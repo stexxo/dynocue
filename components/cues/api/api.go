@@ -24,6 +24,7 @@ func NewCueingApi(model *model.CueingModel, persistence *system.PersistenceManag
 		c.registerCueApis(),
 		c.registerActionApis(),
 		c.registerActionTemplateApis(),
+		c.registerPersistenceApis(),
 	)
 	if err != nil {
 		return nil, err
@@ -33,6 +34,7 @@ func NewCueingApi(model *model.CueingModel, persistence *system.PersistenceManag
 	c.registerCueEvents()
 	c.registerActionEvents()
 	c.registerActionTemplateEvents()
+	c.registerPersistenceEvents()
 
 	return c, nil
 }

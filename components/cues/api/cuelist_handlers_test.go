@@ -295,7 +295,7 @@ func TestRegisterCueListApis(t *testing.T) {
 	})
 
 	// NewCueingApi calls registerCueListApis
-	_, err = NewCueingApi(m, msg, logging.NewNoopLogger())
+	_, err = NewCueingApi(m, nil, msg, logging.NewNoopLogger())
 	require.NoError(t, err)
 
 	// Seed one cue list for testing retrieval

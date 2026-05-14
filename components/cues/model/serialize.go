@@ -63,5 +63,6 @@ func (m *CueingModel) LoadModel(fn func(name string) (io.Reader, error)) error {
 			errs = errors.Join(errs, err)
 		}
 	}
+	m.registry.Emit(ResourceModel, OperationLoaded)
 	return errs
 }

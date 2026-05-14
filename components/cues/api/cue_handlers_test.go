@@ -240,7 +240,7 @@ func TestRegisterCueApis(t *testing.T) {
 	})
 
 	// CreateCueingApi will call registerCueApis
-	api, err := NewCueingApi(m, messenger, logging.NewNoopLogger())
+	api, err := NewCueingApi(m, nil, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)
 	require.NotNil(t, api)
 
