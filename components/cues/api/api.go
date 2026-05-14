@@ -4,19 +4,21 @@ import (
 	"errors"
 
 	"github.com/stexxo/dynocue/components/cues/model"
+	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
 	"github.com/stexxo/dynocue/util"
 )
 
 type CueingApi struct {
-	model     *model.CueingModel
-	messenger *messaging.Messenger
-	logger    logging.Logger
+	model       *model.CueingModel
+	persistence *system.PersistenceManager
+	messenger   *messaging.Messenger
+	logger      logging.Logger
 }
 
-func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logger logging.Logger) (*CueingApi, error) {
-	c := &CueingApi{model: model, messenger: messaging, logger: logger}
+func NewCueingApi(model *model.CueingModel, persistence *system.PersistenceManager, messaging *messaging.Messenger, logger logging.Logger) (*CueingApi, error) {
+	c := &CueingApi{model: model, persistence: persistence, messenger: messaging, logger: logger}
 	err := errors.Join(
 		c.registerCueListApis(),
 		c.registerCueApis(),

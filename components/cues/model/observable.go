@@ -7,12 +7,14 @@ const (
 	ResourceCue            = "cue"
 	ResourceAction         = "action"
 	ResourceActionTemplate = "action_template"
+	ResourceModel          = "cueing_model"
 
 	MetadataCueListId        = "CueListId"
 	MetadataCueId            = "CueId"
 	MetadataActionId         = "ActionId"
 	MetadataActionTemplateId = "ActionTemplateId"
 
+	OperationLoaded  = "loaded"
 	OperationCreated = "created"
 	OperationUpdated = "updated"
 	OperationDeleted = "deleted"

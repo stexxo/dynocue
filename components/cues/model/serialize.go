@@ -49,3 +49,19 @@ func (m *CueingModel) RestoreTable(name string, data io.Reader) error {
 	}
 	return nil
 }
+
+func (m *CueingModel) LoadModel(fn func(name string) (io.Reader, error)) error {
+	var errs error
+	for tableName, restorer := range tableRestore {
+		res, err := fn(tableName)
+		if err != nil {
+			errs = errors.Join(errs, err)
+			continue
+		}
+		err = restorer(m.persistent, res)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+	return errs
+}
