@@ -19,6 +19,7 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 	c := &CueingApi{model: model, messenger: messaging, logger: logger}
 	err := errors.Join(
 		c.registerCueListApis(),
+		c.registerCueApis(),
 	)
 	if err != nil {
 		return nil, err
