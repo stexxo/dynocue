@@ -1,11 +1,14 @@
 package util
 
-import "sync"
+import (
+	"slices"
+	"sync"
+)
 
 type Event struct {
-	Resource   string
-	Operation  string
-	Identifier string
+	Resource  string
+	Operation string
+	EventData map[string]string
 }
 
 type HandlerFn func(Event)
@@ -31,7 +34,7 @@ func (e *EventRegistry) Register(resource, operation string, handler HandlerFn) 
 	e.registry[resource][operation] = append(e.registry[resource][operation], handler)
 }
 
-func (e *EventRegistry) Emit(resource, operation, identifier string) {
+func (e *EventRegistry) Emit(resource, operation string, metadata ...string) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -40,7 +43,14 @@ func (e *EventRegistry) Emit(resource, operation, identifier string) {
 		return
 	}
 
+	ev := Event{Resource: resource, Operation: operation}
+	if len(metadata) > 0 && len(metadata[0])%2 == 0 {
+		ev.EventData = make(map[string]string)
+		for pair := range slices.Chunk(metadata, 2) {
+			ev.EventData[pair[0]] = pair[1]
+		}
+	}
 	for _, handler := range operations[operation] {
-		go handler(Event{Resource: resource, Operation: operation, Identifier: identifier})
+		go handler(ev)
 	}
 }

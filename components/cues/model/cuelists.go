@@ -36,7 +36,7 @@ func (m *CueingModel) CreateCueList(number uint, cueListType string) (string, ui
 	if err != nil {
 		return "", 0, err
 	}
-	m.registry.Emit(ResourceCueList, OperationCreated, cl.CueListId)
+	m.registry.Emit(ResourceCueList, OperationCreated, MetadataCueListId, cl.CueListId)
 	return cl.CueListId, cl.Number, nil
 }
 
@@ -85,20 +85,20 @@ func (m *CueingModel) DeleteCueListById(id string) error {
 		return err
 	}
 
-	m.registry.Emit(ResourceCueList, OperationDeleted, id)
+	m.registry.Emit(ResourceCueList, OperationDeleted, MetadataCueListId, id)
 	return nil
 }
 
 func (m *CueingModel) UpdateCueListAttribute(id string, field string, value interface{}) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	err := db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
+	_, err := db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrCueListNotFound
 	}
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceCueList, OperationUpdated, id)
+	m.registry.Emit(ResourceCueList, OperationUpdated, MetadataCueListId, id)
 	return nil
 }

@@ -49,7 +49,7 @@ func (m *CueingModel) CreateAction(cueId, templateId string, number uint) (strin
 		return "", 0, err
 	}
 
-	m.registry.Emit(ResourceAction, OperationCreated, a.ActionId)
+	m.registry.Emit(ResourceAction, OperationCreated, MetadataCueListId, a.CueListId, MetadataCueId, a.CueId, MetadataActionId, a.ActionId)
 
 	return a.ActionId, a.Number, nil
 }
@@ -81,20 +81,22 @@ func (m *CueingModel) DeleteAction(actionId string) error {
 func (m *CueingModel) UpdateAction(actionId string, field string, value any) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	err := db.UpdateStructInDb[types.Action](m.persistent, TableActions, IndexId, actionId, field, value)
+	a, err := db.UpdateStructInDb[types.Action](m.persistent, TableActions, IndexId, actionId, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrActionNotFound
 	}
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceAction, OperationUpdated, actionId)
+	m.registry.Emit(ResourceAction, OperationUpdated, MetadataCueListId, a.CueListId, MetadataCueId, a.CueId, MetadataActionId, a.ActionId)
 	return nil
 }
 
 func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value any) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
+
+	var a *types.Action
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
 		original, err := db.GetFirstTxn[types.Action](txn, TableActions, IndexId, actionId)
@@ -106,7 +108,7 @@ func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value
 		}
 
 		// Deep copy of the top level struct and nested slices
-		action := *util.DeepCopyStruct(original)
+		action := util.DeepCopyStruct(original)
 
 		foundField := false
 		for i := range action.Fields {
@@ -121,11 +123,13 @@ func (m *CueingModel) UpdateActionField(actionId string, fieldName string, value
 			return fmt.Errorf("field %s not found in action %s", fieldName, actionId)
 		}
 
-		return txn.Insert(TableActions, &action)
+		a = action
+
+		return txn.Insert(TableActions, action)
 	})
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceAction, OperationUpdated, actionId)
+	m.registry.Emit(ResourceAction, OperationUpdated, MetadataCueListId, a.CueListId, MetadataCueId, a.CueId, MetadataActionId, a.ActionId)
 	return nil
 }

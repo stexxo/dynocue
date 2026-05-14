@@ -8,6 +8,11 @@ const (
 	ResourceAction         = "action"
 	ResourceActionTemplate = "action_template"
 
+	MetadataCueListId        = "CueListId"
+	MetadataCueId            = "CueId"
+	MetadataActionId         = "ActionId"
+	MetadataActionTemplateId = "ActionTemplateId"
+
 	OperationCreated = "created"
 	OperationUpdated = "updated"
 	OperationDeleted = "deleted"

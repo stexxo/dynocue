@@ -46,7 +46,7 @@ func (m *CueingModel) CreateCue(cueListId string, number uint) (string, uint, er
 		return "", 0, err
 	}
 
-	m.registry.Emit(ResourceCue, OperationCreated, cue.CueId)
+	m.registry.Emit(ResourceCue, OperationCreated, MetadataCueListId, cue.CueListId, MetadataCueId, cue.CueId)
 	return cue.CueId, cue.Number, nil
 }
 
@@ -96,8 +96,7 @@ func (m *CueingModel) DeleteCueById(cueId string) error {
 func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	var cueIds []string
-	var actionIds []string
+	deleted := map[string][]string{}
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
 
@@ -107,23 +106,23 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 			return err
 		}
 		for _, cue := range cues {
-			cueIds = append(cueIds, cue.CueId)
+			deleted[cue.CueId] = []string{}
 			err := db.DeleteItemFromTxn[types.Cue](txn, TableCues, IndexId, cue.CueId)
 			if err != nil {
 				return err
 			}
-		}
 
-		// Delete All Actions
-		actions, err := db.GetAllTxn[types.Action](txn, TableActions, IndexNumberPrefix, cueListId)
-		if err != nil {
-			return err
-		}
-		for _, action := range actions {
-			actionIds = append(actionIds, action.ActionId)
-			err := db.DeleteItemFromTxn[types.Action](txn, TableActions, IndexId, action.ActionId)
+			// Delete All Actions
+			actions, err := db.GetAllTxn[types.Action](txn, TableActions, IndexNumberPrefix, cue.CueId)
 			if err != nil {
 				return err
+			}
+			for _, action := range actions {
+				deleted[cue.CueId] = append(deleted[cue.CueId], action.ActionId)
+				err := db.DeleteItemFromTxn[types.Action](txn, TableActions, IndexId, action.ActionId)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -134,12 +133,11 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 		return err
 	}
 
-	for _, cueId := range cueIds {
-		m.registry.Emit(ResourceCue, OperationDeleted, cueId)
-	}
-
-	for _, actionid := range actionIds {
-		m.registry.Emit(ResourceCue, OperationDeleted, actionid)
+	for cueId, actions := range deleted {
+		m.registry.Emit(ResourceCue, OperationDeleted, MetadataCueListId, cueListId, MetadataCueId, cueId)
+		for _, actionid := range actions {
+			m.registry.Emit(ResourceCue, OperationDeleted, MetadataCueListId, cueListId, MetadataCueId, cueId, MetadataActionId, actionid)
+		}
 	}
 
 	return nil
@@ -148,13 +146,14 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 func (m *CueingModel) UpdateCueAttribute(cueId string, field string, value interface{}) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	err := db.UpdateStructInDb[types.Cue](m.persistent, TableCues, IndexId, cueId, field, value)
+	c, err := db.UpdateStructInDb[types.Cue](m.persistent, TableCues, IndexId, cueId, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrCueNotFound
 	}
 	if err != nil {
 		return err
 	}
-	m.registry.Emit(ResourceCue, OperationUpdated, cueId)
+
+	m.registry.Emit(ResourceCue, OperationUpdated, MetadataCueListId, c.CueListId, MetadataCueId, cueId)
 	return nil
 }
