@@ -60,7 +60,7 @@ func TestActionEventsMethods(t *testing.T) {
 			},
 		}
 		sub, payload := api.ActionChanged(ev)
-		assert.Equal(t, DeleteActionEventSubject, sub)
+		assert.Equal(t, ActionDeletedEventSubject, sub)
 		assert.Equal(t, "cl-1", payload.CueListId)
 		assert.Equal(t, "cue-1", payload.CueId)
 		assert.Equal(t, "act-1", payload.ActionId)
@@ -157,7 +157,7 @@ func TestRegisterActionEvents(t *testing.T) {
 		wg.Add(1)
 		var receivedId string
 
-		sub, err := nc.Subscribe(DeleteActionEventSubject, func(m *nats.Msg) {
+		sub, err := nc.Subscribe(ActionDeletedEventSubject, func(m *nats.Msg) {
 			var event ActionChangeEvent
 			_ = msgpack.Unmarshal(m.Data, &event)
 			receivedId = event.ActionId

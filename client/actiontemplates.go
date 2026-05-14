@@ -7,7 +7,6 @@ package client
 import (
 	"fmt"
 
-	"github.com/stexxo/dynocue/components/cues"
 	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -47,11 +46,13 @@ func (c *Client) GetActionTemplate(id string) (*types.ActionTemplate, error) {
 
 func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string, fields []types.ActionTemplateField) error {
 	resp, err := messaging.Request[api.RegisterActionTemplateResponse](c.messenger, api.RegisterActionTemplateRequestSubject, &api.RegisterActionTemplateRequest{
-		TemplateId:    id,
-		SubsystemName: subsystemName,
-		Name:          name,
-		Subject:       subject,
-		Fields:        fields,
+		Template: types.ActionTemplate{
+			TemplateId:    id,
+			SubsystemName: subsystemName,
+			TemplateName:  name,
+			Subject:       subject,
+			Fields:        fields,
+		},
 	})
 	if err != nil {
 		return err
@@ -63,8 +64,8 @@ func (c *Client) RegisterActionTemplate(id, subsystemName, name, subject string,
 	return fmt.Errorf("failed to register action template: %s", resp.Error)
 }
 
-func (c *Client) OnActionTemplateRegistered(handler EventCallback[api.RegisterActionTemplateEvent]) error {
-	return messaging.Subscribe[api.RegisterActionTemplateEvent](c.messenger, true, api.RegisterActionTemplateEventSubject, func(sub string, msg *api.RegisterActionTemplateEvent) {
+func (c *Client) OnActionTemplateRegistered(handler EventCallback[api.ActionTemplateChangeEvent]) error {
+	return messaging.Subscribe[api.ActionTemplateChangeEvent](c.messenger, true, api.ActionTemplateCreatedEventSubject, func(sub string, msg *api.ActionTemplateChangeEvent) {
 		handler(sub, msg)
 	})
 }

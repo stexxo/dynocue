@@ -14,7 +14,7 @@ func (c *CueingApi) registerActionEvents() {
 const (
 	ActionCreatedEventSubject           = "event.cueing.action.created"
 	ActionAttributesUpdatedEventSubject = "event.cueing.action.attributes.updated"
-	DeleteActionEventSubject            = "event.cueing.action.deleted"
+	ActionDeletedEventSubject           = "event.cueing.action.deleted"
 )
 
 type ActionChangeEvent struct {
@@ -29,7 +29,7 @@ func (c *CueingApi) ActionChanged(ev util.Event) (string, *ActionChangeEvent) {
 	case model.OperationUpdated:
 		sub = ActionAttributesUpdatedEventSubject
 	case model.OperationDeleted:
-		sub = DeleteActionEventSubject
+		sub = ActionDeletedEventSubject
 	case model.OperationCreated:
 		sub = ActionCreatedEventSubject
 	}

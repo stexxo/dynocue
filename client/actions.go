@@ -7,7 +7,7 @@ package client
 import (
 	"fmt"
 
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -15,28 +15,28 @@ import (
 var ErrActionExists = fmt.Errorf("action with provided number already exists")
 var ErrActionNotFound = fmt.Errorf("action not found")
 
-func (c *Client) CreateAction(cueId string, templateId string, actionNumber uint) (*types.Action, error) {
-	resp, err := messaging.Request[cues.CreateActionResponse](c.messenger, cues.CreateActionRequestSubject, &cues.CreateActionRequest{
-		CueId:        cueId,
-		TemplateId:   templateId,
-		ActionNumber: actionNumber,
+func (c *Client) CreateAction(cueId string, templateId string, actionNumber uint) (string, uint, error) {
+	resp, err := messaging.Request[api.CreateActionResponse](c.messenger, api.CreateActionRequestSubject, &api.CreateActionRequest{
+		CueId:      cueId,
+		TemplateId: templateId,
+		Number:     actionNumber,
 	})
 	if err != nil {
-		return nil, err
+		return "", 0, err
 	}
 	if resp.Success {
-		return &resp.Response.Action, nil
+		return resp.Response.ActionId, resp.Response.Number, nil
 	}
 
-	if resp.Error == cues.ActionNumberExists {
-		return nil, ErrActionExists
+	if resp.Error == api.ActionNumberExists {
+		return "", 0, ErrActionExists
 	}
 
-	return nil, fmt.Errorf("failed to create action: %s", resp.Error)
+	return "", 0, fmt.Errorf("failed to create action: %s", resp.Error)
 }
 
 func (c *Client) EnumerateActions(cueId string) ([]types.Action, error) {
-	resp, err := messaging.Request[cues.EnumerateActionsResponse](c.messenger, cues.EnumerateActionsRequestSubject, &cues.EnumerateActionsRequest{
+	resp, err := messaging.Request[api.EnumerateActionsResponse](c.messenger, api.EnumerateActionsRequestSubject, &api.EnumerateActionsRequest{
 		CueId: cueId,
 	})
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *Client) EnumerateActions(cueId string) ([]types.Action, error) {
 }
 
 func (c *Client) GetActionById(actionId string) (*types.Action, error) {
-	resp, err := messaging.Request[cues.GetActionByIdResponse](c.messenger, cues.GetActionByIdRequestSubject, &cues.GetActionByIdRequest{
+	resp, err := messaging.Request[api.GetActionByIdResponse](c.messenger, api.GetActionByIdRequestSubject, &api.GetActionByIdRequest{
 		ActionId: actionId,
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func (c *Client) GetActionById(actionId string) (*types.Action, error) {
 		return &resp.Response.Action, nil
 	}
 
-	if resp.Error == cues.ActionNotFound {
+	if resp.Error == api.ActionNotFound {
 		return nil, ErrActionNotFound
 	}
 
@@ -68,7 +68,7 @@ func (c *Client) GetActionById(actionId string) (*types.Action, error) {
 }
 
 func (c *Client) UpdateAction(actionId string, field string, value any) error {
-	resp, err := messaging.Request[cues.UpdateActionResponse](c.messenger, cues.UpdateActionRequestSubject, &cues.UpdateActionRequest{
+	resp, err := messaging.Request[api.UpdateActionResponse](c.messenger, api.UpdateActionRequestSubject, &api.UpdateActionRequest{
 		ActionId: actionId,
 		Field:    field,
 		Value:    value,
@@ -80,7 +80,7 @@ func (c *Client) UpdateAction(actionId string, field string, value any) error {
 		return nil
 	}
 
-	if resp.Error == cues.ActionNotFound {
+	if resp.Error == api.ActionNotFound {
 		return ErrActionNotFound
 	}
 
@@ -88,7 +88,7 @@ func (c *Client) UpdateAction(actionId string, field string, value any) error {
 }
 
 func (c *Client) UpdateActionField(actionId string, fieldName string, value any) error {
-	resp, err := messaging.Request[cues.UpdateActionFieldResponse](c.messenger, cues.UpdateActionFieldRequestSubject, &cues.UpdateActionFieldRequest{
+	resp, err := messaging.Request[api.UpdateActionFieldResponse](c.messenger, api.UpdateActionFieldRequestSubject, &api.UpdateActionFieldRequest{
 		ActionId:  actionId,
 		FieldName: fieldName,
 		Value:     value,
@@ -100,7 +100,7 @@ func (c *Client) UpdateActionField(actionId string, fieldName string, value any)
 		return nil
 	}
 
-	if resp.Error == cues.ActionNotFound {
+	if resp.Error == api.ActionNotFound {
 		return ErrActionNotFound
 	}
 
@@ -108,7 +108,7 @@ func (c *Client) UpdateActionField(actionId string, fieldName string, value any)
 }
 
 func (c *Client) DeleteAction(actionId string) error {
-	resp, err := messaging.Request[cues.DeleteActionResponse](c.messenger, cues.DeleteActionRequestSubject, &cues.DeleteActionRequest{
+	resp, err := messaging.Request[api.DeleteActionResponse](c.messenger, api.DeleteActionRequestSubject, &api.DeleteActionRequest{
 		ActionId: actionId,
 	})
 	if err != nil {
@@ -118,27 +118,27 @@ func (c *Client) DeleteAction(actionId string) error {
 		return nil
 	}
 
-	if resp.Error == cues.ActionNotFound {
+	if resp.Error == api.ActionNotFound {
 		return ErrActionNotFound
 	}
 
 	return fmt.Errorf("failed to delete action: %s", resp.Error)
 }
 
-func (c *Client) OnActionCreated(handler EventCallback[cues.ActionCreatedEvent]) error {
-	return messaging.Subscribe[cues.ActionCreatedEvent](c.messenger, true, cues.ActionCreatedEventSubject, func(sub string, msg *cues.ActionCreatedEvent) {
+func (c *Client) OnActionCreated(handler EventCallback[api.ActionChangeEvent]) error {
+	return messaging.Subscribe[api.ActionChangeEvent](c.messenger, true, api.ActionCreatedEventSubject, func(sub string, msg *api.ActionChangeEvent) {
 		handler(sub, msg)
 	})
 }
 
-func (c *Client) OnActionUpdated(handler EventCallback[cues.ActionUpdatedEvent]) error {
-	return messaging.Subscribe[cues.ActionUpdatedEvent](c.messenger, true, cues.ActionUpdatedEventSubject, func(sub string, msg *cues.ActionUpdatedEvent) {
+func (c *Client) OnActionUpdated(handler EventCallback[api.ActionChangeEvent]) error {
+	return messaging.Subscribe[api.ActionChangeEvent](c.messenger, true, api.ActionAttributesUpdatedEventSubject, func(sub string, msg *api.ActionChangeEvent) {
 		handler(sub, msg)
 	})
 }
 
-func (c *Client) OnActionDeleted(handler EventCallback[cues.ActionDeletedEvent]) error {
-	return messaging.Subscribe[cues.ActionDeletedEvent](c.messenger, true, cues.ActionDeletedEventSubject, func(sub string, msg *cues.ActionDeletedEvent) {
+func (c *Client) OnActionDeleted(handler EventCallback[api.ActionChangeEvent]) error {
+	return messaging.Subscribe[api.ActionChangeEvent](c.messenger, true, api.ActionDeletedEventSubject, func(sub string, msg *api.ActionChangeEvent) {
 		handler(sub, msg)
 	})
 }
