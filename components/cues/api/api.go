@@ -6,6 +6,7 @@ import (
 	"github.com/stexxo/dynocue/components/cues/model"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/util"
 )
 
 type CueingApi struct {
@@ -24,6 +25,17 @@ func NewCueingApi(model *model.CueingModel, messaging *messaging.Messenger, logg
 	}
 
 	c.registerCueListEvents()
+	c.registerCueEvents()
 
 	return c, nil
+}
+
+func eventHandler[T any](m *messaging.Messenger, l logging.Logger, evFn func(util.Event) (string, *T)) util.HandlerFn {
+	return func(event util.Event) {
+		sub, body := evFn(event)
+		err := messaging.Publish(m, sub, body)
+		if err != nil {
+			l.Error("failed to publish event", "error", err, "resource", event.Resource, "operation", event.Operation, "identifier", event.Identifier)
+		}
+	}
 }
