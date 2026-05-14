@@ -12,7 +12,7 @@ import (
 
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/components/audio/types"
-	"github.com/stexxo/dynocue/components/cues"
+	"github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -39,22 +39,22 @@ func (a *Audio) onStart() error {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, PlayActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, PlayActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, FadeActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, FadeActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, StopActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, StopActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[cues.RegisterActionTemplateResponse](a.Messenger(), cues.RegisterActionTemplateRequestSubject, PauseActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, PauseActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
