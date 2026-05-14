@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 package db
 
 import (
@@ -56,7 +60,7 @@ func UpdateStructInDb[T any](db *memdb.MemDB, table, index string, key any, fiel
 		if err != nil {
 			return err
 		}
-		
+
 		out = clone
 
 		return txn.Insert(table, clone)

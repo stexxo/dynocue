@@ -28,23 +28,37 @@ apply_license() {
     local file="$1"
     local style="$2"
     
-    # Generate the header for this style
-    local header=$(get_header "$style")
-    
     # Check if the license is already there
     # We search for a unique part of the license text
     if grep -q "Mozilla Public" "$file"; then
         return
     fi
     
+    # Generate the header for this style
+    local header=$(get_header "$style")
+    
     echo "Adding license to $file ($style style)"
     
-    # Create a temporary file with the header and then the original content
-    {
-        echo "$header"
-        echo "" # Add a blank line after the header
-        cat "$file"
-    } > "$file.tmp" && mv "$file.tmp" "$file"
+    # Check for shebang or XML declaration
+    local first_line=$(head -n 1 "$file")
+    
+    if [[ "$first_line" =~ ^#! ]] || [[ "$first_line" =~ ^\<\?xml ]]; then
+        # Insert after the first line
+        {
+            head -n 1 "$file"
+            echo ""
+            echo "$header"
+            echo ""
+            tail -n +2 "$file"
+        } > "$file.tmp" && mv "$file.tmp" "$file"
+    else
+        # Prepend to the file
+        {
+            echo "$header"
+            echo "" # Add a blank line after the header
+            cat "$file"
+        } > "$file.tmp" && mv "$file.tmp" "$file"
+    fi
 }
 
 # Main logic: Define mappings of extensions to comment styles
@@ -58,7 +72,7 @@ EXT_STYLE_MAP["yml"]="hash"
 EXT_STYLE_MAP["sh"]="hash"
 
 # Exclude directories and generated files
-EXCLUDE_DIRS="-not -path '*/node_modules/*' -not -path '*/.svelte-kit/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/bindings/*' -not -path '*/dist/*"
+EXCLUDE_DIRS=(-not -path '*/node_modules/*' -not -path '*/.svelte-kit/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/bindings/*')
 
 # Process each extension
 for ext in "${!EXT_STYLE_MAP[@]}"; do
@@ -66,8 +80,7 @@ for ext in "${!EXT_STYLE_MAP[@]}"; do
     echo "Processing .$ext files..."
     
     # Find files and apply license
-    # Using eval because of the EXCLUDE_DIRS variable containing wildcards
-    eval "find . -name '*.$ext' -type f $EXCLUDE_DIRS" | while read -r file; do
+    find . -name "*.$ext" -type f "${EXCLUDE_DIRS[@]}" | while read -r file; do
         apply_license "$file" "$style"
     done
 done
