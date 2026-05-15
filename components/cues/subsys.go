@@ -6,6 +6,7 @@ package cues
 
 import (
 	"github.com/stexxo/dynocue/components/cues/api"
+	"github.com/stexxo/dynocue/components/cues/engine"
 	"github.com/stexxo/dynocue/components/cues/model"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
@@ -14,8 +15,9 @@ import (
 
 type Cueing struct {
 	*core.SubsystemCore
-	model *model.CueingModel
-	api   *api.CueingApi
+	model  *model.CueingModel
+	engine *engine.CueingEngine
+	api    *api.CueingApi
 }
 
 func New(logger logging.Logger) *Cueing {
@@ -36,7 +38,10 @@ func (p *Cueing) onStart() error {
 	}
 	p.model = m
 
-	a, err := api.NewCueingApi(m, pm, p.Messenger(), p.Logger())
+	eng := engine.NewCueingEngine(m)
+	p.engine = eng
+
+	a, err := api.NewCueingApi(m, eng, pm, p.Messenger(), p.Logger())
 	if err != nil {
 		return err
 	}

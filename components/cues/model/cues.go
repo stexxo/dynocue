@@ -86,6 +86,102 @@ func (m *CueingModel) GetCueById(cueId string) (*types.Cue, error) {
 	return out, nil
 }
 
+func (m *CueingModel) GetFirstCueInCueList(cueListId string) (*types.Cue, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
+	out, err := db.WithRead[*types.Cue](m.persistent, func(txn *memdb.Txn) (*types.Cue, error) {
+		// Check that CueList exists
+		_, err := db.GetFirstTxn[types.CueList](txn, TableCueLists, IndexId, cueListId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, ErrCueListNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Get The First Cue
+		res, err := db.GetFirstTxn[types.Cue](txn, TableCues, IndexNumberPrefix, cueListId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, ErrCueNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+var ErrNoNextCue = errors.New("no next cue found")
+
+func (m *CueingModel) GetNextCueInCueList(cueListId string, cueId string) (*types.Cue, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
+	if cueId == "" {
+		return m.GetFirstCueInCueList(cueListId)
+	}
+
+	out, err := db.WithRead[*types.Cue](m.persistent, func(txn *memdb.Txn) (*types.Cue, error) {
+		// Get Cue List and Make Sure it Exists
+		cl, err := db.GetFirstTxn[types.CueList](txn, TableCueLists, IndexId, cueListId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, ErrCueListNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Get the current cue to retrieve the number from it
+		current, err := db.GetFirstTxn[types.Cue](txn, TableCues, IndexId, cueId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return nil, ErrCueNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// Start at the lower bound being the current number
+		iter, err := txn.LowerBound(TableCues, IndexNumber, cueListId, current.Number)
+		if err != nil {
+			return nil, err
+		}
+		iter.Next() // skip current
+		out := iter.Next()
+
+		// If there is no next cue handle appropriately
+		if out == nil {
+
+			// If the Cuelist is configured to wrap, then go get the first cue in the list
+			if cl.WrapAtEnd {
+				res, err := db.GetFirstTxn[types.Cue](txn, TableCues, IndexNumberPrefix, cueListId)
+				if errors.Is(err, db.ErrItemNotFound) {
+					return nil, ErrCueNotFound
+				}
+				if err != nil {
+					return nil, err
+				}
+				return res, nil
+			}
+
+			// if it is not configured to wrap, then return no next cue error
+			return nil, ErrNoNextCue
+		}
+
+		// Return the cue from the iteration if it is not nil
+		return out.(*types.Cue), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func (m *CueingModel) DeleteCueById(cueId string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()

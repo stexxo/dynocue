@@ -13,6 +13,7 @@ const (
 	TableCues            = "cues"
 	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
+	TableCueListPlayback = "cueplayback"
 
 	IndexId     = "id"
 	IndexCueId  = "cue_id"
@@ -108,6 +109,16 @@ var runtimeSchema = &memdb.DBSchema{
 					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "TemplateId"},
+				},
+			},
+		},
+		TableCueListPlayback: {
+			Name: TableCueListPlayback,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "CueListId"},
 				},
 			},
 		},

@@ -7,11 +7,12 @@ package model
 import "github.com/stexxo/dynocue/util"
 
 const (
-	ResourceCueList        = "cue_list"
-	ResourceCue            = "cue"
-	ResourceAction         = "action"
-	ResourceActionTemplate = "action_template"
-	ResourceModel          = "cueing_model"
+	ResourceCueList             = "cue_list"
+	ResourceCue                 = "cue"
+	ResourceAction              = "action"
+	ResourceActionTemplate      = "action_template"
+	ResourceModel               = "cueing_model"
+	ResourceCueListCueSelection = "cue_list_cue_selection"
 
 	MetadataCueListId        = "CueListId"
 	MetadataCueId            = "CueId"

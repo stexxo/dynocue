@@ -207,6 +207,110 @@ func TestUpdateCueAttribute(t *testing.T) {
 	})
 }
 
+func TestGetFirstCueInCueList(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Get First Cue", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		id, _, _ := m.CreateCue(cueListId, 0)
+		cue, err := m.GetFirstCueInCueList(cueListId)
+		assert.NoError(t, err)
+		assert.Equal(t, id, cue.CueId)
+	})
+
+	t.Run("No Cues in List", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		_, err := m.GetFirstCueInCueList(cueListId)
+		assert.ErrorIs(t, err, ErrCueNotFound)
+	})
+
+	t.Run("Get First Cue with invalid cue list id", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		_, err := m.GetFirstCueInCueList("notreal")
+		assert.ErrorIs(t, err, ErrCueListNotFound)
+	})
+}
+
+func TestGetNextCueInCueList(t *testing.T) {
+	t.Parallel()
+	t.Run("Get Next Cue", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		id1, _, _ := m.CreateCue(cueListId, 1)
+		id2, num2, _ := m.CreateCue(cueListId, 2)
+
+		cue, err := m.GetNextCueInCueList(cueListId, id1)
+		assert.NoError(t, err)
+		assert.Equal(t, id2, cue.CueId)
+		assert.Equal(t, num2, cue.Number)
+	})
+
+	t.Run("No Next Cue - no wrapping", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		id1, _, _ := m.CreateCue(cueListId, 1)
+
+		_, err := m.GetNextCueInCueList(cueListId, id1)
+		assert.ErrorIs(t, err, ErrNoNextCue)
+	})
+
+	t.Run("Cue List doesnt exit", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		_, err := m.GetNextCueInCueList("cueList", "notreal")
+		assert.ErrorIs(t, err, ErrCueListNotFound)
+	})
+
+	t.Run("Cue doesn't exist", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		_, err := m.GetNextCueInCueList(cueListId, "notreal")
+		assert.ErrorIs(t, err, ErrCueNotFound)
+	})
+
+	t.Run("wrap to begining", func(t *testing.T) {
+		m, _ := NewCueingModel()
+		cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+		m.UpdateCueListAttribute(cueListId, "wrapAtEnd", true)
+		id1, num1, _ := m.CreateCue(cueListId, 1)
+		id2, _, _ := m.CreateCue(cueListId, 2)
+
+		cue, err := m.GetNextCueInCueList(cueListId, id2)
+		assert.NoError(t, err)
+		assert.Equal(t, id1, cue.CueId)
+		assert.Equal(t, num1, cue.Number)
+	})
+}
+
+func BenchmarkNextCueList(b *testing.B) {
+	m, _ := NewCueingModel()
+	cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	m.UpdateCueListAttribute(cueListId, "wrapAtEnd", true)
+	for range 1000 {
+		m.CreateCue(cueListId, 0)
+	}
+	first, _ := m.GetFirstCueInCueList(cueListId)
+
+	current := first.CueId
+	b.ResetTimer()
+	for b.Loop() {
+		c, _ := m.GetNextCueInCueList(cueListId, current)
+		current = c.CueId
+	}
+}
+
+func BenchmarkGetFirstCueInCueList(b *testing.B) {
+	m, _ := NewCueingModel()
+	cueListId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
+	for range 1000 {
+		_, _, _ = m.CreateCue(cueListId, 0)
+	}
+	for b.Loop() {
+		m.GetFirstCueInCueList(cueListId)
+	}
+}
+
 func BenchmarkCreateCueWith0(b *testing.B) {
 	m, _ := NewCueingModel()
 	id, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
