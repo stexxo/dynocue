@@ -1,7 +1,5 @@
 package engine
 
-import "errors"
-
 func (c *CueingEngine) GoToCue(cueId string) error {
 	cue, err := c.model.GetCueById(cueId)
 	if err != nil {
@@ -29,8 +27,17 @@ func (c *CueingEngine) GoToNextCue(cuelistId string) error {
 		return err
 	}
 
-	if selected.SelectedCueId == "" {
-		
+	cue, err := c.model.GetNextCueInCueList(cuelistId, selected.SelectedCueId)
+	if err != nil {
+		return err
 	}
 
+	err = c.model.SetSelectedCueId(cue.CueListId, cue.CueId)
+	if err != nil {
+		return err
+	}
+
+	// TODO - Trigger Cue Playback
+
+	return nil
 }
