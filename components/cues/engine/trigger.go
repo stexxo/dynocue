@@ -1,43 +1,43 @@
 package engine
 
+import "github.com/stexxo/dynocue/components/cues/types"
+
 func (c *CueingEngine) GoToCue(cueId string) error {
 	cue, err := c.model.GetCueById(cueId)
 	if err != nil {
 		return err
 	}
 
-	err = c.model.SetSelectedCueId(cue.CueListId, cue.CueId)
-	if err != nil {
-		return err
-	}
-
-	// TODO - Trigger Cue Playback
-
-	return nil
+	return c.goToCue(cue)
 }
 
 func (c *CueingEngine) GoToNextCue(cuelistId string) error {
-	cueList, err := c.model.GetCueListById(cuelistId)
+	selected, err := c.model.GetSelectedCue(cuelistId)
 	if err != nil {
 		return err
 	}
 
-	selected, err := c.model.GetSelectedCueId(cueList.CueListId)
+	cue, err := c.model.GetNextCueInCueList(cuelistId, selected)
 	if err != nil {
 		return err
 	}
 
-	cue, err := c.model.GetNextCueInCueList(cuelistId, selected.SelectedCueId)
+	return c.goToCue(cue)
+}
+
+func (c *CueingEngine) goToCue(cue *types.Cue) error {
+	// Get Cue List
+	cueList, err := c.model.GetCueListById(cue.CueListId)
 	if err != nil {
 		return err
 	}
+	selectCue := cueList.CueListType == types.CueListTypeSequential
 
-	err = c.model.SetSelectedCueId(cue.CueListId, cue.CueId)
+	err = c.model.StartCueExecution(cue.CueId, selectCue, false) // TODO make active when there is an engine to handle that
 	if err != nil {
 		return err
 	}
 
 	// TODO - Trigger Cue Playback
-
 	return nil
 }

@@ -43,31 +43,43 @@ func DeleteItemFromDb[T any](db *memdb.MemDB, table string, index string, key an
 	})
 }
 
-func UpdateStructInDb[T any](db *memdb.MemDB, table, index string, key any, field string, value interface{}) (*T, error) {
+func UpdateStructDb[T any](db *memdb.MemDB, table, index string, key any, field string, value interface{}) (*T, error) {
 	var out *T
 	err := WithWrite(db, func(txn *memdb.Txn) error {
-		item, err := GetFirstTxn[T](txn, table, index, key)
+		res, err := UpdateStructTxn[T](txn, table, index, key, field, value)
 		if err != nil {
 			return err
 		}
-		if item == nil {
-			return ErrItemNotFound
-		}
-
-		// Deep copy of the item to avoid modifying the one in the database
-		clone := util.DeepCopyStruct(item)
-		err = util.UpdateStructByTag("json", field, value, clone)
-		if err != nil {
-			return err
-		}
-
-		out = clone
-
-		return txn.Insert(table, clone)
+		out = res
+		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return out, nil
+}
+
+func UpdateStructTxn[T any](txn *memdb.Txn, table, index string, key any, field string, value interface{}) (*T, error) {
+	item, err := GetFirstTxn[T](txn, table, index, key)
+	if err != nil {
+		return nil, err
+	}
+	if item == nil {
+		return nil, ErrItemNotFound
+	}
+
+	// Deep copy of the item to avoid modifying the one in the database
+	clone := util.DeepCopyStruct(item)
+	err = util.UpdateStructByTag("json", field, value, clone)
+	if err != nil {
+		return nil, err
+	}
+
+	err = txn.Insert(table, clone)
+	if err != nil {
+		return nil, err
+	}
+
+	return clone, nil
 }

@@ -7,22 +7,25 @@ package model
 import "github.com/stexxo/dynocue/util"
 
 const (
-	ResourceCueList             = "cue_list"
-	ResourceCue                 = "cue"
-	ResourceAction              = "action"
-	ResourceActionTemplate      = "action_template"
-	ResourceModel               = "cueing_model"
-	ResourceCueListCueSelection = "cue_list_cue_selection"
+	ResourceCueList        = "cue_list"
+	ResourceCue            = "cue"
+	ResourceAction         = "action"
+	ResourceActionTemplate = "action_template"
+	ResourceModel          = "cueing_model"
+	ResourceCueExecution   = "cue_execution"
 
 	MetadataCueListId        = "CueListId"
 	MetadataCueId            = "CueId"
 	MetadataActionId         = "ActionId"
 	MetadataActionTemplateId = "ActionTemplateId"
 
-	OperationLoaded  = "loaded"
-	OperationCreated = "created"
-	OperationUpdated = "updated"
-	OperationDeleted = "deleted"
+	OperationLoaded     = "loaded"
+	OperationCreated    = "created"
+	OperationUpdated    = "updated"
+	OperationDeleted    = "deleted"
+	OperationStarted    = "started"
+	OperationFinished   = "finished"
+	OperationUnselected = "unselected"
 )
 
 func (m *CueingModel) RegisterEventHandler(resource, operation string, fn util.HandlerFn) {

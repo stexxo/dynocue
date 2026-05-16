@@ -13,14 +13,17 @@ const (
 	TableCues            = "cues"
 	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
-	TableCueListPlayback = "cueplayback"
+	TableCueExecution    = "cueplayback"
 
-	IndexId     = "id"
-	IndexCueId  = "cue_id"
-	IndexNumber = "number"
+	IndexId       = "id"
+	IndexCueId    = "cue_id"
+	IndexNumber   = "number"
+	IndexSelected = "selected"
+	IndexCueList  = "cue_list"
 
-	IndexCueIdPrefix  = "cue_id_prefix"
-	IndexNumberPrefix = "number_prefix"
+	IndexCueIdPrefix    = "cue_id_prefix"
+	IndexNumberPrefix   = "number_prefix"
+	IndexSelectedPrefix = "selected_prefix"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -112,13 +115,28 @@ var runtimeSchema = &memdb.DBSchema{
 				},
 			},
 		},
-		TableCueListPlayback: {
-			Name: TableCueListPlayback,
+		TableCueExecution: {
+			Name: TableCueExecution,
 			Indexes: map[string]*memdb.IndexSchema{
 				IndexId: {
 					Name:    IndexId,
 					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
+				},
+				IndexCueList: {
+					Name:    IndexCueList,
+					Unique:  false,
 					Indexer: &memdb.StringFieldIndex{Field: "CueListId"},
+				},
+				IndexSelected: {
+					Name:   IndexSelected,
+					Unique: false,
+					Indexer: &memdb.CompoundIndex{
+						Indexes: []memdb.Indexer{
+							&memdb.StringFieldIndex{Field: "CueListId"},
+							&memdb.BoolFieldIndex{Field: "Selected"},
+						},
+					},
 				},
 			},
 		},

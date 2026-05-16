@@ -96,7 +96,7 @@ func (m *CueingModel) DeleteCueListById(id string) error {
 func (m *CueingModel) UpdateCueListAttribute(id string, field string, value interface{}) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	_, err := db.UpdateStructInDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
+	_, err := db.UpdateStructDb[types.CueList](m.persistent, TableCueLists, IndexId, id, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrCueListNotFound
 	}
