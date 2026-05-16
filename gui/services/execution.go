@@ -36,6 +36,7 @@ func (c *ExecutionService) onNewClient(cl *client.Client) error {
 		cl.OnExecutionFinished(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 		cl.OnExecutionUnselected(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 		cl.OnExecutionDeleted(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
+		cl.OnExecutionUpdated(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 	)
 }
 

@@ -154,3 +154,13 @@ func (c *Client) OnExecutionDeleted(handler EventCallback[api.ExecutionChangeEve
 	}
 	return nil
 }
+
+func (c *Client) OnExecutionUpdated(handler EventCallback[api.ExecutionChangeEvent]) error {
+	err := messaging.Subscribe[api.ExecutionChangeEvent](c.messenger, false, api.ExecutionUpdatedEventSubject, func(s string, e *api.ExecutionChangeEvent) {
+		handler(s, e)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to execution updated events: %w", err)
+	}
+	return nil
+}

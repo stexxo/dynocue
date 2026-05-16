@@ -44,6 +44,9 @@ class CueExecutionStore {
 		Events.On('event.cueing.execution.deleted', (ev: any) => {
 			this.loadForCueList(ev.data.cueListId);
 		});
+		Events.On('event.cueing.execution.updated', (ev: any) => {
+			this.refreshExecution(ev.data.cueId);
+		});
 
 		// Cleanup on cue list deletion
 		Events.On('event.cueing.cuelists.deleted', (ev: any) => {

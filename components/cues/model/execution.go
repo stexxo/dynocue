@@ -57,7 +57,18 @@ func (m *CueingModel) StartCueExecution(cueId string, selected bool, active bool
 						}
 						executionsRemoved = append(executionsRemoved, selectedCue.CueId)
 					} else { // if the cue is active, and now not selected, clear the selection but leave the execution record
-						_, err := db.UpdateStructTxn[types.CueExecution](tx, TableCueExecution, IndexId, selectedCue.CueId, "selected", false)
+						replacement := &types.CueExecution{
+							CueListId:    selectedCue.CueListId,
+							CueId:        selectedCue.CueId,
+							Active:       selectedCue.Active,
+							Selected:     false,
+							CueExecStart: selectedCue.CueExecStart,
+							DelayActive:  selectedCue.DelayActive,
+							DelayStart:   selectedCue.DelayStart,
+							FollowActive: selectedCue.FollowActive,
+							FollowStart:  selectedCue.FollowStart,
+						}
+						err = tx.Insert(TableCueExecution, replacement)
 						if err != nil {
 							return err
 						}

@@ -14,6 +14,7 @@ func (c *CueingApi) registerExecutionEvents() {
 	c.model.RegisterEventHandler(model.ResourceCueExecution, model.OperationFinished, eventHandler[ExecutionChangeEvent](c.messenger, c.logger, c.ExecutionChanged))
 	c.model.RegisterEventHandler(model.ResourceCueExecution, model.OperationUnselected, eventHandler[ExecutionChangeEvent](c.messenger, c.logger, c.ExecutionChanged))
 	c.model.RegisterEventHandler(model.ResourceCueExecution, model.OperationDeleted, eventHandler[ExecutionChangeEvent](c.messenger, c.logger, c.ExecutionChanged))
+	c.model.RegisterEventHandler(model.ResourceCueExecution, model.OperationUpdated, eventHandler[ExecutionChangeEvent](c.messenger, c.logger, c.ExecutionChanged))
 }
 
 const (
@@ -21,6 +22,7 @@ const (
 	ExecutionFinishedEventSubject   = "event.cueing.execution.finished"
 	ExecutionUnselectedEventSubject = "event.cueing.execution.unselected"
 	ExecutionDeletedEventSubject    = "event.cueing.execution.deleted"
+	ExecutionUpdatedEventSubject    = "event.cueing.execution.updated"
 )
 
 type ExecutionChangeEvent struct {
@@ -39,6 +41,8 @@ func (c *CueingApi) ExecutionChanged(ev util.Event) (string, *ExecutionChangeEve
 		sub = ExecutionUnselectedEventSubject
 	case model.OperationDeleted:
 		sub = ExecutionDeletedEventSubject
+	case model.OperationUpdated:
+		sub = ExecutionUpdatedEventSubject
 	}
 	return sub, &ExecutionChangeEvent{
 		CueListId: ev.EventData[model.MetadataCueListId],

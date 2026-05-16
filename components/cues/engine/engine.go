@@ -14,8 +14,9 @@ type CueingEngine struct {
 	logger logging.Logger
 }
 
-func NewCueingEngine(m *model.CueingModel) *CueingEngine {
+func NewCueingEngine(m *model.CueingModel, logger logging.Logger) *CueingEngine {
 	return &CueingEngine{
-		model: m,
+		model:  m,
+		logger: logger,
 	}
 }
