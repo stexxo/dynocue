@@ -109,6 +109,8 @@
 								onSaveEdit={(v) => {
 									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'delay', v);
 								}}
+								timerActive={execution?.delayActive}
+								timerStart={execution?.delayStart}
 							/>
 							<EditableTimeData
 								tdClass="w-100"
@@ -116,6 +118,8 @@
 								onSaveEdit={(v) => {
 									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'follow', v);
 								}}
+								timerActive={execution?.followActive}
+								timerStart={execution?.followStart}
 							/>
 							<td class="flex flex-row justify-end gap-1">
 								<button

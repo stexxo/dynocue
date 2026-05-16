@@ -3,8 +3,11 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 export function formatTime(nanos: number): string {
-	const ms = Math.floor(nanos / 1000000);
+	const n = Number(nanos);
+	if (!Number.isFinite(n)) return '00:00:00.000';
+	const ms = Math.floor(n / 1000000);
 	const date = new Date(ms);
+	if (isNaN(date.getTime())) return '00:00:00.000';
 	const h = date.getUTCHours().toString().padStart(2, '0');
 	const m = date.getUTCMinutes().toString().padStart(2, '0');
 	const s = date.getUTCSeconds().toString().padStart(2, '0');
