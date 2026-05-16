@@ -27,7 +27,7 @@ jobs:
           - os: ubuntu-24.04-arm
             arch: arm64
             osName: linux
-          - os: windows-2025
+          - os: windows-2025-vs2026
             arch: amd64
             osName: windows
           - os: macos-26
