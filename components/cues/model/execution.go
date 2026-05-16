@@ -102,6 +102,14 @@ func (m *CueingModel) GetCueExecution(cueId string) (*types.CueExecution, error)
 	return res, nil
 }
 
+func (m *CueingModel) EnumerateCueExecutions(cueListId string) ([]types.CueExecution, error) {
+	res, err := db.GetAllDb[types.CueExecution](m.runtime, TableCueExecution, IndexCueList, cueListId)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func (m *CueingModel) StopCueExecution(cueId string) error {
 	var deleted bool
 	var cueListId string

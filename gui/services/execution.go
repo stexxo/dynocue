@@ -9,6 +9,7 @@ import (
 
 	"github.com/stexxo/dynocue/client"
 	"github.com/stexxo/dynocue/components/cues/api"
+	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -62,4 +63,61 @@ func (c *ExecutionService) GoToNextCue(cueListId string) bool {
 	}
 
 	return true
+}
+
+func (c *ExecutionService) GetSelectedCue(cueListId string) (*types.CueExecution, bool) {
+	var out *types.CueExecution
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.GetSelectedCue(cueListId)
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to get selected cue", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (c *ExecutionService) GetCueExecution(cueId string) (*types.CueExecution, bool) {
+	var out *types.CueExecution
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.GetCueExecution(cueId)
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to get cue execution", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (c *ExecutionService) EnumerateCueExecutions(cueListId string) ([]types.CueExecution, bool) {
+	var out []types.CueExecution
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.EnumerateCueExecutions(cueListId)
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to enumerate cue executions", "err", err)
+		return nil, false
+	}
+
+	return out, true
 }

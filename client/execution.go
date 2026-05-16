@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/stexxo/dynocue/components/cues/api"
+	"github.com/stexxo/dynocue/components/cues/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
 
@@ -63,6 +64,55 @@ func (c *Client) GoToNextCue(cueListId string) error {
 	}
 
 	return fmt.Errorf("failed to go to next cue: %s", resp.Error)
+}
+
+func (c *Client) GetSelectedCue(cueListId string) (*types.CueExecution, error) {
+	resp, err := messaging.Request[api.GetSelectedCueResponse](c.messenger, api.GetSelectedCueRequestSubject, &api.GetSelectedCueRequest{
+		CueListId: cueListId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.Execution, nil
+	}
+
+	return nil, fmt.Errorf("failed to get selected cue: %s", resp.Error)
+}
+
+func (c *Client) GetCueExecution(cueId string) (*types.CueExecution, error) {
+	resp, err := messaging.Request[api.GetCueExecutionResponse](c.messenger, api.GetCueExecutionRequestSubject, &api.GetCueExecutionRequest{
+		CueId: cueId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.Execution, nil
+	}
+
+	if resp.Error == api.CueNotFound {
+		return nil, ErrCueNotFound
+	}
+
+	return nil, fmt.Errorf("failed to get cue execution: %s", resp.Error)
+}
+
+func (c *Client) EnumerateCueExecutions(cueListId string) ([]types.CueExecution, error) {
+	resp, err := messaging.Request[api.EnumerateCueExecutionsResponse](c.messenger, api.EnumerateCueExecutionsRequestSubject, &api.EnumerateCueExecutionsRequest{
+		CueListId: cueListId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.Executions, nil
+	}
+
+	return nil, fmt.Errorf("failed to enumerate cue executions: %s", resp.Error)
 }
 
 func (c *Client) OnExecutionStarted(handler EventCallback[api.ExecutionChangeEvent]) error {
