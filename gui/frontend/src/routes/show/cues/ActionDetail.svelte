@@ -53,7 +53,7 @@
 
 {#if action && cueListId && cueId}
 	{@const execution = cueExecutionStore.getActionExecution(action.actionId)}
-	<tr class={execution ? 'bg-emerald-900 hover:bg-emerald-950'	: 'hover:bg-base-200'}>
+	<tr class={execution ? 'bg-emerald-900 hover:bg-emerald-950' : 'hover:bg-base-200'}>
 		<td>
 			<button
 				class="btn h-full rounded-none px-1 btn-ghost btn-xs"

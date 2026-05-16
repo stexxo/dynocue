@@ -14,7 +14,7 @@ const (
 	ResourceModel           = "cueing_model"
 	ResourceCueExecution    = "cue_execution"
 	ResourceActionExecution = "action_execution"
-	
+
 	MetadataCueListId        = "CueListId"
 	MetadataCueId            = "CueId"
 	MetadataActionId         = "ActionId"
