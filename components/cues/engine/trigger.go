@@ -21,7 +21,7 @@ func (c *CueingEngine) GoToNextCue(cuelistId string) error {
 		return err
 	}
 
-	cue, err := c.model.GetNextCueInCueList(cuelistId, selected)
+	cue, err := c.model.GetNextCueInCueList(cuelistId, selected.CueId)
 	if err != nil {
 		return err
 	}
