@@ -7,11 +7,12 @@
 <script lang="ts">
 	import { actionsStore } from '$lib/stores/actionsStore.svelte';
 	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
-	import {cueExecutionStore} from "$lib/stores/cueExecutionStore.svelte";
+	import { cueExecutionStore } from '$lib/stores/cueExecutionStore.svelte';
 	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
 	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
 	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
 	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
+	import { formatTime, parseTimeToMs } from '$lib/utils/time';
 
 	interface ActionDetailProps {
 		cueListId: string | undefined;
@@ -32,6 +33,22 @@
 		return actionTemplatesStore.templates.find((t) => t.templateId === action.templateId) ?? null;
 	});
 	let isExpanded = $state(false);
+
+	let now = $state(Date.now());
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			now = Date.now();
+		}, 100);
+		return () => clearInterval(interval);
+	});
+
+	function getElapsed(execution: any) {
+		if (!execution?.actionStarted) return 0;
+		const start = parseTimeToMs(execution.actionStarted);
+		if (start <= 0) return 0;
+		return Math.max(0, now - start) * 1000000;
+	}
 </script>
 
 {#if action && cueListId && cueId}
@@ -98,6 +115,11 @@
 			timerActive={execution?.delayActive}
 			timerStart={execution?.delayStarted}
 		/>
+		<td class="w-32">
+			<span class="text-sm opacity-70">
+				{execution ? formatTime(getElapsed(execution)) : ''}
+			</span>
+		</td>
 		<td>
 			<div class="flex gap-2">
 				<button
@@ -112,7 +134,7 @@
 
 	{#if isExpanded}
 		<tr>
-			<td colspan="6" class="bg-base-200 p-4">
+			<td colspan="7" class="bg-base-200 p-4">
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 					{#each action.fields as field}
 						{#if field.dataType === 'string'}
