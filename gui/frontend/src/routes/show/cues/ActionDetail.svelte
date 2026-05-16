@@ -7,6 +7,7 @@
 <script lang="ts">
 	import { actionsStore } from '$lib/stores/actionsStore.svelte';
 	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
+	import {cueExecutionStore} from "$lib/stores/cueExecutionStore.svelte";
 	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
 	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
 	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
@@ -34,7 +35,8 @@
 </script>
 
 {#if action && cueListId && cueId}
-	<tr>
+	{@const execution = cueExecutionStore.getActionExecution(action.actionId)}
+	<tr class={execution ? 'bg-emerald-900 hover:bg-emerald-950'	: 'hover:bg-base-200'}>
 		<td>
 			<button
 				class="btn h-full rounded-none px-1 btn-ghost btn-xs"
@@ -93,6 +95,8 @@
 			value={action.delay}
 			onSaveEdit={(v) => actionsStore.update(action.actionId, 'delay', v)}
 			tdClass="border-none"
+			timerActive={execution?.delayActive}
+			timerStart={execution?.delayStarted}
 		/>
 		<td>
 			<div class="flex gap-2">
