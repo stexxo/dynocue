@@ -12,6 +12,7 @@
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
 	import { GoToCue } from '../../../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
+	import { formatTime, parseTimeToMs } from '$lib/utils/time';
 
 	interface CueTableProps {
 		CueListId: string;
@@ -35,6 +36,22 @@
 			cueToDelete = null;
 		}
 	}
+
+	let now = $state(Date.now());
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			now = Date.now();
+		}, 100);
+		return () => clearInterval(interval);
+	});
+
+	function getElapsed(execution: any) {
+		if (!execution?.active || !execution?.cueExecStart) return 0;
+		const start = parseTimeToMs(execution.cueExecStart);
+		if (start <= 0) return 0;
+		return Math.max(0, now - start) * 1000000;
+	}
 </script>
 
 <div class="flex h-full w-full flex-col items-center overflow-hidden">
@@ -56,6 +73,7 @@
 						<th class="max-w-200 min-w-100">Label</th>
 						<th class="w-100">Delay</th>
 						<th class="w-100">Follow</th>
+						<th class="w-100">Elapsed</th>
 						<th class="w-100"></th>
 					</tr>
 				</thead>
@@ -121,6 +139,9 @@
 								timerActive={execution?.followActive}
 								timerStart={execution?.followStart}
 							/>
+							<td class="w-100 font-mono">
+								{execution?.active ? formatTime(getElapsed(execution)) : ''}
+							</td>
 							<td class="flex flex-row justify-end gap-1">
 								<button
 									class="btn btn-soft btn-secondary"

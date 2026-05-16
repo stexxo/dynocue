@@ -182,6 +182,7 @@ func (m *CueingModel) StartCueDelayExecution(cueId string, delay time.Duration) 
 			CueId:        cueExec.CueId,
 			Active:       cueExec.Active,
 			Selected:     cueExec.Selected,
+			CueExecStart: cueExec.CueExecStart,
 			DelayActive:  true,
 			DelayStart:   time.Now(),
 			FollowActive: cueExec.FollowActive,
@@ -212,7 +213,9 @@ func (m *CueingModel) StopCueDelayExecution(cueId string) error {
 			CueId:        cueExec.CueId,
 			Active:       cueExec.Active,
 			Selected:     cueExec.Selected,
+			CueExecStart: cueExec.CueExecStart,
 			DelayActive:  false,
+			DelayStart:   cueExec.DelayStart,
 			FollowActive: cueExec.FollowActive,
 			FollowStart:  cueExec.FollowStart,
 		}
@@ -241,6 +244,7 @@ func (m *CueingModel) StartCueFollowExecution(cueId string, delay time.Duration)
 			CueId:        cueExec.CueId,
 			Active:       cueExec.Active,
 			Selected:     cueExec.Selected,
+			CueExecStart: cueExec.CueExecStart,
 			DelayActive:  cueExec.DelayActive,
 			DelayStart:   cueExec.DelayStart,
 			FollowActive: true,
@@ -271,9 +275,11 @@ func (m *CueingModel) StopCueFollowExecution(cueId string) error {
 			CueId:        cueExec.CueId,
 			Active:       cueExec.Active,
 			Selected:     cueExec.Selected,
+			CueExecStart: cueExec.CueExecStart,
 			DelayActive:  cueExec.DelayActive,
 			DelayStart:   cueExec.DelayStart,
 			FollowActive: false,
+			FollowStart:  cueExec.FollowStart,
 		}
 
 		return tx.Insert(TableCueExecution, updatedCueExec)

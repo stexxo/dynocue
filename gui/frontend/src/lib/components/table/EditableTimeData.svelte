@@ -6,7 +6,7 @@
 
 <script lang="ts">
 	import EditableTimeInput from '../inputs/EditableTimeInput.svelte';
-	import { formatTime } from '$lib/utils/time';
+	import { formatTime, parseTimeToMs } from '$lib/utils/time';
 
 	interface EditableTimeDataProps {
 		value: number; // nanoseconds
@@ -20,17 +20,7 @@
 	const props: EditableTimeDataProps = $props();
 
 	let now = $state(Date.now());
-	const startMs = $derived.by(() => {
-		if (!props.timerStart) return 0;
-		if (typeof props.timerStart === 'number') {
-			if (!Number.isFinite(props.timerStart)) return 0;
-			if (props.timerStart > 1e15) return props.timerStart / 1000000;
-			return props.timerStart;
-		}
-		const d = new Date(props.timerStart);
-		const ms = d.getTime();
-		return isNaN(ms) ? 0 : ms;
-	});
+	const startMs = $derived(parseTimeToMs(props.timerStart));
 
 	$effect(() => {
 		if (props.timerActive && startMs > 0) {
