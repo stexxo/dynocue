@@ -34,6 +34,7 @@ func NewGui(logger logging.Logger) *Gui {
 	g.app.RegisterService(application.NewService(services.NewSelectorService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewCueListsService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewCuesService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(services.NewExecutionService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewActionsService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewActionTemplatesService(g.clientManager, g.app, g.logger)))
 
