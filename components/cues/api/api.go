@@ -31,6 +31,7 @@ func NewCueingApi(model *model.CueingModel, e *engine.CueingEngine, persistence 
 		c.registerActionApis(),
 		c.registerActionTemplateApis(),
 		c.registerPersistenceApis(),
+		c.registerExecutionApis(),
 	)
 	if err != nil {
 		return nil, err
