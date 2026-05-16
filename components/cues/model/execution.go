@@ -6,6 +6,7 @@ package model
 
 import (
 	"errors"
+	"time"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/cues/types"
@@ -29,11 +30,11 @@ func (m *CueingModel) StartCueExecution(cueId string, selected bool, active bool
 
 		// Insert the Cue Execution
 		ce := &types.CueExecution{
-			CueListId: cue.CueListId,
-			CueId:     cueId,
-			Selected:  selected,
-			Active:    active,
-			Elapsed:   0,
+			CueListId:    cue.CueListId,
+			CueId:        cueId,
+			Selected:     selected,
+			Active:       active,
+			CueExecStart: time.Now(),
 		}
 		err = tx.Insert(TableCueExecution, ce)
 		if err != nil {
@@ -152,4 +153,123 @@ func (m *CueingModel) StopCueExecution(cueId string) error {
 	}
 
 	return nil
+}
+
+func (m *CueingModel) StartCueDelayExecution(cueId string, delay time.Duration) error {
+	var updatedCueExec *types.CueExecution
+	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
+		cueExec, err := db.GetFirstTxn[types.CueExecution](tx, TableCueExecution, IndexId, cueId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrCueNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		updatedCueExec = &types.CueExecution{
+			CueListId:    cueExec.CueListId,
+			CueId:        cueExec.CueId,
+			Active:       cueExec.Active,
+			Selected:     cueExec.Selected,
+			DelayActive:  true,
+			DelayStart:   time.Now(),
+			FollowActive: cueExec.FollowActive,
+			FollowStart:  cueExec.FollowStart,
+		}
+		return tx.Insert(TableCueExecution, updatedCueExec)
+	})
+
+	// emit updated event
+	m.registry.Emit(ResourceCueExecution, OperationUpdated, MetadataCueListId, updatedCueExec.CueListId, MetadataCueId, updatedCueExec.CueId)
+
+	return err
+}
+
+func (m *CueingModel) StopCueDelayExecution(cueId string) error {
+	var updatedCueExec *types.CueExecution
+	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
+		cueExec, err := db.GetFirstTxn[types.CueExecution](tx, TableCueExecution, IndexId, cueId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrCueNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		updatedCueExec = &types.CueExecution{
+			CueListId:    cueExec.CueListId,
+			CueId:        cueExec.CueId,
+			Active:       cueExec.Active,
+			Selected:     cueExec.Selected,
+			DelayActive:  false,
+			FollowActive: cueExec.FollowActive,
+			FollowStart:  cueExec.FollowStart,
+		}
+		return tx.Insert(TableCueExecution, updatedCueExec)
+	})
+
+	// emit updated event
+	m.registry.Emit(ResourceCueExecution, OperationUpdated, MetadataCueListId, updatedCueExec.CueListId, MetadataCueId, updatedCueExec.CueId)
+
+	return err
+}
+
+func (m *CueingModel) StartCueFollowExecution(cueId string, delay time.Duration) error {
+	var updatedCueExec *types.CueExecution
+	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
+		cueExec, err := db.GetFirstTxn[types.CueExecution](tx, TableCueExecution, IndexId, cueId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrCueNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		updatedCueExec = &types.CueExecution{
+			CueListId:    cueExec.CueListId,
+			CueId:        cueExec.CueId,
+			Active:       cueExec.Active,
+			Selected:     cueExec.Selected,
+			DelayActive:  cueExec.DelayActive,
+			DelayStart:   cueExec.DelayStart,
+			FollowActive: true,
+			FollowStart:  time.Now(),
+		}
+		return tx.Insert(TableCueExecution, updatedCueExec)
+	})
+
+	// emit updated event
+	m.registry.Emit(ResourceCueExecution, OperationUpdated, MetadataCueListId, updatedCueExec.CueListId, MetadataCueId, updatedCueExec.CueId)
+
+	return err
+}
+
+func (m *CueingModel) StopCueFollowExecution(cueId string) error {
+	var updatedCueExec *types.CueExecution
+	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
+		cueExec, err := db.GetFirstTxn[types.CueExecution](tx, TableCueExecution, IndexId, cueId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrCueNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		updatedCueExec = &types.CueExecution{
+			CueListId:    cueExec.CueListId,
+			CueId:        cueExec.CueId,
+			Active:       cueExec.Active,
+			Selected:     cueExec.Selected,
+			DelayActive:  cueExec.DelayActive,
+			DelayStart:   cueExec.DelayStart,
+			FollowActive: false,
+		}
+
+		return tx.Insert(TableCueExecution, updatedCueExec)
+	})
+
+	// emit updated event
+	m.registry.Emit(ResourceCueExecution, OperationUpdated, MetadataCueListId, updatedCueExec.CueListId, MetadataCueId, updatedCueExec.CueId)
+
+	return err
 }

@@ -10,16 +10,15 @@ type CueExecution struct {
 	CueListId string `msgpack:"cueListId" json:"cueListId"`
 	CueId     string `msgpack:"cueId" json:"cueId"`
 
-	Active   bool `msgpack:"active" json:"active"`
-	Selected bool `msgpack:"selected" json:"selected"`
+	Active       bool      `msgpack:"active" json:"active"`
+	Selected     bool      `msgpack:"selected" json:"selected"`
+	CueExecStart time.Time `msgpack:"cueExecStart" json:"cueExecStart"`
 
-	Elapsed time.Duration `msgpack:"elapsed" json:"elapsed"`
+	DelayActive bool      `msgpack:"delayActive" json:"delayActive"`
+	DelayStart  time.Time `msgpack:"delayStart" json:"delayStart"`
 
-	DelayActive   bool          `msgpack:"delayActive" json:"delayActive"`
-	DelayProgress time.Duration `msgpack:"delayProgress" json:"delayProgress"`
-
-	FollowActive   bool          `msgpack:"followActive" json:"followActive"`
-	FollowProgress time.Duration `msgpack:"followProgress" json:"followProgress"`
+	FollowActive bool      `msgpack:"followActive" json:"followActive"`
+	FollowStart  time.Time `msgpack:"followStart" json:"followStart"`
 }
 
 type ActionExecution struct {
@@ -27,8 +26,8 @@ type ActionExecution struct {
 	CueId     string `msgpack:"cueId" json:"cueId"`
 	ActionId  string `msgpack:"actionId" json:"actionId"`
 
-	Elapsed time.Duration `msgpack:"elapsed" json:"elapsed"`
+	ActionStarted time.Time `msgpack:"actionStarted" json:"actionStarted"`
 
-	DelayActive   bool          `msgpack:"delayActive" json:"delayActive"`
-	DelayProgress time.Duration `msgpack:"delayProgress" json:"delayProgress"`
+	DelayActive  bool      `msgpack:"delayActive" json:"delayActive"`
+	DelayStarted time.Time `msgpack:"delayStarted" json:"delayStarted"`
 }
