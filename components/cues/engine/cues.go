@@ -1,6 +1,5 @@
 package engine
 
-import "C"
 import (
 	"errors"
 	"time"
