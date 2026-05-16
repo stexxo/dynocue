@@ -127,7 +127,7 @@ func TestRegisterActionApis(t *testing.T) {
 		Js:   js,
 	})
 
-	_, err := NewCueingApi(m, nil, messenger, logging.NewNoopLogger())
+	_, err := NewCueingApi(m, nil, nil, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)
 
 	clId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)

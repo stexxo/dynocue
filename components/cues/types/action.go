@@ -11,15 +11,16 @@ import (
 )
 
 type Action struct {
-	CueListId  string         `msgpack:"cueListId" json:"cueListId"`
-	CueId      string         `msgpack:"cueId" json:"cueId"`
-	ActionId   string         `msgpack:"actionId" json:"actionId"`
-	Number     uint           `msgpack:"number" json:"number"`
-	Subject    string         `msgpack:"subject" json:"subject"`
-	Label      string         `msgpack:"label" json:"label"`
-	TemplateId string         `msgpack:"templateId" json:"templateId"`
-	Delay      time.Duration  `msgpack:"delay" json:"delay"`
-	Fields     []ActionFields `msgpack:"fields" json:"fields"`
+	CueListId     string         `msgpack:"cueListId" json:"cueListId"`
+	CueId         string         `msgpack:"cueId" json:"cueId"`
+	ActionId      string         `msgpack:"actionId" json:"actionId"`
+	Number        uint           `msgpack:"number" json:"number"`
+	Subject       string         `msgpack:"subject" json:"subject"`
+	Label         string         `msgpack:"label" json:"label"`
+	TemplateId    string         `msgpack:"templateId" json:"templateId"`
+	WaitForFinish bool           `msgpack:"waitForFinish" json:"waitForFinish"`
+	Delay         time.Duration  `msgpack:"delay" json:"delay"`
+	Fields        []ActionFields `msgpack:"fields" json:"fields"`
 }
 
 func NewAction(cueId string) *Action {

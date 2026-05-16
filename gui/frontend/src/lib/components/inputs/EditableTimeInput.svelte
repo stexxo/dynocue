@@ -21,8 +21,6 @@
 	let editValue = $state('');
 	let hasChanged = $derived(editValue !== formatTime(props.value));
 
-	export { formatTime };
-
 	$effect(() => {
 		editValue = formatTime(props.value);
 	});

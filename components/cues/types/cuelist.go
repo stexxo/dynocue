@@ -13,4 +13,5 @@ type CueList struct {
 	Number      uint   `msgpack:"number" json:"number"`
 	Label       string `msgpack:"label" json:"label"`
 	CueListType string `msgpack:"cueListType" json:"cueListType"`
+	WrapAtEnd   bool   `msgpack:"wrapAtEnd" json:"wrapAtEnd"`
 }

@@ -204,6 +204,7 @@
 									<th class="w-64">Label</th>
 									<th class="w-40">Template</th>
 									<th class="w-32">Delay</th>
+									<th class="w-32">Elapsed</th>
 									<th class="w-16"></th>
 								</tr>
 							</thead>

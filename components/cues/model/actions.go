@@ -92,7 +92,7 @@ func (m *CueingModel) DeleteAction(actionId string) error {
 func (m *CueingModel) UpdateAction(actionId string, field string, value any) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	a, err := db.UpdateStructInDb[types.Action](m.persistent, TableActions, IndexId, actionId, field, value)
+	a, err := db.UpdateStructDb[types.Action](m.persistent, TableActions, IndexId, actionId, field, value)
 	if errors.Is(err, db.ErrItemNotFound) {
 		return ErrActionNotFound
 	}

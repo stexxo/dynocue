@@ -6,10 +6,13 @@
 
 <script lang="ts">
 	import { cuesStore } from '../../../stores/cuesStore.svelte';
+	import { cueExecutionStore } from '$lib/stores/cueExecutionStore.svelte';
 	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
 	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
+	import { GoToCue } from '../../../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
+	import { formatTime, parseTimeToMs } from '$lib/utils/time';
 
 	interface CueTableProps {
 		CueListId: string;
@@ -33,6 +36,22 @@
 			cueToDelete = null;
 		}
 	}
+
+	let now = $state(Date.now());
+
+	$effect(() => {
+		const interval = setInterval(() => {
+			now = Date.now();
+		}, 100);
+		return () => clearInterval(interval);
+	});
+
+	function getElapsed(execution: any) {
+		if (!execution?.active || !execution?.cueExecStart) return 0;
+		const start = parseTimeToMs(execution.cueExecStart);
+		if (start <= 0) return 0;
+		return Math.max(0, now - start) * 1000000;
+	}
 </script>
 
 <div class="flex h-full w-full flex-col items-center overflow-hidden">
@@ -49,17 +68,43 @@
 			<table class="table-pin-rows table">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
+						<th class="w-25 text-center"></th>
 						<th class="w-100 text-center">#</th>
 						<th class="max-w-200 min-w-100">Label</th>
 						<th class="w-100">Delay</th>
 						<th class="w-100">Follow</th>
+						<th class="w-100">Elapsed</th>
 						<th class="w-100"></th>
 					</tr>
 				</thead>
 
 				<tbody class="">
 					{#each cues ?? [] as list}
-						<tr class="hover:cursor-pointer hover:bg-base-200">
+						{@const execution = cueExecutionStore.getExecution(list.cueId)}
+						<tr
+							class="hover:cursor-pointer {execution?.selected && execution?.active
+								? 'bg-indigo-900 hover:bg-indigo-950'
+								: execution?.selected
+									? 'bg-cyan-900 hover:bg-cyan-950'
+									: execution?.active
+										? 'bg-emerald-900 hover:bg-emerald-950'
+										: 'hover:bg-base-200'}"
+						>
+							<td>
+								{#if execution?.active}
+									<span class="loading loading-xs loading-spinner">playing</span>
+								{:else}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+										class="size-4 opacity-20"
+									>
+										<title>Stopped</title>
+										<rect x="6" y="6" width="12" height="12" rx="2" />
+									</svg>
+								{/if}
+							</td>
 							<EditableTableData
 								inputType="number"
 								value={list.number}
@@ -82,6 +127,8 @@
 								onSaveEdit={(v) => {
 									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'delay', v);
 								}}
+								timerActive={execution?.delayActive}
+								timerStart={execution?.delayStart}
 							/>
 							<EditableTimeData
 								tdClass="w-100"
@@ -89,7 +136,12 @@
 								onSaveEdit={(v) => {
 									cuesStore.updateCueAttributes(list.cueListId, list.cueId, 'follow', v);
 								}}
+								timerActive={execution?.followActive}
+								timerStart={execution?.followStart}
 							/>
+							<td class="w-100 font-mono">
+								{execution?.active ? formatTime(getElapsed(execution)) : ''}
+							</td>
 							<td class="flex flex-row justify-end gap-1">
 								<button
 									class="btn btn-soft btn-secondary"
@@ -126,7 +178,14 @@
 									<ul
 										class="dropdown-content menu z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
 									>
-										<li><button class="btn btn-outline btn-primary">Go To</button></li>
+										<li>
+											<button
+												class="btn btn-outline btn-primary"
+												onclick={() => {
+													GoToCue(list.cueId);
+												}}>Go To</button
+											>
+										</li>
 										<li>
 											<button
 												class="btn btn-outline btn-error"

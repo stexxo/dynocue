@@ -132,7 +132,7 @@ func TestRegisterPersistenceApis(t *testing.T) {
 	mockOS := new(mockObjectStore)
 	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, logging.NewNoopLogger())
 
-	_, err := NewCueingApi(m, pm, messenger, logging.NewNoopLogger())
+	_, err := NewCueingApi(m, nil, pm, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)
 
 	t.Run("Save Registration", func(t *testing.T) {

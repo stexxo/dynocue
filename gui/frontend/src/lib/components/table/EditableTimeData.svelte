@@ -6,16 +6,46 @@
 
 <script lang="ts">
 	import EditableTimeInput from '../inputs/EditableTimeInput.svelte';
-	import { formatTime } from '$lib/utils/time';
+	import { formatTime, parseTimeToMs } from '$lib/utils/time';
 
 	interface EditableTimeDataProps {
 		value: number; // nanoseconds
 		tdClass?: string;
 		onSaveEdit: (value: number) => void;
+		timerActive?: boolean;
+		timerStart?: number | string | Date;
 	}
 
 	let editing = $state(false);
 	const props: EditableTimeDataProps = $props();
+
+	let now = $state(Date.now());
+	const startMs = $derived(parseTimeToMs(props.timerStart));
+
+	$effect(() => {
+		if (props.timerActive && startMs > 0) {
+			const interval = setInterval(() => {
+				now = Date.now();
+			}, 33);
+			return () => clearInterval(interval);
+		}
+	});
+
+	const remaining = $derived.by(() => {
+		const val = Number(props.value);
+		if (!Number.isFinite(val)) return 0;
+		if (!props.timerActive || startMs <= 0) return val;
+		const elapsedMs = Math.max(0, now - startMs);
+		return Math.max(0, val - elapsedMs * 1000000);
+	});
+
+	const progress = $derived.by(() => {
+		const val = Number(props.value);
+		if (!Number.isFinite(val) || val <= 0 || !props.timerActive || startMs <= 0) return 0;
+		const elapsedMs = Math.max(0, now - startMs);
+		const durationMs = val / 1000000;
+		return Math.min(100, (elapsedMs / durationMs) * 100);
+	});
 
 	function onSave(value: number) {
 		props.onSaveEdit(value);
@@ -45,6 +75,9 @@
 		</div>
 	{/if}
 	<div class="min-h-10 cursor-pointer p-2 hover:border {editing ? 'invisible' : ''}">
-		{formatTime(props.value)}
+		{formatTime(remaining)}
 	</div>
+	{#if props.timerActive && startMs > 0 && !editing}
+		<div class="absolute bottom-0 left-0 h-1 bg-primary" style:width="{progress}%"></div>
+	{/if}
 </td>

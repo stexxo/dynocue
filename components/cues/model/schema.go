@@ -13,10 +13,14 @@ const (
 	TableCues            = "cues"
 	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
+	TableCueExecution    = "cueexecution"
+	TableActionExecution = "actionexecution"
 
-	IndexId     = "id"
-	IndexCueId  = "cue_id"
-	IndexNumber = "number"
+	IndexId       = "id"
+	IndexCueId    = "cue_id"
+	IndexNumber   = "number"
+	IndexSelected = "selected"
+	IndexCueList  = "cue_list"
 
 	IndexCueIdPrefix  = "cue_id_prefix"
 	IndexNumberPrefix = "number_prefix"
@@ -108,6 +112,46 @@ var runtimeSchema = &memdb.DBSchema{
 					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "TemplateId"},
+				},
+			},
+		},
+		TableCueExecution: {
+			Name: TableCueExecution,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
+				},
+				IndexCueList: {
+					Name:    IndexCueList,
+					Unique:  false,
+					Indexer: &memdb.StringFieldIndex{Field: "CueListId"},
+				},
+				IndexSelected: {
+					Name:   IndexSelected,
+					Unique: false,
+					Indexer: &memdb.CompoundIndex{
+						Indexes: []memdb.Indexer{
+							&memdb.StringFieldIndex{Field: "CueListId"},
+							&memdb.BoolFieldIndex{Field: "Selected"},
+						},
+					},
+				},
+			},
+		},
+		TableActionExecution: {
+			Name: TableActionExecution,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "ActionId"},
+				},
+				IndexCueId: {
+					Name:    IndexCueId,
+					Unique:  false,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
 			},
 		},
