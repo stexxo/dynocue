@@ -24,8 +24,8 @@ func (c *CueingApi) registerExecutionApis() error {
 }
 
 const (
-	NoNextCue      = "No next cue found"
-	NoCueSelected  = "No cue selected"
+	NoNextCue     = "No next cue found"
+	NoCueSelected = "No cue selected"
 )
 
 const GoToCueRequestSubject = "request.cueing.execution.goto.cue"

@@ -114,7 +114,7 @@ func TestRegisterActionTemplateApis(t *testing.T) {
 		Js:   js,
 	})
 
-		_, err := NewCueingApi(m, nil, nil, messenger, logging.NewNoopLogger())
+	_, err := NewCueingApi(m, nil, nil, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)
 
 	t.Run("Register Registration", func(t *testing.T) {

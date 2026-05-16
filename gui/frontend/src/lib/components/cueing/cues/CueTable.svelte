@@ -6,10 +6,12 @@
 
 <script lang="ts">
 	import { cuesStore } from '../../../stores/cuesStore.svelte';
+	import { cueExecutionStore } from '$lib/stores/cueExecutionStore.svelte';
 	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
 	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
+	import { GoToCue } from '../../../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
 
 	interface CueTableProps {
 		CueListId: string;
@@ -49,6 +51,7 @@
 			<table class="table-pin-rows table">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
+						<th class="w-25 text-center"></th>
 						<th class="w-100 text-center">#</th>
 						<th class="max-w-200 min-w-100">Label</th>
 						<th class="w-100">Delay</th>
@@ -59,7 +62,31 @@
 
 				<tbody class="">
 					{#each cues ?? [] as list}
-						<tr class="hover:cursor-pointer hover:bg-base-200">
+						{@const execution = cueExecutionStore.getExecution(list.cueId)}
+						<tr
+							class="hover:cursor-pointer {execution?.selected && execution?.active
+								? 'bg-indigo-900 hover:bg-indigo-950'
+								: execution?.selected
+									? 'bg-cyan-900 hover:bg-cyan-950'
+									: execution?.active
+										? 'bg-emerald-900 hover:bg-emerald-950'
+										: 'hover:bg-base-200'}"
+						>
+							<td>
+								{#if execution?.active}
+									<span class="loading loading-xs loading-spinner">playing</span>
+								{:else}
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+										class="size-4 opacity-20"
+									>
+										<title>Stopped</title>
+										<rect x="6" y="6" width="12" height="12" rx="2" />
+									</svg>
+								{/if}
+							</td>
 							<EditableTableData
 								inputType="number"
 								value={list.number}
@@ -126,7 +153,14 @@
 									<ul
 										class="dropdown-content menu z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
 									>
-										<li><button class="btn btn-outline btn-primary">Go To</button></li>
+										<li>
+											<button
+												class="btn btn-outline btn-primary"
+												onclick={() => {
+													GoToCue(list.cueId);
+												}}>Go To</button
+											>
+										</li>
 										<li>
 											<button
 												class="btn btn-outline btn-error"

@@ -85,6 +85,9 @@ func (m *CueingModel) StartCueExecution(cueId string, selected bool, active bool
 
 func (m *CueingModel) GetSelectedCue(cueListId string) (*types.CueExecution, error) {
 	res, err := db.GetFirstDb[types.CueExecution](m.runtime, TableCueExecution, IndexSelected, cueListId, true)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return nil, ErrCueNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
