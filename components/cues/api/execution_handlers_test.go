@@ -19,7 +19,7 @@ import (
 func setupExecution(t *testing.T) (*model.CueingModel, *engine.CueingEngine, *CueingApi) {
 	m, err := model.NewCueingModel()
 	require.NoError(t, err)
-	eng := engine.NewCueingEngine(m)
+	eng := engine.NewCueingEngine(m, nil, nil)
 	api := &CueingApi{
 		model:  m,
 		engine: eng,

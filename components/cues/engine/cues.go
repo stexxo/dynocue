@@ -26,6 +26,7 @@ func (c *CueingEngine) ExecuteCue(cueId string) error {
 
 func (c *CueingEngine) executeCue(cueId string) (err error) {
 	delayFinished := false
+	actionsStarted := false
 	actionsFinished := false
 	followFinished := false
 	ticker := time.NewTicker(time.Millisecond * 10)
@@ -48,7 +49,15 @@ func (c *CueingEngine) executeCue(cueId string) (err error) {
 				}
 			}
 
-			if delayFinished && !actionsFinished {
+			if delayFinished && !actionsStarted {
+				err = c.startActions(cueId)
+				if err != nil {
+					return err
+				}
+				actionsStarted = true
+			}
+
+			if actionsStarted && !actionsFinished {
 				actionsFinished, err = c.checkActions(cueId)
 				if err != nil {
 					return err
@@ -110,7 +119,7 @@ func (c *CueingEngine) checkDelay(cueId string) (bool, error) {
 	}
 
 	if !cueExec.DelayActive {
-		err = c.model.StartCueDelayExecution(cueId, cue.Delay)
+		err = c.model.StartCueDelayExecution(cueId)
 		if err != nil {
 			return false, err
 		}
@@ -184,6 +193,29 @@ func (c *CueingEngine) checkFollow(cueId string) (bool, error) {
 	return false, nil
 }
 
+func (c *CueingEngine) startActions(cueId string) error {
+	actions, err := c.model.EnumerateActions(cueId)
+	if err != nil {
+		return err
+	}
+
+	for _, action := range actions {
+		err := c.ExecuteAction(action.ActionId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *CueingEngine) checkActions(cueId string) (bool, error) {
+	actionExec, err := c.model.EnumerateActionExecutions(cueId)
+	if err != nil {
+		return false, err
+	}
+	if len(actionExec) > 0 {
+		return false, nil
+	}
 	return true, nil
 }

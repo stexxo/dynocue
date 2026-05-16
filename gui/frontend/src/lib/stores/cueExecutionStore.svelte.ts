@@ -3,11 +3,16 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import {
+	EnumerateActionExecutions,
 	EnumerateCueExecutions,
+	GetActionExecution,
 	GetCueExecution,
 	GetSelectedCue
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
-import { CueExecution } from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
+import {
+	ActionExecution,
+	CueExecution
+} from '../../../bindings/github.com/stexxo/dynocue/components/cues/types';
 import { Events } from '@wailsio/runtime';
 import { cuelistsStore } from './cuelistsStore.svelte';
 
@@ -16,8 +21,10 @@ import { cuelistsStore } from './cuelistsStore.svelte';
  */
 class CueExecutionStore {
 	#executions = $state<Map<string, CueExecution>>(new Map());
+	#actionExecutions = $state<Map<string, ActionExecution>>(new Map());
 	#selectedCueIds = $state<Map<string, string>>(new Map());
 	#loadedCueListIds = $state<Set<string>>(new Set());
+	#loadedActionCueIds = $state<Set<string>>(new Set());
 
 	constructor() {
 		// Automatically load executions for all cue lists
@@ -47,6 +54,15 @@ class CueExecutionStore {
 		Events.On('event.cueing.execution.updated', (ev: any) => {
 			this.refreshExecution(ev.data.cueId);
 		});
+		Events.On('event.cueing.execution.action.started', (ev: any) => {
+			this.loadActionsForCue(ev.data.cueId);
+		});
+		Events.On('event.cueing.execution.action.deleted', (ev: any) => {
+			this.loadActionsForCue(ev.data.cueId);
+		});
+		Events.On('event.cueing.execution.action.updated', (ev: any) => {
+			this.refreshActionExecution(ev.data.actionId);
+		});
 
 		// Cleanup on cue list deletion
 		Events.On('event.cueing.cuelists.deleted', (ev: any) => {
@@ -69,8 +85,10 @@ class CueExecutionStore {
 		// Reset on persistence load
 		Events.On('event.system.persistence.loaded', () => {
 			this.#executions = new Map();
+			this.#actionExecutions = new Map();
 			this.#selectedCueIds = new Map();
 			this.#loadedCueListIds = new Set();
+			this.#loadedActionCueIds = new Set();
 		});
 	}
 
@@ -80,6 +98,14 @@ class CueExecutionStore {
 	 */
 	getExecution(cueId: string): CueExecution | undefined {
 		return this.#executions.get(cueId);
+	}
+
+	/**
+	 * Returns the execution state for a specific action.
+	 * @param actionId The ID of the action.
+	 */
+	getActionExecution(actionId: string): ActionExecution | undefined {
+		return this.#actionExecutions.get(actionId);
 	}
 
 	/**
@@ -97,6 +123,14 @@ class CueExecutionStore {
 	 */
 	getExecutionsForList(cueListId: string): CueExecution[] {
 		return Array.from(this.#executions.values()).filter((ex) => ex.cueListId === cueListId);
+	}
+
+	/**
+	 * Returns all action executions for a specific cue.
+	 * @param cueId The ID of the cue.
+	 */
+	getActionExecutionsForCue(cueId: string): ActionExecution[] {
+		return Array.from(this.#actionExecutions.values()).filter((ex) => ex.cueId === cueId);
 	}
 
 	/**
@@ -134,6 +168,42 @@ class CueExecutionStore {
 			// Trigger Svelte reactivity
 			this.#executions = new Map(this.#executions);
 			this.#selectedCueIds = new Map(this.#selectedCueIds);
+
+			// Load actions for all active cues
+			executions.forEach((ex: CueExecution) => {
+				if (ex.active) {
+					this.loadActionsForCue(ex.cueId);
+				}
+			});
+		}
+	}
+
+	/**
+	 * Loads or reloads all action executions for a specific cue.
+	 * @param cueId The ID of the cue.
+	 */
+	async loadActionsForCue(cueId: string) {
+		const [executions, ok] = await EnumerateActionExecutions(cueId);
+		if (ok) {
+			this.#loadedActionCueIds.add(cueId);
+			this.#loadedActionCueIds = new Set(this.#loadedActionCueIds);
+
+			// Remove old action executions for this cue
+			const toDelete: string[] = [];
+			this.#actionExecutions.forEach((ex, actionId) => {
+				if (ex.cueId === cueId) {
+					toDelete.push(actionId);
+				}
+			});
+			toDelete.forEach((id) => this.#actionExecutions.delete(id));
+
+			// Add new ones
+			executions.forEach((ex: ActionExecution) => {
+				this.#actionExecutions.set(ex.actionId, ex);
+			});
+
+			// Trigger Svelte reactivity
+			this.#actionExecutions = new Map(this.#actionExecutions);
 		}
 	}
 
@@ -150,6 +220,22 @@ class CueExecutionStore {
 			}
 			this.#executions = new Map(this.#executions);
 			this.#selectedCueIds = new Map(this.#selectedCueIds);
+
+			if (ex.active) {
+				this.loadActionsForCue(cueId);
+			}
+		}
+	}
+
+	/**
+	 * Refreshes a single action execution.
+	 * @param actionId The ID of the action.
+	 */
+	async refreshActionExecution(actionId: string) {
+		const [ex, ok] = await GetActionExecution(actionId);
+		if (ok && ex) {
+			this.#actionExecutions.set(actionId, ex);
+			this.#actionExecutions = new Map(this.#actionExecutions);
 		}
 	}
 

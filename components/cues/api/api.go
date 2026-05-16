@@ -43,6 +43,7 @@ func NewCueingApi(model *model.CueingModel, e *engine.CueingEngine, persistence 
 	c.registerActionTemplateEvents()
 	c.registerPersistenceEvents()
 	c.registerExecutionEvents()
+	c.registerActionExecutionEvents()
 
 	return c, nil
 }

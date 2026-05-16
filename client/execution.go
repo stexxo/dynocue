@@ -115,6 +115,40 @@ func (c *Client) EnumerateCueExecutions(cueListId string) ([]types.CueExecution,
 	return nil, fmt.Errorf("failed to enumerate cue executions: %s", resp.Error)
 }
 
+func (c *Client) GetActionExecution(actionId string) (*types.ActionExecution, error) {
+	resp, err := messaging.Request[api.GetActionExecutionResponse](c.messenger, api.GetActionExecutionRequestSubject, &api.GetActionExecutionRequest{
+		ActionId: actionId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.Execution, nil
+	}
+
+	if resp.Error == api.ActionNotFound {
+		return nil, ErrActionNotFound
+	}
+
+	return nil, fmt.Errorf("failed to get action execution: %s", resp.Error)
+}
+
+func (c *Client) EnumerateActionExecutions(cueId string) ([]types.ActionExecution, error) {
+	resp, err := messaging.Request[api.EnumerateActionExecutionsResponse](c.messenger, api.EnumerateActionExecutionsRequestSubject, &api.EnumerateActionExecutionsRequest{
+		CueId: cueId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Success {
+		return resp.Response.Executions, nil
+	}
+
+	return nil, fmt.Errorf("failed to enumerate action executions: %s", resp.Error)
+}
+
 func (c *Client) OnExecutionStarted(handler EventCallback[api.ExecutionChangeEvent]) error {
 	err := messaging.Subscribe[api.ExecutionChangeEvent](c.messenger, false, api.ExecutionStartedEventSubject, func(s string, e *api.ExecutionChangeEvent) {
 		handler(s, e)
@@ -161,6 +195,36 @@ func (c *Client) OnExecutionUpdated(handler EventCallback[api.ExecutionChangeEve
 	})
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to execution updated events: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) OnActionExecutionStarted(handler EventCallback[api.ActionExecutionChangeEvent]) error {
+	err := messaging.Subscribe[api.ActionExecutionChangeEvent](c.messenger, false, api.ActionExecutionStartedEventSubject, func(s string, e *api.ActionExecutionChangeEvent) {
+		handler(s, e)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to action execution started events: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) OnActionExecutionDeleted(handler EventCallback[api.ActionExecutionChangeEvent]) error {
+	err := messaging.Subscribe[api.ActionExecutionChangeEvent](c.messenger, false, api.ActionExecutionDeletedEventSubject, func(s string, e *api.ActionExecutionChangeEvent) {
+		handler(s, e)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to action execution deleted events: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) OnActionExecutionUpdated(handler EventCallback[api.ActionExecutionChangeEvent]) error {
+	err := messaging.Subscribe[api.ActionExecutionChangeEvent](c.messenger, false, api.ActionExecutionUpdatedEventSubject, func(s string, e *api.ActionExecutionChangeEvent) {
+		handler(s, e)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to action execution updated events: %w", err)
 	}
 	return nil
 }

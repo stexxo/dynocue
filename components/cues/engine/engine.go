@@ -7,16 +7,19 @@ package engine
 import (
 	"github.com/stexxo/dynocue/components/cues/model"
 	"github.com/stexxo/dynocue/core/logging"
+	"github.com/stexxo/dynocue/core/messaging"
 )
 
 type CueingEngine struct {
-	model  *model.CueingModel
-	logger logging.Logger
+	model     *model.CueingModel
+	logger    logging.Logger
+	messenger *messaging.Messenger
 }
 
-func NewCueingEngine(m *model.CueingModel, logger logging.Logger) *CueingEngine {
+func NewCueingEngine(m *model.CueingModel, logger logging.Logger, messenger *messaging.Messenger) *CueingEngine {
 	return &CueingEngine{
-		model:  m,
-		logger: logger,
+		model:     m,
+		logger:    logger,
+		messenger: messenger,
 	}
 }

@@ -29,7 +29,7 @@ func (m *CueingModel) StartCueExecution(cueId string, selected bool, active bool
 		cueListId = cue.CueListId
 
 		// Check if it is already running, and if so, return nil, idempotent start
-		existingExecution, err := db.GetFirstDb[types.CueExecution](m.persistent, TableActionExecution, IndexId, cueId)
+		existingExecution, err := db.GetFirstDb[types.CueExecution](m.runtime, TableCueExecution, IndexId, cueId)
 		if err != nil && !errors.Is(err, db.ErrItemNotFound) {
 			return err
 		}

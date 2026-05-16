@@ -38,7 +38,7 @@ func (p *Cueing) onStart() error {
 	}
 	p.model = m
 
-	eng := engine.NewCueingEngine(m, p.Logger())
+	eng := engine.NewCueingEngine(m, p.Logger(), p.Messenger())
 	p.engine = eng
 
 	a, err := api.NewCueingApi(m, eng, pm, p.Messenger(), p.Logger())

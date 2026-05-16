@@ -37,6 +37,9 @@ func (c *ExecutionService) onNewClient(cl *client.Client) error {
 		cl.OnExecutionUnselected(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 		cl.OnExecutionDeleted(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 		cl.OnExecutionUpdated(func(s string, e *api.ExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
+		cl.OnActionExecutionStarted(func(s string, e *api.ActionExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
+		cl.OnActionExecutionDeleted(func(s string, e *api.ActionExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
+		cl.OnActionExecutionUpdated(func(s string, e *api.ActionExecutionChangeEvent) { c.app.Event.Emit(s, e) }),
 	)
 }
 
@@ -117,6 +120,44 @@ func (c *ExecutionService) EnumerateCueExecutions(cueListId string) ([]types.Cue
 
 	if err != nil {
 		c.logger.Error("failed to enumerate cue executions", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (c *ExecutionService) GetActionExecution(actionId string) (*types.ActionExecution, bool) {
+	var out *types.ActionExecution
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.GetActionExecution(actionId)
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to get action execution", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (c *ExecutionService) EnumerateActionExecutions(cueId string) ([]types.ActionExecution, bool) {
+	var out []types.ActionExecution
+	err := c.clientManager.WithClient(func(c *client.Client) error {
+		md, err := c.EnumerateActionExecutions(cueId)
+		if err != nil {
+			return err
+		}
+		out = md
+		return nil
+	})
+
+	if err != nil {
+		c.logger.Error("failed to enumerate action executions", "err", err)
 		return nil, false
 	}
 

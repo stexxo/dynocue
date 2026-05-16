@@ -15,6 +15,9 @@ func (m *CueingModel) StartActionExecution(actionId string) error {
 	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
 		// Check that Action Exists
 		action, err := db.GetFirstDb[types.Action](m.persistent, TableActions, IndexId, actionId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrActionNotFound
+		}
 		if err != nil {
 			return err
 		}
@@ -22,7 +25,7 @@ func (m *CueingModel) StartActionExecution(actionId string) error {
 		cueId = action.CueId
 
 		// Check if it is already running, and if so, return nil, idempotent start
-		existingExecution, err := db.GetFirstDb[types.ActionExecution](m.persistent, TableActionExecution, IndexId, actionId)
+		existingExecution, err := db.GetFirstDb[types.ActionExecution](m.runtime, TableActionExecution, IndexId, actionId)
 		if err != nil && !errors.Is(err, db.ErrItemNotFound) {
 			return err
 		}
@@ -56,7 +59,7 @@ func (m *CueingModel) StartActionExecution(actionId string) error {
 func (m *CueingModel) GetActionExecution(actionId string) (*types.ActionExecution, error) {
 	res, err := db.GetFirstDb[types.ActionExecution](m.runtime, TableActionExecution, IndexId, actionId)
 	if errors.Is(err, db.ErrItemNotFound) {
-		return nil, ErrCueNotFound
+		return nil, ErrActionNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -77,7 +80,7 @@ func (m *CueingModel) StopActionExecution(actionId string) error {
 	var cueListId string
 	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
 		//Check that the Action Execution Exists
-		actionExecution, err := db.GetFirstDb[types.ActionExecution](m.persistent, TableActionExecution, IndexId, actionId)
+		actionExecution, err := db.GetFirstDb[types.ActionExecution](m.runtime, TableActionExecution, IndexId, actionId)
 		if errors.Is(err, db.ErrItemNotFound) {
 			return nil // idempotent - already finished if it is deleted
 		}
@@ -104,13 +107,14 @@ func (m *CueingModel) StartActionDelayExecution(actionId string) error {
 	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
 		cueExec, err := db.GetFirstTxn[types.ActionExecution](tx, TableActionExecution, IndexId, actionId)
 		if errors.Is(err, db.ErrItemNotFound) {
-			return ErrCueNotFound
+			return ErrActionNotFound
 		}
 		if err != nil {
 			return err
 		}
 
 		updatedCueExec = &types.ActionExecution{
+			ActionId:      actionId,
 			CueListId:     cueExec.CueListId,
 			CueId:         cueExec.CueId,
 			ActionStarted: cueExec.ActionStarted,
@@ -129,22 +133,23 @@ func (m *CueingModel) StartActionDelayExecution(actionId string) error {
 func (m *CueingModel) StopActionDelayExecution(actionId string) error {
 	var updatedCueExec *types.ActionExecution
 	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
-		cueExec, err := db.GetFirstTxn[types.ActionExecution](tx, TableCueExecution, IndexId, actionId)
+		cueExec, err := db.GetFirstTxn[types.ActionExecution](tx, TableActionExecution, IndexId, actionId)
 		if errors.Is(err, db.ErrItemNotFound) {
-			return ErrCueNotFound
+			return ErrActionNotFound
 		}
 		if err != nil {
 			return err
 		}
 
 		updatedCueExec = &types.ActionExecution{
+			ActionId:      actionId,
 			CueListId:     cueExec.CueListId,
 			CueId:         cueExec.CueId,
 			ActionStarted: cueExec.ActionStarted,
 			DelayActive:   false,
 			DelayStarted:  cueExec.DelayStarted,
 		}
-		return tx.Insert(TableCueExecution, updatedCueExec)
+		return tx.Insert(TableActionExecution, updatedCueExec)
 	})
 
 	// emit updated event
