@@ -13,7 +13,8 @@ const (
 	TableCues            = "cues"
 	TableActions         = "actions"
 	TableActionTemplates = "actiontemplates"
-	TableCueExecution    = "cueplayback"
+	TableCueExecution    = "cueexecution"
+	TableActionExecution = "actionexecution"
 
 	IndexId       = "id"
 	IndexCueId    = "cue_id"
@@ -21,9 +22,8 @@ const (
 	IndexSelected = "selected"
 	IndexCueList  = "cue_list"
 
-	IndexCueIdPrefix    = "cue_id_prefix"
-	IndexNumberPrefix   = "number_prefix"
-	IndexSelectedPrefix = "selected_prefix"
+	IndexCueIdPrefix  = "cue_id_prefix"
+	IndexNumberPrefix = "number_prefix"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -137,6 +137,21 @@ var runtimeSchema = &memdb.DBSchema{
 							&memdb.BoolFieldIndex{Field: "Selected"},
 						},
 					},
+				},
+			},
+		},
+		TableActionExecution: {
+			Name: TableActionExecution,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "ActionId"},
+				},
+				IndexCueId: {
+					Name:    IndexCueId,
+					Unique:  false,
+					Indexer: &memdb.StringFieldIndex{Field: "CueId"},
 				},
 			},
 		},

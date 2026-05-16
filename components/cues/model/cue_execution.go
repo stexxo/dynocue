@@ -28,6 +28,15 @@ func (m *CueingModel) StartCueExecution(cueId string, selected bool, active bool
 		}
 		cueListId = cue.CueListId
 
+		// Check if it is already running, and if so, return nil, idempotent start
+		existingExecution, err := db.GetFirstDb[types.CueExecution](m.persistent, TableActionExecution, IndexId, cueId)
+		if err != nil && !errors.Is(err, db.ErrItemNotFound) {
+			return err
+		}
+		if existingExecution != nil {
+			return nil
+		}
+
 		// Insert the Cue Execution
 		ce := &types.CueExecution{
 			CueListId:    cue.CueListId,
@@ -166,7 +175,7 @@ func (m *CueingModel) StopCueExecution(cueId string) error {
 	return nil
 }
 
-func (m *CueingModel) StartCueDelayExecution(cueId string, delay time.Duration) error {
+func (m *CueingModel) StartCueDelayExecution(cueId string) error {
 	var updatedCueExec *types.CueExecution
 	err := db.WithWrite(m.runtime, func(tx *memdb.Txn) error {
 		cueExec, err := db.GetFirstTxn[types.CueExecution](tx, TableCueExecution, IndexId, cueId)
