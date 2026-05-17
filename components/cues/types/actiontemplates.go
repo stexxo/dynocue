@@ -9,6 +9,7 @@ type ActionTemplate struct {
 	TemplateName  string                `msgpack:"templateName" json:"templateName"`
 	SubsystemName string                `msgpack:"subsystemName" json:"subsystemName"`
 	Subject       string                `msgpack:"subject" json:"subject"`
+	WaitForFinish bool                  `msgpack:"waitForFinish" json:"waitForFinish"`
 	Fields        []ActionTemplateField `msgpack:"fields" json:"fields"`
 }
 
@@ -17,6 +18,7 @@ func (a *ActionTemplate) NewAction(cueId string, number uint) *Action {
 	action.TemplateId = a.TemplateId
 	action.Subject = a.Subject
 	action.Number = number
+	action.WaitForFinish = a.WaitForFinish
 
 	for _, f := range a.Fields {
 		action.Fields = append(action.Fields, ActionFields{FieldName: f.FieldName, FieldLabel: f.FieldLabel, DataType: f.DataType, Value: f.DefaultValue})

@@ -16,6 +16,7 @@ var (
 			TemplateName:  "Play",
 			SubsystemName: "Audio",
 			Subject:       "action.audio.play",
+			WaitForFinish: false,
 			Fields: []types.ActionTemplateField{
 				{FieldName: "source", FieldLabel: "Source", DataType: "float", DefaultValue: 0.0},
 			},
@@ -28,6 +29,7 @@ var (
 			TemplateName:  "Fade",
 			SubsystemName: "Audio",
 			Subject:       "action.audio.fade",
+			WaitForFinish: true,
 			Fields: []types.ActionTemplateField{
 				{FieldName: "source", FieldLabel: "Source", DataType: "float", DefaultValue: 0.0},
 				{FieldName: "targetVolume", FieldLabel: "Target Volume %", DataType: "float", DefaultValue: 0.0},
@@ -42,6 +44,7 @@ var (
 			TemplateName:  "Stop",
 			SubsystemName: "Audio",
 			Subject:       "action.audio.stop",
+			WaitForFinish: false,
 			Fields: []types.ActionTemplateField{
 				{FieldName: "source", FieldLabel: "Source", DataType: "float", DefaultValue: 0.0},
 			},
@@ -54,6 +57,7 @@ var (
 			TemplateName:  "Pause",
 			SubsystemName: "Audio",
 			Subject:       "action.audio.pause",
+			WaitForFinish: false,
 			Fields: []types.ActionTemplateField{
 				{FieldName: "source", FieldLabel: "Source", DataType: "float", DefaultValue: 0.0},
 			},
