@@ -20,6 +20,7 @@ type PersistenceManager struct {
 	name        string
 	kvStore     jetstream.KeyValue
 	objectStore jetstream.ObjectStore
+	tempStore   jetstream.ObjectStore
 	logger      logging.Logger
 }
 
@@ -39,10 +40,16 @@ func RegisterWithPersistence(m *messaging.Messenger, logger logging.Logger, subs
 		return nil, err
 	}
 
+	tempStore, err := m.JetStream().ObjectStore(context.Background(), resp.Response.TempObjectStoreName)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PersistenceManager{
 		name:        subsystemName,
 		kvStore:     kvStore,
 		objectStore: objectStore,
+		tempStore:   tempStore,
 		logger:      logger,
 	}, nil
 }

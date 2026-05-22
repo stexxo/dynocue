@@ -14,6 +14,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -30,6 +31,7 @@ type registeredSubsystem struct {
 
 const PersistenceKeyValueBucketName = "working-kv"
 const PersistenceObjectBucketName = "working-object"
+const PersistenceTempObjectBucketName = "temp-object"
 
 type Persistence struct {
 	*core.SubsystemCore
@@ -38,6 +40,7 @@ type Persistence struct {
 	registeredSubsystems []registeredSubsystem
 	kvStore              jetstream.KeyValue
 	objectStore          jetstream.ObjectStore
+	tempStore            jetstream.ObjectStore
 
 	showOpen bool
 	savePath string
@@ -68,6 +71,15 @@ func (p *Persistence) onStart() error {
 		return err
 	}
 	p.objectStore = object
+
+	object, err = p.Messenger().JetStream().CreateObjectStore(context.Background(), jetstream.ObjectStoreConfig{
+		Bucket:  PersistenceTempObjectBucketName,
+		Storage: jetstream.FileStorage,
+	})
+	if err != nil {
+		return err
+	}
+	p.tempStore = object
 
 	err = p.softClear()
 	if err != nil {
@@ -118,16 +130,18 @@ type PersistenceRegistrationRequest struct {
 }
 
 type PersistenceRegistrationResponse struct {
-	ObjectStoreName   string `json:"objectStoreName" msgpack:"objectStoreName"`
-	KeyValueStoreName string `json:"keyValueStoreName" msgpack:"keyValueStoreName"`
+	ObjectStoreName     string `json:"objectStoreName" msgpack:"objectStoreName"`
+	TempObjectStoreName string `json:"tempObjectStoreName" msgpack:"tempObjectStoreName"`
+	KeyValueStoreName   string `json:"keyValueStoreName" msgpack:"keyValueStoreName"`
 }
 
 func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationRequest) (*PersistenceRegistrationResponse, error) {
 	p.registeredSubsystems = append(p.registeredSubsystems, registeredSubsystem{Name: in.SubsystemName, Load: in.LoadSubject, Save: in.SaveSubject})
 	p.Logger().Debug("registered subsystem for persistence", "subsystem", in.SubsystemName)
 	return &PersistenceRegistrationResponse{
-		ObjectStoreName:   PersistenceObjectBucketName,
-		KeyValueStoreName: PersistenceKeyValueBucketName,
+		ObjectStoreName:     PersistenceObjectBucketName,
+		KeyValueStoreName:   PersistenceKeyValueBucketName,
+		TempObjectStoreName: PersistenceTempObjectBucketName,
 	}, nil
 }
 
@@ -445,4 +459,17 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	p.Logger().Debug("save completed successfully", "path", p.savePath)
 
 	return &PersistenceSaveResponse{}, nil
+}
+
+type TempLocationRequest struct {
+	Prefix   string `json:"prefix" msgpack:"prefix"`
+	Location string `json:"location" msgpack:"location"`
+}
+type TempLocationResponse struct {
+	BucketName string `json:"bucketName" msgpack:"bucketName"`
+	Location   string `json:"location" msgpack:"location"`
+}
+
+func (p *Persistence) GetTempLocation(sub string, req *TempLocationRequest) (*TempLocationResponse, error) {
+	return &TempLocationResponse{BucketName: PersistenceTempObjectBucketName, Location: fmt.Sprintf("%s/%s", req.Prefix, uuid.NewString())}, nil
 }
