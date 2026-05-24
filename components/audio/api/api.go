@@ -11,10 +11,10 @@ type AudioAPI struct {
 	model       *model.AudioModel
 	persistence *system.PersistenceManager
 	messenger   *messaging.Messenger
-	logger      *logging.Logger
+	logger      logging.Logger
 }
 
-func NewAudioAPI(m *model.AudioModel, persistence *system.PersistenceManager, messenger *messaging.Messenger, logger *logging.Logger) *AudioAPI {
+func NewAudioAPI(m *model.AudioModel, persistence *system.PersistenceManager, messenger *messaging.Messenger, logger logging.Logger) *AudioAPI {
 	return &AudioAPI{
 		model:       m,
 		persistence: persistence,

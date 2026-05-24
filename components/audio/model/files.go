@@ -20,7 +20,7 @@ func (m *AudioModel) AddFile(id string, key string) error {
 	}
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
-		return txn.Insert(TableFiles, file)
+		return txn.Insert(TableFiles, &file)
 	})
 
 	if err != nil {

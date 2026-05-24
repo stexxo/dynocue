@@ -130,11 +130,12 @@ func (pm *PersistenceManager) ReadFromObjectStore(key string) (jetstream.ObjectR
 	return res, nil
 }
 
-func NewPersistenceManagerForTest(name string, kv jetstream.KeyValue, obj jetstream.ObjectStore, logger logging.Logger) *PersistenceManager {
+func NewPersistenceManagerForTest(name string, kv jetstream.KeyValue, obj jetstream.ObjectStore, temp jetstream.ObjectStore, logger logging.Logger) *PersistenceManager {
 	return &PersistenceManager{
 		name:        name,
 		kvStore:     kv,
 		objectStore: obj,
+		tempStore:   temp,
 		logger:      logger,
 	}
 }

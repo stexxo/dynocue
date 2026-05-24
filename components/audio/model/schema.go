@@ -31,8 +31,9 @@ var persistentSchema = &memdb.DBSchema{
 			Name: TableFiles,
 			Indexes: map[string]*memdb.IndexSchema{
 				IndexId: {
-					Name:   IndexId,
-					Unique: true,
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "FileId"},
 				},
 			},
 		},
@@ -44,5 +45,16 @@ const (
 )
 
 var runtimeSchema = &memdb.DBSchema{
-	Tables: map[string]*memdb.TableSchema{},
+	Tables: map[string]*memdb.TableSchema{
+		TableAudioPlayback: {
+			Name: TableAudioPlayback,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "Id"},
+				},
+			},
+		},
+	},
 }
