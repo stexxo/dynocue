@@ -120,3 +120,48 @@ func (a *AudioService) DeleteAudioFile(fileId string) bool {
 
 	return true
 }
+
+func (a *AudioService) AddAudioFile() bool {
+	dia := a.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
+		Title: "Add Audio File",
+		Filters: []application.FileFilter{
+			{
+				DisplayName: "Audio Files",
+				Pattern:     "*.wav;*.mp3;*.flac;*.ogg",
+			},
+		},
+	})
+	res, err := dia.PromptForSingleSelection()
+	if err != nil {
+		a.logger.Error("failed to open file dialog", "err", err)
+		return false
+	}
+	if res == "" {
+		return false
+	}
+
+	_, ok := a.CreateAudioFile(res)
+	return ok
+}
+
+func (a *AudioService) ReplaceAudioFileWithDialog(fileId string) bool {
+	dia := a.app.Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
+		Title: "Replace Audio File",
+		Filters: []application.FileFilter{
+			{
+				DisplayName: "Audio Files",
+				Pattern:     "*.wav;*.mp3;*.flac;*.ogg",
+			},
+		},
+	})
+	res, err := dia.PromptForSingleSelection()
+	if err != nil {
+		a.logger.Error("failed to open file dialog", "err", err)
+		return false
+	}
+	if res == "" {
+		return false
+	}
+
+	return a.ReplaceAudioFile(fileId, res)
+}
