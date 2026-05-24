@@ -1,5 +1,7 @@
 package model
 
+import "github.com/stexxo/dynocue/util"
+
 const (
 	ResourceFile   = "file"
 	ResourceSource = "source"
@@ -15,3 +17,7 @@ const (
 	OperationFinished   = "finished"
 	OperationUnselected = "unselected"
 )
+
+func (m *AudioModel) RegisterEventHandler(resource, operation string, fn util.HandlerFn) {
+	m.registry.Register(resource, operation, fn)
+}

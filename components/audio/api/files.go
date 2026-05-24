@@ -1,11 +1,25 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/stexxo/dynocue/components/audio/types"
+	"github.com/stexxo/dynocue/core/messaging"
 )
+
+func (a *AudioAPI) registerFileApis() error {
+	return errors.Join(
+		messaging.Reply[UploadAudioFileRequest, UploadAudioFileResponse](a.messenger, true, CreateAudioFileRequestSubject, a.CreateAudioFile),
+		messaging.Reply[ReplaceAudioFileRequest, ReplaceAudioFileResponse](a.messenger, true, ReplaceAudioFileRequestSubject, a.ReplaceAudioFile),
+		messaging.Reply[EnumerateAudioFilesRequest, EnumerateAudioFilesResponse](a.messenger, true, EnumerateAudioFilesRequestSubject, a.EnumerateAudioFiles),
+		messaging.Reply[GetAudioFileRequest, GetAudioFileResponse](a.messenger, true, GetAudioFileRequestSubject, a.GetAudioFile),
+		messaging.Reply[DeleteAudioFileRequest, DeleteAudioFileResponse](a.messenger, true, DeleteAudioFileRequestSubject, a.DeleteAudioFile),
+	)
+}
+
+const CreateAudioFileRequestSubject = "request.audio.file.create"
 
 type UploadAudioFileRequest struct {
 	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket"`
@@ -37,6 +51,8 @@ func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*Up
 	return &UploadAudioFileResponse{FileId: fileUUID}, nil
 }
 
+const ReplaceAudioFileRequestSubject = "request.audio.file.replace"
+
 type ReplaceAudioFileRequest struct {
 	FileId               string `json:"fileId" msgpack:"fileId" validate:"required"`
 	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket" validate:"required"`
@@ -58,6 +74,8 @@ func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*
 	return &ReplaceAudioFileResponse{}, nil
 }
 
+const EnumerateAudioFilesRequestSubject = "request.audio.file.enumerate"
+
 type EnumerateAudioFilesRequest struct{}
 
 type EnumerateAudioFilesResponse struct {
@@ -72,6 +90,8 @@ func (a *AudioAPI) EnumerateAudioFiles(sub string, req *EnumerateAudioFilesReque
 
 	return &EnumerateAudioFilesResponse{Files: files}, nil
 }
+
+const GetAudioFileRequestSubject = "request.audio.file.get"
 
 type GetAudioFileRequest struct {
 	FileId string `json:"fileId" msgpack:"fileId" validate:"required"`
@@ -89,6 +109,8 @@ func (a *AudioAPI) GetAudioFile(sub string, req *GetAudioFileRequest) (*GetAudio
 
 	return &GetAudioFileResponse{File: *file}, nil
 }
+
+const DeleteAudioFileRequestSubject = "request.audio.file.delete"
 
 type DeleteAudioFileRequest struct {
 	FileId string `json:"fileId" msgpack:"fileId" validate:"required"`
