@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/audio/types"
 	"github.com/stexxo/dynocue/db"
@@ -11,12 +10,12 @@ import (
 
 var ErrFileNotFound = errors.New("file not found")
 
-func (m *AudioModel) AddFile(key string) (string, error) {
+func (m *AudioModel) AddFile(id string, key string) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
 
 	file := types.AudioFile{
-		FileId: uuid.NewString(),
+		FileId: id,
 		Key:    key,
 	}
 
@@ -25,12 +24,12 @@ func (m *AudioModel) AddFile(key string) (string, error) {
 	})
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	m.registry.Emit(ResourceFile, OperationCreated, MetadataFileId, file.FileId)
 
-	return file.FileId, nil
+	return nil
 }
 
 func (m *AudioModel) GetFile(fileId string) (*types.AudioFile, error) {

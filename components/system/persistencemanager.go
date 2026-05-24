@@ -11,6 +11,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -60,6 +61,47 @@ func (pm *PersistenceManager) KeyValueStore() jetstream.KeyValue {
 
 func (pm *PersistenceManager) ObjectStore() jetstream.ObjectStore {
 	return pm.objectStore
+}
+
+func (pm *PersistenceManager) TempObjectStore() jetstream.ObjectStore {
+	return pm.tempStore
+}
+
+func (pm *PersistenceManager) WriteToTempLocation(reader io.Reader) (string, error) {
+	key := fmt.Sprintf("%s/%s", pm.name, uuid.NewString())
+	pm.logger.Info("writing data to temp store", "key", key, "subsystem", pm.name)
+	_, err := pm.tempStore.Put(context.Background(), jetstream.ObjectMeta{Name: key}, reader)
+	if err != nil {
+		pm.logger.Error("failed to write object to temp store", "err", err)
+		return "", err
+	}
+
+	return key, nil
+}
+
+func (pm *PersistenceManager) CopyFromTempLocation(tempKey string, newKey string, deleteTemp bool) error {
+	res, err := pm.tempStore.Get(context.Background(), tempKey)
+	if err != nil {
+		pm.logger.Error("failed to read object from temp store", "err", err)
+		return err
+	}
+
+	newKey = fmt.Sprintf("%s/%s", pm.name, newKey)
+	_, err = pm.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: newKey}, res)
+	if err != nil {
+		pm.logger.Error("failed to write object to store", "err", err)
+		return err
+	}
+	
+	if deleteTemp {
+		err = pm.tempStore.Delete(context.Background(), tempKey)
+		if err != nil {
+			pm.logger.Error("failed to delete temp object", "err", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (pm *PersistenceManager) WriteToObjectStore(key string, reader io.Reader) error {

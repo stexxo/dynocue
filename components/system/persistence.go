@@ -14,7 +14,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
@@ -459,17 +458,4 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	p.Logger().Debug("save completed successfully", "path", p.savePath)
 
 	return &PersistenceSaveResponse{}, nil
-}
-
-type TempLocationRequest struct {
-	Prefix   string `json:"prefix" msgpack:"prefix"`
-	Location string `json:"location" msgpack:"location"`
-}
-type TempLocationResponse struct {
-	BucketName string `json:"bucketName" msgpack:"bucketName"`
-	Location   string `json:"location" msgpack:"location"`
-}
-
-func (p *Persistence) GetTempLocation(sub string, req *TempLocationRequest) (*TempLocationResponse, error) {
-	return &TempLocationResponse{BucketName: PersistenceTempObjectBucketName, Location: fmt.Sprintf("%s/%s", req.Prefix, uuid.NewString())}, nil
 }

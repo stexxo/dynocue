@@ -1,0 +1,107 @@
+package api
+
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/stexxo/dynocue/components/audio/types"
+)
+
+type UploadAudioFileRequest struct {
+	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket"`
+}
+
+type UploadAudioFileResponse struct {
+	FileId string `msgpack:"fileId" json:"fileId"`
+}
+
+func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*UploadAudioFileResponse, error) {
+	// Create a UUID for the file
+	fileUUID := uuid.NewString()
+
+	// Create a Key where the file will live in the Audio Object Store
+	fileKey := fmt.Sprintf("files/%s", fileUUID)
+
+	// Copy the file from the temporary location to the Audio Object Store
+	err := a.persistence.CopyFromTempLocation(req.LocationInTempBucket, fileKey, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy file to object store: %w", err)
+	}
+
+	// Create a new AudioFile object in the database
+	err = a.model.AddFile(fileUUID, fileKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add file to database: %w", err)
+	}
+
+	return &UploadAudioFileResponse{FileId: fileUUID}, nil
+}
+
+type ReplaceAudioFileRequest struct {
+	FileId               string `json:"fileId" msgpack:"fileId" validate:"required"`
+	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket" validate:"required"`
+}
+
+type ReplaceAudioFileResponse struct{}
+
+func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*ReplaceAudioFileResponse, error) {
+	f, err := a.model.GetFile(req.FileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file from database: %w", err)
+	}
+
+	err = a.persistence.CopyFromTempLocation(req.LocationInTempBucket, f.Key, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to copy file from temp location: %w", err)
+	}
+
+	return &ReplaceAudioFileResponse{}, nil
+}
+
+type EnumerateAudioFilesRequest struct{}
+
+type EnumerateAudioFilesResponse struct {
+	Files []types.AudioFile `msgpack:"files" json:"files"`
+}
+
+func (a *AudioAPI) EnumerateAudioFiles(sub string, req *EnumerateAudioFilesRequest) (*EnumerateAudioFilesResponse, error) {
+	files, err := a.model.EnumerateFiles()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list files from database: %w", err)
+	}
+
+	return &EnumerateAudioFilesResponse{Files: files}, nil
+}
+
+type GetAudioFileRequest struct {
+	FileId string `json:"fileId" msgpack:"fileId" validate:"required"`
+}
+
+type GetAudioFileResponse struct {
+	File types.AudioFile `msgpack:"file" json:"file"`
+}
+
+func (a *AudioAPI) GetAudioFile(sub string, req *GetAudioFileRequest) (*GetAudioFileResponse, error) {
+	file, err := a.model.GetFile(req.FileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file from database: %w", err)
+	}
+
+	return &GetAudioFileResponse{File: *file}, nil
+}
+
+type DeleteAudioFileRequest struct {
+	FileId string `json:"fileId" msgpack:"fileId" validate:"required"`
+}
+
+type DeleteAudioFileResponse struct {
+}
+
+func (a *AudioAPI) DeleteAudioFile(sub string, req *DeleteAudioFileRequest) (*DeleteAudioFileResponse, error) {
+	err := a.model.DeleteFile(req.FileId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete file from database: %w", err)
+	}
+
+	return &DeleteAudioFileResponse{}, nil
+}
