@@ -209,6 +209,9 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Load == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})
@@ -287,6 +290,9 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Save == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Save, "")
 			return err
 		})

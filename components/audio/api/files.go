@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/stexxo/dynocue/components/audio/model"
 	"github.com/stexxo/dynocue/components/audio/types"
 	"github.com/stexxo/dynocue/core/messaging"
 )
@@ -19,7 +20,10 @@ func (a *AudioAPI) registerFileApis() error {
 	)
 }
 
-const CreateAudioFileRequestSubject = "request.audio.file.create"
+const (
+	CreateAudioFileRequestSubject = "request.audio.file.create"
+	AudioFileNotFound             = "Audio file not found"
+)
 
 type UploadAudioFileRequest struct {
 	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket"`
@@ -63,6 +67,9 @@ type ReplaceAudioFileResponse struct{}
 func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*ReplaceAudioFileResponse, error) {
 	f, err := a.model.GetFile(req.FileId)
 	if err != nil {
+		if errors.Is(err, model.ErrFileNotFound) {
+			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNotFound})
+		}
 		return nil, fmt.Errorf("failed to get file from database: %w", err)
 	}
 
@@ -104,6 +111,9 @@ type GetAudioFileResponse struct {
 func (a *AudioAPI) GetAudioFile(sub string, req *GetAudioFileRequest) (*GetAudioFileResponse, error) {
 	file, err := a.model.GetFile(req.FileId)
 	if err != nil {
+		if errors.Is(err, model.ErrFileNotFound) {
+			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNotFound})
+		}
 		return nil, fmt.Errorf("failed to get file from database: %w", err)
 	}
 
@@ -122,6 +132,9 @@ type DeleteAudioFileResponse struct {
 func (a *AudioAPI) DeleteAudioFile(sub string, req *DeleteAudioFileRequest) (*DeleteAudioFileResponse, error) {
 	err := a.model.DeleteFile(req.FileId)
 	if err != nil {
+		if errors.Is(err, model.ErrFileNotFound) {
+			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNotFound})
+		}
 		return nil, fmt.Errorf("failed to delete file from database: %w", err)
 	}
 

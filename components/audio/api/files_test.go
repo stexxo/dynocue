@@ -154,7 +154,7 @@ func TestReplaceAudioFile(t *testing.T) {
 		resp, err := api.ReplaceAudioFile("sub", req)
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "failed to get file from database")
+		assert.ErrorIs(t, err, model.ErrFileNotFound)
 	})
 
 	t.Run("Persistence Error", func(t *testing.T) {
