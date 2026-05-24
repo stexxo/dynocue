@@ -20,7 +20,7 @@ type Gui struct {
 
 func NewGui(logger logging.Logger) *Gui {
 	g := &Gui{
-		clientManager: client.NewClientManager(logger),
+		clientManager: client.NewClientManager("GUI", logger),
 		logger:        logger,
 	}
 
@@ -37,6 +37,7 @@ func NewGui(logger logging.Logger) *Gui {
 	g.app.RegisterService(application.NewService(services.NewExecutionService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewActionsService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewActionTemplatesService(g.clientManager, g.app, g.logger)))
+	g.app.RegisterService(application.NewService(services.NewAudioService(g.clientManager, g.app, g.logger)))
 
 	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Width:     1280,

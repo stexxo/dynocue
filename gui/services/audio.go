@@ -1,0 +1,122 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+package services
+
+import (
+	"errors"
+
+	"github.com/stexxo/dynocue/client"
+	"github.com/stexxo/dynocue/components/audio/api"
+	"github.com/stexxo/dynocue/components/audio/types"
+	"github.com/stexxo/dynocue/core/logging"
+	"github.com/wailsapp/wails/v3/pkg/application"
+)
+
+type AudioService struct {
+	clientManager *client.Manager
+	app           *application.App
+	logger        logging.Logger
+}
+
+func NewAudioService(manager *client.Manager, app *application.App, logger logging.Logger) *AudioService {
+	out := &AudioService{
+		app:           app,
+		logger:        logger,
+		clientManager: manager,
+	}
+	out.clientManager.OnNewClient(out.onNewClient)
+	return out
+}
+
+func (a *AudioService) onNewClient(cl *client.Client) error {
+	return errors.Join(
+		cl.OnAudioFileCreated(func(s string, t *api.FileChangeEvent) { a.app.Event.Emit(s, t) }),
+		cl.OnAudioFileAttributesUpdated(func(s string, t *api.FileChangeEvent) { a.app.Event.Emit(s, t) }),
+		cl.OnAudioFileDeleted(func(s string, e *api.FileChangeEvent) { a.app.Event.Emit(s, e) }),
+	)
+}
+
+func (a *AudioService) CreateAudioFile(fileLocation string) (string, bool) {
+	var out string
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		fileId, err := c.CreateAudioFile(fileLocation)
+		if err != nil {
+			return err
+		}
+		out = fileId
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to create audio file", "err", err)
+		return "", false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) ReplaceAudioFile(fileId string, fileLocation string) bool {
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		return c.ReplaceAudioFile(fileId, fileLocation)
+	})
+
+	if err != nil {
+		a.logger.Error("failed to replace audio file", "err", err, "fileId", fileId)
+		return false
+	}
+
+	return true
+}
+
+func (a *AudioService) EnumerateAudioFiles() ([]types.AudioFile, bool) {
+	var out []types.AudioFile
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		files, err := c.EnumerateAudioFiles()
+		if err != nil {
+			return err
+		}
+		out = files
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to enumerate audio files", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) GetAudioFile(fileId string) (*types.AudioFile, bool) {
+	var out *types.AudioFile
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		file, err := c.GetAudioFile(fileId)
+		if err != nil {
+			return err
+		}
+		out = file
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to get audio file", "err", err, "fileId", fileId)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) DeleteAudioFile(fileId string) bool {
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		return c.DeleteAudioFile(fileId)
+	})
+
+	if err != nil {
+		a.logger.Error("failed to delete audio file", "err", err, "fileId", fileId)
+		return false
+	}
+
+	return true
+}

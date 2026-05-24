@@ -245,6 +245,9 @@ func (p *Persistence) NewRequest(sub string, in *PersistenceNewRequest) (*Persis
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Load == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})

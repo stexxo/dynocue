@@ -7,7 +7,9 @@ package audio
 import (
 	"time"
 
-	"github.com/stexxo/dynocue/components/cues/api"
+	"github.com/stexxo/dynocue/components/audio/api"
+	"github.com/stexxo/dynocue/components/audio/model"
+	cueingapi "github.com/stexxo/dynocue/components/cues/api"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -15,6 +17,8 @@ import (
 
 type Audio struct {
 	*core.SubsystemCore
+	model *model.AudioModel
+	api   *api.AudioAPI
 }
 
 func New(logger logging.Logger) *Audio {
@@ -24,22 +28,22 @@ func New(logger logging.Logger) *Audio {
 }
 
 func (a *Audio) onStart() error {
-	_, err := messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, PlayActionTemplate, 10, time.Second)
+	_, err := messaging.RequestRetry[cueingapi.RegisterActionTemplateResponse](a.Messenger(), cueingapi.RegisterActionTemplateRequestSubject, PlayActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, FadeActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[cueingapi.RegisterActionTemplateResponse](a.Messenger(), cueingapi.RegisterActionTemplateRequestSubject, FadeActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, StopActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[cueingapi.RegisterActionTemplateResponse](a.Messenger(), cueingapi.RegisterActionTemplateRequestSubject, StopActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}
 
-	_, err = messaging.RequestRetry[api.RegisterActionTemplateResponse](a.Messenger(), api.RegisterActionTemplateRequestSubject, PauseActionTemplate, 10, time.Second)
+	_, err = messaging.RequestRetry[cueingapi.RegisterActionTemplateResponse](a.Messenger(), cueingapi.RegisterActionTemplateRequestSubject, PauseActionTemplate, 10, time.Second)
 	if err != nil {
 		return err
 	}

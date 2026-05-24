@@ -92,7 +92,7 @@ func (pm *PersistenceManager) CopyFromTempLocation(tempKey string, newKey string
 		pm.logger.Error("failed to write object to store", "err", err)
 		return err
 	}
-	
+
 	if deleteTemp {
 		err = pm.tempStore.Delete(context.Background(), tempKey)
 		if err != nil {

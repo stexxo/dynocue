@@ -6,6 +6,7 @@ package client
 
 import (
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -17,9 +18,15 @@ type Client struct {
 }
 
 func NewClient(clientName string, conn *nats.Conn, logger logging.Logger) (*Client, error) {
+	js, err := jetstream.New(conn)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &Client{
 		messenger: messaging.NewMessenger(&messaging.MessengerCfg{
 			Conn:   conn,
+			Js:     js,
 			Logger: logger,
 		}),
 	}
