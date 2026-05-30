@@ -12,13 +12,14 @@ import (
 var ErrFileNotFound = errors.New("file not found")
 var ErrNumberExists = errors.New("number already exists")
 
-func (m *AudioModel) AddFile(id string, key string, number uint) (uint, error) {
+func (m *AudioModel) AddFile(id string, key string, label string, number uint) (uint, error) {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
 
 	file := types.AudioFile{
 		FileId: id,
 		Key:    key,
+		Label:  label,
 	}
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
@@ -56,6 +57,7 @@ func (m *AudioModel) SetFileProperties(fileId string, duration time.Duration, si
 		newFile := types.AudioFile{
 			FileId:    fileId,
 			Number:    f.Number,
+			Label:     f.Label,
 			Duration:  duration,
 			SizeBytes: size,
 			Format:    format,

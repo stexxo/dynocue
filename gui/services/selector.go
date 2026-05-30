@@ -163,7 +163,7 @@ func (s *SelectorService) SaveShowAs() bool {
 		return c.SaveShow(res)
 	})
 	if err != nil {
-		s.logger.Warn("Failed to save DynoCue: ", err)
+		s.logger.Warn("Failed to save DynoCue: ", "err", err)
 		return false
 	}
 

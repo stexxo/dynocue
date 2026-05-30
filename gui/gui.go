@@ -10,6 +10,7 @@ import (
 	"github.com/stexxo/dynocue/gui/frontend"
 	"github.com/stexxo/dynocue/gui/services"
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 )
 
 type Gui struct {
@@ -39,14 +40,26 @@ func NewGui(logger logging.Logger) *Gui {
 	g.app.RegisterService(application.NewService(services.NewActionTemplatesService(g.clientManager, g.app, g.logger)))
 	g.app.RegisterService(application.NewService(services.NewAudioService(g.clientManager, g.app, g.logger)))
 
-	g.app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Width:     1280,
-		Height:    720,
-		MaxWidth:  5000,
-		MaxHeight: 5000,
-		Title:     "DynoCue",
-		URL:       "/",
+	win := g.app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Width:          1280,
+		Height:         720,
+		MaxWidth:       5000,
+		MaxHeight:      5000,
+		Title:          "DynoCue",
+		URL:            "/",
+		EnableFileDrop: true,
 	}) // Default Window
+
+	win.OnWindowEvent(events.Common.WindowFilesDropped, func(event *application.WindowEvent) {
+		files := event.Context().DroppedFiles()
+		details := event.Context().DropTargetDetails()
+
+		for _, file := range files {
+			g.app.Event.Emit(details.ElementID, map[string]string{
+				"file": file,
+			})
+		}
+	})
 	return g
 }
 

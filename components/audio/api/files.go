@@ -33,6 +33,7 @@ const (
 
 type UploadAudioFileRequest struct {
 	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket"`
+	Label                string `json:"label" msgpack:"label"`
 	Number               uint   `msgpack:"number" json:"number" validate:"gte=0"`
 }
 
@@ -55,7 +56,7 @@ func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*Up
 	}
 
 	// Create a new AudioFile object in the database
-	number, err := a.model.AddFile(fileUUID, fileKey, req.Number)
+	number, err := a.model.AddFile(fileUUID, fileKey, req.Label, req.Number)
 	if err != nil {
 		if errors.Is(err, model.ErrNumberExists) {
 			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNumberExists})
@@ -82,7 +83,10 @@ func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*Up
 		return nil, fmt.Errorf("failed to probe file: %w", err)
 	}
 
-	a.model.SetFileProperties(fileUUID, info.Duration, uint(info.SizeBytes), info.Format)
+	err = a.model.SetFileProperties(fileUUID, info.Duration, uint(info.SizeBytes), info.Format)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set file properties: %w", err)
+	}
 
 	return &UploadAudioFileResponse{FileId: fileUUID, Number: number}, nil
 }
@@ -129,8 +133,10 @@ func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*
 		return nil, fmt.Errorf("failed to probe file: %w", err)
 	}
 
-	a.model.SetFileProperties(f.Key, info.Duration, uint(info.SizeBytes), info.Format)
-
+	err = a.model.SetFileProperties(req.FileId, info.Duration, uint(info.SizeBytes), info.Format)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set file properties: %w", err)
+	}
 	return &ReplaceAudioFileResponse{}, nil
 }
 

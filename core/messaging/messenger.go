@@ -83,6 +83,26 @@ func Request[T any](m *Messenger, subject string, msg any) (*ResponseEnvelope[T]
 	return out, nil
 }
 
+func RequestLong[T any](m *Messenger, subject string, msg any) (*ResponseEnvelope[T], error) {
+	data, err := msgpack.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal message with msgpack, %w", err)
+	}
+
+	resp, err := m.conn.Request(subject, data, 1*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request message, %w", err)
+	}
+
+	out := new(ResponseEnvelope[T])
+	err = msgpack.Unmarshal(resp.Data, out)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response, %w", err)
+	}
+
+	return out, nil
+}
+
 func RequestRetry[T any](m *Messenger, subject string, msg any, retries int, delay time.Duration) (*ResponseEnvelope[T], error) {
 	var allErr error
 	for i := 0; i < retries; i++ {

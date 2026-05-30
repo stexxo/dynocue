@@ -6,6 +6,7 @@ package services
 
 import (
 	"errors"
+	"path/filepath"
 
 	"github.com/stexxo/dynocue/client"
 	"github.com/stexxo/dynocue/components/audio/api"
@@ -27,6 +28,15 @@ func NewAudioService(manager *client.Manager, app *application.App, logger loggi
 		clientManager: manager,
 	}
 	out.clientManager.OnNewClient(out.onNewClient)
+
+	app.Event.On("audio-file-drop", func(event *application.CustomEvent) {
+		data, ok := event.Data.(map[string]string)
+		if !ok {
+			return
+		}
+		out.CreateAudioFile(data["file"])
+	})
+
 	return out
 }
 
@@ -41,7 +51,8 @@ func (a *AudioService) onNewClient(cl *client.Client) error {
 func (a *AudioService) CreateAudioFile(fileLocation string) (string, bool) {
 	var out string
 	err := a.clientManager.WithClient(func(c *client.Client) error {
-		fileId, err := c.CreateAudioFile(fileLocation, 0)
+
+		fileId, err := c.CreateAudioFile(fileLocation, filepath.Base(fileLocation), 0)
 		if err != nil {
 			return err
 		}
