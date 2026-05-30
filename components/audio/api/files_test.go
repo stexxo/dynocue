@@ -83,6 +83,7 @@ func TestCreateAudioFile(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.NotEmpty(t, resp.FileId)
+		assert.Equal(t, uint(1), resp.Number)
 
 		// Verify file is in the real object store
 		res, err := os.Get(ctx, fmt.Sprintf("audio/files/%s", resp.FileId))
@@ -107,6 +108,26 @@ func TestCreateAudioFile(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to copy file to object store")
 	})
+
+	t.Run("Number Exists", func(t *testing.T) {
+		am, api, _, tempOS, _ := setup(t)
+
+		_, err := am.AddFile("existing-file-id", "files/existing-file-id", 5)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+		tempKey := "temp/conflicting-file.wav"
+		_, err = tempOS.Put(ctx, jetstream.ObjectMeta{Name: tempKey}, bytes.NewReader([]byte("audio data")))
+		require.NoError(t, err)
+
+		resp, err := api.CreateAudioFile("sub", &UploadAudioFileRequest{
+			LocationInTempBucket: tempKey,
+			Number:               5,
+		})
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.ErrorIs(t, err, model.ErrNumberExists)
+	})
 }
 
 func TestReplaceAudioFile(t *testing.T) {
@@ -115,7 +136,7 @@ func TestReplaceAudioFile(t *testing.T) {
 
 		fileId := "test-file-id"
 		fileKey := "files/test-file-id"
-		err := am.AddFile(fileId, fileKey)
+		_, err := am.AddFile(fileId, fileKey, 0)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -161,7 +182,7 @@ func TestReplaceAudioFile(t *testing.T) {
 		am, api, _, _, _ := setup(t)
 
 		fileId := "test-file-id"
-		am.AddFile(fileId, "files/test-file-id")
+		_, _ = am.AddFile(fileId, "files/test-file-id", 0)
 
 		req := &ReplaceAudioFileRequest{
 			FileId:               fileId,
@@ -178,8 +199,8 @@ func TestReplaceAudioFile(t *testing.T) {
 func TestEnumerateAudioFiles(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	am.AddFile("id1", "key1")
-	am.AddFile("id2", "key2")
+	_, _ = am.AddFile("id1", "key1", 0)
+	_, _ = am.AddFile("id2", "key2", 0)
 
 	resp, err := api.EnumerateAudioFiles("sub", &EnumerateAudioFilesRequest{})
 	assert.NoError(t, err)
@@ -190,7 +211,7 @@ func TestEnumerateAudioFiles(t *testing.T) {
 func TestGetAudioFile(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	am.AddFile("id1", "key1")
+	_, _ = am.AddFile("id1", "key1", 0)
 
 	t.Run("Success", func(t *testing.T) {
 		resp, err := api.GetAudioFile("sub", &GetAudioFileRequest{FileId: "id1"})
@@ -208,7 +229,7 @@ func TestGetAudioFile(t *testing.T) {
 func TestDeleteAudioFile(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	am.AddFile("id1", "key1")
+	_, _ = am.AddFile("id1", "key1", 0)
 
 	resp, err := api.DeleteAudioFile("sub", &DeleteAudioFileRequest{FileId: "id1"})
 	assert.NoError(t, err)
@@ -240,7 +261,7 @@ func TestFileEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	// Trigger created event
-	err = am.AddFile("test-id", "test-key")
+	_, err = am.AddFile("test-id", "test-key", 0)
 	require.NoError(t, err)
 
 	select {

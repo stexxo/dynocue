@@ -283,6 +283,7 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	}
 
 	p.savePath = cmp.Or(in.Location, p.savePath)
+	p.Logger().Debug("saving to location " + p.savePath)
 
 	if !strings.HasSuffix(p.savePath, ".dyno") {
 		p.savePath = p.savePath + ".dyno"

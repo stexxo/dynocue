@@ -1,7 +1,3 @@
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
 package model
 
 import (
@@ -9,14 +5,14 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-memdb"
-	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/stexxo/dynocue/components/audio/types"
 	"github.com/stexxo/dynocue/db"
 )
 
-func (m *CueingModel) SerializeEachTable(fn func(name string, reader io.Reader) error) error {
+func (m *AudioModel) SerializeEachTable(fn func(name string, reader io.Reader) error) error {
 	m.dbMu.Lock()
 	defer m.dbMu.Unlock()
-
+	
 	for _, table := range persistentSchema.Tables {
 		buf, err := db.SerializeTable(m.persistent, table.Name)
 		if err != nil {
@@ -33,18 +29,12 @@ func (m *CueingModel) SerializeEachTable(fn func(name string, reader io.Reader) 
 type tableRestorer func(memDb *memdb.MemDB, reader io.Reader) error
 
 var tableRestore = map[string]tableRestorer{
-	TableCueLists: func(memDb *memdb.MemDB, reader io.Reader) error {
-		return db.RestoreTable[types.CueList](memDb, TableCueLists, reader)
-	},
-	TableCues: func(memDb *memdb.MemDB, reader io.Reader) error {
-		return db.RestoreTable[types.Cue](memDb, TableCues, reader)
-	},
-	TableActions: func(memDb *memdb.MemDB, reader io.Reader) error {
-		return db.RestoreTable[types.Action](memDb, TableActions, reader)
+	TableFiles: func(memDb *memdb.MemDB, reader io.Reader) error {
+		return db.RestoreTable[types.AudioFile](memDb, TableFiles, reader)
 	},
 }
 
-func (m *CueingModel) RestoreTable(name string, data io.Reader) error {
+func (m *AudioModel) RestoreTable(name string, data io.Reader) error {
 	fn, ok := tableRestore[name]
 	if !ok {
 		return errors.New("table not found")
@@ -57,7 +47,7 @@ func (m *CueingModel) RestoreTable(name string, data io.Reader) error {
 	return nil
 }
 
-func (m *CueingModel) LoadModel(fn func(name string) (io.Reader, error)) error {
+func (m *AudioModel) LoadModel(fn func(name string) (io.Reader, error)) error {
 	// Clear the Table
 	m.dbMu.Lock()
 	defer m.dbMu.Unlock()

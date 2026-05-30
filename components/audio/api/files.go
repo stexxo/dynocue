@@ -23,14 +23,17 @@ func (a *AudioAPI) registerFileApis() error {
 const (
 	CreateAudioFileRequestSubject = "request.audio.file.create"
 	AudioFileNotFound             = "Audio file not found"
+	AudioFileNumberExists         = "Audio file number already exists"
 )
 
 type UploadAudioFileRequest struct {
 	LocationInTempBucket string `json:"locationInTempBucket" msgpack:"locationInTempBucket"`
+	Number               uint   `msgpack:"number" json:"number" validate:"gte=0"`
 }
 
 type UploadAudioFileResponse struct {
 	FileId string `msgpack:"fileId" json:"fileId"`
+	Number uint   `msgpack:"number" json:"number"`
 }
 
 func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*UploadAudioFileResponse, error) {
@@ -47,12 +50,15 @@ func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*Up
 	}
 
 	// Create a new AudioFile object in the database
-	err = a.model.AddFile(fileUUID, fileKey)
+	number, err := a.model.AddFile(fileUUID, fileKey, req.Number)
 	if err != nil {
+		if errors.Is(err, model.ErrNumberExists) {
+			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNumberExists})
+		}
 		return nil, fmt.Errorf("failed to add file to database: %w", err)
 	}
 
-	return &UploadAudioFileResponse{FileId: fileUUID}, nil
+	return &UploadAudioFileResponse{FileId: fileUUID, Number: number}, nil
 }
 
 const ReplaceAudioFileRequestSubject = "request.audio.file.replace"

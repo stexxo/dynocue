@@ -41,16 +41,16 @@
 			<table class="table-pin-rows table">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
-						<th class="w-1/2">Key</th>
-						<th class="w-1/4">ID</th>
+						<th class="w-1/2">Number</th>
+						<th class="w-1/4">Label</th>
 						<th class="w-1/4"></th>
 					</tr>
 				</thead>
 				<tbody class="">
 					{#each files as file}
 						<tr class="hover:bg-base-200">
-							<td>{file.key}</td>
-							<td class="font-mono text-xs">{file.fileId}</td>
+							<td>{file.number}</td>
+							<td class="font-mono text-xs">{file.label}</td>
 							<td class="flex flex-row justify-end gap-2">
 								<details
 									class="dropdown dropdown-end"

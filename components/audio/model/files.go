@@ -9,8 +9,9 @@ import (
 )
 
 var ErrFileNotFound = errors.New("file not found")
+var ErrNumberExists = errors.New("number already exists")
 
-func (m *AudioModel) AddFile(id string, key string) error {
+func (m *AudioModel) AddFile(id string, key string, number uint) (uint, error) {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
 
@@ -20,16 +21,22 @@ func (m *AudioModel) AddFile(id string, key string) error {
 	}
 
 	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
+		num, err := getNextFileNumber(txn, number)
+		if err != nil {
+			return err
+		}
+
+		file.Number = num
 		return txn.Insert(TableFiles, &file)
 	})
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	m.registry.Emit(ResourceFile, OperationCreated, MetadataFileId, file.FileId)
 
-	return nil
+	return file.Number, nil
 }
 
 func (m *AudioModel) GetFile(fileId string) (*types.AudioFile, error) {
@@ -45,10 +52,45 @@ func (m *AudioModel) GetFile(fileId string) (*types.AudioFile, error) {
 	return item, nil
 }
 
+func (m *AudioModel) GetFileByNumber(number uint) (*types.AudioFile, error) {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
+	item, err := db.GetFirstDb[types.AudioFile](m.persistent, TableFiles, IndexNumber, number)
+	if errors.Is(err, db.ErrItemNotFound) {
+		return nil, ErrFileNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return item, nil
+}
+
 func (m *AudioModel) EnumerateFiles() ([]types.AudioFile, error) {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
-	return db.GetAllDb[types.AudioFile](m.persistent, TableFiles, IndexId)
+	return db.GetAllDb[types.AudioFile](m.persistent, TableFiles, IndexNumber)
+}
+
+func getNextFileNumber(txn *memdb.Txn, number uint) (uint, error) {
+	if number == 0 {
+		last, err := db.GetLastTxn[types.AudioFile](txn, TableFiles, IndexNumber)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return 1, nil
+		}
+		if err != nil {
+			return 0, err
+		}
+		return last.Number + 1, nil
+	}
+
+	existing, err := txn.First(TableFiles, IndexNumber, number)
+	if err != nil {
+		return 0, err
+	}
+	if existing != nil {
+		return 0, ErrNumberExists
+	}
+	return number, nil
 }
 
 func (m *AudioModel) UpdateFile(fileId string, field string, value any) error {

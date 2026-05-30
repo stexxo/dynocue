@@ -5,6 +5,7 @@ import "github.com/stexxo/dynocue/util"
 const (
 	ResourceFile   = "file"
 	ResourceSource = "source"
+	ResourceModel  = "model"
 
 	MetadataFileId   = "FileId"
 	MetadataSourceId = "SourceId"

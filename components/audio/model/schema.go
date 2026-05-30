@@ -8,6 +8,7 @@ const (
 
 	IndexId     = "id"
 	IndexFileId = "file_id"
+	IndexNumber = "number"
 )
 
 var persistentSchema = &memdb.DBSchema{
@@ -34,6 +35,11 @@ var persistentSchema = &memdb.DBSchema{
 					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "FileId"},
+				},
+				IndexNumber: {
+					Name:    IndexNumber,
+					Unique:  true,
+					Indexer: &memdb.UintFieldIndex{Field: "Number"},
 				},
 			},
 		},

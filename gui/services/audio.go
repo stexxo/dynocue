@@ -41,7 +41,7 @@ func (a *AudioService) onNewClient(cl *client.Client) error {
 func (a *AudioService) CreateAudioFile(fileLocation string) (string, bool) {
 	var out string
 	err := a.clientManager.WithClient(func(c *client.Client) error {
-		fileId, err := c.CreateAudioFile(fileLocation)
+		fileId, err := c.CreateAudioFile(fileLocation, 0)
 		if err != nil {
 			return err
 		}

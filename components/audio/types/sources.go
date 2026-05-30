@@ -6,11 +6,14 @@ package types
 
 type AudioFile struct {
 	FileId string `msgpack:"fileId" json:"fileId"`
+	Number uint   `msgpack:"number" json:"number"`
 	Key    string `msgpack:"key" json:"key"`
+	Label  string `msgpack:"label" json:"label"`
 }
 
 type AudioSource struct {
 	SourceId string `msgpack:"sourceId" json:"sourceId"`
+	Number   uint   `msgpack:"number" json:"number"`
 	FileId   string `msgpack:"fileId" json:"fileId"`
 	Label    string `msgpack:"sourceLabel" json:"sourceLabel"`
 }

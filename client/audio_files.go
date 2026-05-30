@@ -15,9 +15,9 @@ import (
 )
 
 var ErrAudioFileNotFound = errors.New("audio file not found")
+var ErrAudioFileExists = errors.New("audio file with provided number already exists")
 
-func (c *Client) CreateAudioFile(fileLocation string) (string, error) {
-
+func (c *Client) CreateAudioFile(fileLocation string, number uint) (string, error) {
 	file, err := os.Open(fileLocation)
 	if err != nil {
 		return "", fmt.Errorf("failed to open audio file: %w", err)
@@ -31,12 +31,17 @@ func (c *Client) CreateAudioFile(fileLocation string) (string, error) {
 
 	resp, err := messaging.Request[api.UploadAudioFileResponse](c.messenger, api.CreateAudioFileRequestSubject, &api.UploadAudioFileRequest{
 		LocationInTempBucket: key,
+		Number:               number,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload audio file: %w", err)
 	}
 	if resp.Success {
 		return resp.Response.FileId, nil
+	}
+
+	if resp.Error == api.AudioFileNumberExists {
+		return "", ErrAudioFileExists
 	}
 
 	return "", fmt.Errorf("failed to create audio file: %s", resp.Error)

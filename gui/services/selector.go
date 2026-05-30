@@ -6,6 +6,7 @@ package services
 
 import (
 	"errors"
+	"os"
 
 	"github.com/stexxo/dynocue/client"
 	"github.com/stexxo/dynocue/components/audio"
@@ -101,9 +102,13 @@ func (s *SelectorService) NewShow() bool {
 }
 
 func (s *SelectorService) saveDialog() (string, error) {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
 	dia := s.app.Dialog.SaveFileWithOptions(&application.SaveFileDialogOptions{
 		Title: "Save Cueing",
-	})
+	}).SetDirectory(dir)
 	return dia.PromptForSingleSelection()
 }
 
@@ -123,6 +128,8 @@ func (s *SelectorService) SaveShow() bool {
 				s.logger.Debug("no save location provided, exiting")
 				return nil
 			}
+
+			s.logger.Debug("saving show to", "location", res)
 
 			return c.SaveShow(res)
 		}
@@ -151,6 +158,7 @@ func (s *SelectorService) SaveShowAs() bool {
 			s.logger.Debug("no save location provided, exiting")
 			return nil
 		}
+		s.logger.Debug("saving show to", "location", res)
 
 		return c.SaveShow(res)
 	})

@@ -27,12 +27,14 @@ func NewAudioAPI(m *model.AudioModel, persistence *system.PersistenceManager, me
 
 	err := errors.Join(
 		a.registerFileApis(),
+		a.registerPersistenceApis(),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	a.registerFileEvents()
+	a.registerPersistenceEvents()
 
 	return a, nil
 }

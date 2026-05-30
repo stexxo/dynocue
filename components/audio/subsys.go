@@ -10,6 +10,7 @@ import (
 	"github.com/stexxo/dynocue/components/audio/api"
 	"github.com/stexxo/dynocue/components/audio/model"
 	cueingapi "github.com/stexxo/dynocue/components/cues/api"
+	"github.com/stexxo/dynocue/components/system"
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
@@ -47,5 +48,24 @@ func (a *Audio) onStart() error {
 	if err != nil {
 		return err
 	}
+
+	pm, err := system.RegisterWithPersistence(a.Messenger(), a.Logger(), a.Name(), api.SaveRequestSubject, api.LoadRequestSubject)
+	if err != nil {
+		return err
+	}
+
+	m, err := model.NewAudioModel()
+	if err != nil {
+		return err
+	}
+	a.model = m
+
+	audioApi, err := api.NewAudioAPI(a.model, pm, a.Messenger(), a.Logger())
+	if err != nil {
+		return err
+	}
+
+	a.api = audioApi
+
 	return err
 }
