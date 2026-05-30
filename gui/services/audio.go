@@ -108,6 +108,19 @@ func (a *AudioService) GetAudioFile(fileId string) (*types.AudioFile, bool) {
 	return out, true
 }
 
+func (a *AudioService) UpdateAudioFileAttributes(fileId string, field string, value any) bool {
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		return c.UpdateAudioFileAttributes(fileId, field, value)
+	})
+
+	if err != nil {
+		a.logger.Error("failed to update audio file attributes", "err", err, "fileId", fileId)
+		return false
+	}
+
+	return true
+}
+
 func (a *AudioService) DeleteAudioFile(fileId string) bool {
 	err := a.clientManager.WithClient(func(c *client.Client) error {
 		return c.DeleteAudioFile(fileId)

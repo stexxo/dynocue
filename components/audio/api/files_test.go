@@ -226,6 +226,37 @@ func TestGetAudioFile(t *testing.T) {
 	})
 }
 
+func TestUpdateAudioFileAttributes(t *testing.T) {
+	am, api, _, _, _ := setup(t)
+
+	_, err := am.AddFile("id1", "key1", 0)
+	require.NoError(t, err)
+
+	resp, err := api.UpdateAudioFileAttributes("sub", &UpdateAudioFileAttributesRequest{
+		FileId: "id1",
+		Field:  "label",
+		Value:  "Intro",
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+
+	file, err := am.GetFile("id1")
+	require.NoError(t, err)
+	assert.Equal(t, "Intro", file.Label)
+
+	resp, err = api.UpdateAudioFileAttributes("sub", &UpdateAudioFileAttributesRequest{
+		FileId: "id1",
+		Field:  "number",
+		Value:  uint(12),
+	})
+	require.NoError(t, err)
+	assert.NotNil(t, resp)
+
+	file, err = am.GetFile("id1")
+	require.NoError(t, err)
+	assert.Equal(t, uint(12), file.Number)
+}
+
 func TestDeleteAudioFile(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 

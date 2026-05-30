@@ -9,7 +9,8 @@ import {
 	DeleteAudioFile,
 	GetAudioFile,
 	AddAudioFile,
-	ReplaceAudioFileWithDialog
+	ReplaceAudioFileWithDialog,
+	UpdateAudioFileAttributes
 } from '../../../bindings/github.com/stexxo/dynocue/gui/services/audioservice';
 import { AudioFile } from '../../../bindings/github.com/stexxo/dynocue/components/audio/types';
 import { Events } from '@wailsio/runtime';
@@ -81,6 +82,14 @@ class AudioStore {
 			console.error('Failed to get audio file', fileId);
 		}
 		return file;
+	}
+
+	async updateFileAttributes(fileId: string, field: 'number' | 'label', value: any) {
+		const ok = await UpdateAudioFileAttributes(fileId, field, value);
+		if (!ok) {
+			console.error('Failed to update audio file attributes', fileId, field);
+		}
+		return ok;
 	}
 
 	async addWithDialog() {

@@ -107,6 +107,27 @@ func (c *Client) GetAudioFile(fileId string) (*types.AudioFile, error) {
 	return nil, fmt.Errorf("failed to get audio file: %s", resp.Error)
 }
 
+func (c *Client) UpdateAudioFileAttributes(fileId string, field string, value any) error {
+	resp, err := messaging.Request[api.UpdateAudioFileAttributesResponse](c.messenger, api.UpdateAudioFileAttributesRequestSubject, &api.UpdateAudioFileAttributesRequest{
+		FileId: fileId,
+		Field:  field,
+		Value:  value,
+	})
+	if err != nil {
+		return err
+	}
+
+	if resp.Success {
+		return nil
+	}
+
+	if resp.Error == api.AudioFileNotFound {
+		return ErrAudioFileNotFound
+	}
+
+	return fmt.Errorf("failed to update audio file attributes: %s", resp.Error)
+}
+
 func (c *Client) DeleteAudioFile(fileId string) error {
 	resp, err := messaging.Request[api.DeleteAudioFileResponse](c.messenger, api.DeleteAudioFileRequestSubject, &api.DeleteAudioFileRequest{
 		FileId: fileId,

@@ -20,6 +20,7 @@ func (a *AudioAPI) registerFileApis() error {
 		messaging.Reply[ReplaceAudioFileRequest, ReplaceAudioFileResponse](a.messenger, true, ReplaceAudioFileRequestSubject, a.ReplaceAudioFile),
 		messaging.Reply[EnumerateAudioFilesRequest, EnumerateAudioFilesResponse](a.messenger, true, EnumerateAudioFilesRequestSubject, a.EnumerateAudioFiles),
 		messaging.Reply[GetAudioFileRequest, GetAudioFileResponse](a.messenger, true, GetAudioFileRequestSubject, a.GetAudioFile),
+		messaging.Reply[UpdateAudioFileAttributesRequest, UpdateAudioFileAttributesResponse](a.messenger, true, UpdateAudioFileAttributesRequestSubject, a.UpdateAudioFileAttributes),
 		messaging.Reply[DeleteAudioFileRequest, DeleteAudioFileResponse](a.messenger, true, DeleteAudioFileRequestSubject, a.DeleteAudioFile),
 	)
 }
@@ -170,6 +171,28 @@ func (a *AudioAPI) GetAudioFile(sub string, req *GetAudioFileRequest) (*GetAudio
 	}
 
 	return &GetAudioFileResponse{File: *file}, nil
+}
+
+const UpdateAudioFileAttributesRequestSubject = "request.audio.file.attributes.update"
+
+type UpdateAudioFileAttributesRequest struct {
+	FileId string      `json:"fileId" msgpack:"fileId" validate:"required"`
+	Field  string      `json:"field" msgpack:"field" validate:"required,oneof=number label"`
+	Value  interface{} `json:"value" msgpack:"value"`
+}
+
+type UpdateAudioFileAttributesResponse struct{}
+
+func (a *AudioAPI) UpdateAudioFileAttributes(sub string, req *UpdateAudioFileAttributesRequest) (*UpdateAudioFileAttributesResponse, error) {
+	err := a.model.UpdateFile(req.FileId, req.Field, req.Value)
+	if err != nil {
+		if errors.Is(err, model.ErrFileNotFound) {
+			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNotFound})
+		}
+		return nil, fmt.Errorf("failed to update audio file attributes: %w", err)
+	}
+
+	return &UpdateAudioFileAttributesResponse{}, nil
 }
 
 const DeleteAudioFileRequestSubject = "request.audio.file.delete"

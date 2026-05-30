@@ -8,8 +8,8 @@
 	import { audioStore } from '../../stores/audioStore.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
-	import EditableTimeData from "$lib/components/table/EditableTimeData.svelte";
-	import { formatTime } from "$lib/utils/time";
+	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
+	import { formatTime } from '$lib/utils/time';
 
 	let files = $derived(audioStore.files);
 
@@ -62,23 +62,45 @@
 			<table class="table-pin-rows table">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
-						<th class="w-1/2">Number</th>
-						<th class="w-1/4">Label</th>
-						<th class="w-1/4">Duration</th>
-						<th class="w-1/4">Format</th>
-						<th class="w-1/4">Size</th>
-						<th class="w-1/4"></th>
+						<th class="w-40 text-center">#</th>
+						<th class="max-w-200 min-w-100">Label</th>
+						<th class="w-100">Duration</th>
+						<th class="w-100">Format</th>
+						<th class="w-100">Size</th>
+						<th class="w-100"></th>
 					</tr>
 				</thead>
 				<tbody class="">
 					{#each files as file}
 						<tr class="hover:bg-base-200">
-							<td>{file.number}</td>
-							<td class="font-mono text-xs">{file.label}</td>
-							<td class="font-mono text-xs">{formatTime(file.duration)}</td>
-							<td class="font-mono text-xs">{file.format}</td>
-							<td class="font-mono text-xs">{formatSize(file.sizeBytes)}</td>
-							<td class="flex flex-row justify-end gap-2">
+							<EditableTableData
+								inputType="number"
+								value={file.number}
+								onSaveEdit={(v) => {
+									audioStore.updateFileAttributes(file.fileId, 'number', v);
+								}}
+								tdClass="w-40 text-center"
+							/>
+							<EditableTableData
+								inputType="text"
+								value={file.label}
+								onSaveEdit={(v) => {
+									audioStore.updateFileAttributes(file.fileId, 'label', v);
+								}}
+								tdClass="max-w-200 min-w-100"
+							/>
+							<td class="w-100 truncate font-mono">{formatTime(file.duration)}</td>
+							<td class="w-100 truncate font-mono">{file.format}</td>
+							<td class="w-100 truncate font-mono">{formatSize(file.sizeBytes)}</td>
+							<td class="flex flex-row justify-end gap-1">
+								<button
+									class="btn btn-soft btn-secondary"
+									onclick={() => {
+										audioStore.replaceWithDialog(file.fileId);
+									}}
+								>
+									Replace
+								</button>
 								<details
 									class="dropdown dropdown-end"
 									use:clickOutside={(node) => {
@@ -104,19 +126,11 @@
 										</svg>
 									</summary>
 									<ul
-										class="dropdown-content menu z-[1] mt-2 w-32 rounded-box bg-base-200 p-2 shadow"
+										class="dropdown-content menu z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
 									>
 										<li>
 											<button
-												class="btn btn-outline btn-primary mb-2"
-												onclick={() => {
-													audioStore.replaceWithDialog(file.fileId);
-												}}>Replace</button
-											>
-										</li>
-										<li>
-											<button
-												class="btn btn-outline btn-accent"
+												class="btn btn-outline btn-error"
 												onclick={() => {
 													confirmDelete(file.fileId, file.key);
 												}}>Delete</button
@@ -128,7 +142,7 @@
 						</tr>
 					{:else}
 						<tr>
-							<td colspan="3" class="text-center italic text-gray-500"> No audio files found. </td>
+							<td colspan="6" class="text-center italic text-gray-500"> No audio files found. </td>
 						</tr>
 					{/each}
 				</tbody>
