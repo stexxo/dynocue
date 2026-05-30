@@ -4,11 +4,16 @@
 
 package types
 
+import "time"
+
 type AudioFile struct {
-	FileId string `msgpack:"fileId" json:"fileId"`
-	Number uint   `msgpack:"number" json:"number"`
-	Key    string `msgpack:"key" json:"key"`
-	Label  string `msgpack:"label" json:"label"`
+	FileId    string        `msgpack:"fileId" json:"fileId"`
+	Number    uint          `msgpack:"number" json:"number"`
+	Key       string        `msgpack:"key" json:"key"`
+	Label     string        `msgpack:"label" json:"label"`
+	Duration  time.Duration `msgpack:"duration" json:"duration"`
+	SizeBytes uint          `msgpack:"sizeBytes" json:"sizeBytes"`
+	Format    string        `msgpack:"format" json:"format"`
 }
 
 type AudioSource struct {

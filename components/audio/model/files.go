@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"time"
 
 	"github.com/hashicorp/go-memdb"
 	"github.com/stexxo/dynocue/components/audio/types"
@@ -37,6 +38,35 @@ func (m *AudioModel) AddFile(id string, key string, number uint) (uint, error) {
 	m.registry.Emit(ResourceFile, OperationCreated, MetadataFileId, file.FileId)
 
 	return file.Number, nil
+}
+
+func (m *AudioModel) SetFileProperties(fileId string, duration time.Duration, size uint, format string) error {
+	m.dbMu.RLock()
+	defer m.dbMu.RUnlock()
+
+	err := db.WithWrite(m.persistent, func(txn *memdb.Txn) error {
+		f, err := db.GetFirstTxn[types.AudioFile](txn, TableFiles, IndexId, fileId)
+		if errors.Is(err, db.ErrItemNotFound) {
+			return ErrFileNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		newFile := types.AudioFile{
+			FileId:    fileId,
+			Number:    f.Number,
+			Duration:  duration,
+			SizeBytes: size,
+			Format:    format,
+		}
+		return txn.Insert(TableFiles, &newFile)
+	})
+	if err != nil {
+		return err
+	}
+	m.registry.Emit(ResourceFile, OperationUpdated, MetadataFileId, fileId)
+	return nil
 }
 
 func (m *AudioModel) GetFile(fileId string) (*types.AudioFile, error) {

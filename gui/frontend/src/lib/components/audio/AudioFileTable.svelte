@@ -8,6 +8,8 @@
 	import { audioStore } from '../../stores/audioStore.svelte';
 	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
+	import EditableTimeData from "$lib/components/table/EditableTimeData.svelte";
+	import { formatTime } from "$lib/utils/time";
 
 	let files = $derived(audioStore.files);
 
@@ -24,6 +26,25 @@
 			audioStore.deleteFile(fileToDelete.id);
 			fileToDelete = null;
 		}
+	}
+
+	function formatSize(bytes: number) {
+		const size = Number(bytes);
+		if (!Number.isFinite(size)) return '0 B';
+
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const sign = size < 0 ? '-' : '';
+		let value = Math.abs(size);
+		let unitIndex = 0;
+
+		while (value >= 1024 && unitIndex < units.length - 1) {
+			value /= 1024;
+			unitIndex += 1;
+		}
+
+		const formatted =
+			unitIndex === 0 ? value.toString() : value.toFixed(value >= 10 ? 0 : 1).replace(/\.0$/, '');
+		return `${sign}${formatted} ${units[unitIndex]}`;
 	}
 </script>
 
@@ -43,6 +64,9 @@
 					<tr class="bg-base-100">
 						<th class="w-1/2">Number</th>
 						<th class="w-1/4">Label</th>
+						<th class="w-1/4">Duration</th>
+						<th class="w-1/4">Format</th>
+						<th class="w-1/4">Size</th>
 						<th class="w-1/4"></th>
 					</tr>
 				</thead>
@@ -51,6 +75,9 @@
 						<tr class="hover:bg-base-200">
 							<td>{file.number}</td>
 							<td class="font-mono text-xs">{file.label}</td>
+							<td class="font-mono text-xs">{formatTime(file.duration)}</td>
+							<td class="font-mono text-xs">{file.format}</td>
+							<td class="font-mono text-xs">{formatSize(file.sizeBytes)}</td>
 							<td class="flex flex-row justify-end gap-2">
 								<details
 									class="dropdown dropdown-end"

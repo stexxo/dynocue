@@ -130,6 +130,10 @@ func (pm *PersistenceManager) ReadFromObjectStore(key string) (jetstream.ObjectR
 	return res, nil
 }
 
+func (pm *PersistenceManager) GetFullObjectKey(key string) string {
+	return fmt.Sprintf("%s/%s", pm.name, key)
+}
+
 func NewPersistenceManagerForTest(name string, kv jetstream.KeyValue, obj jetstream.ObjectStore, temp jetstream.ObjectStore, logger logging.Logger) *PersistenceManager {
 	return &PersistenceManager{
 		name:        name,

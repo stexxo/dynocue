@@ -1,13 +1,17 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 
 	"github.com/google/uuid"
 	"github.com/stexxo/dynocue/components/audio/model"
 	"github.com/stexxo/dynocue/components/audio/types"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/pkg/probe"
 )
 
 func (a *AudioAPI) registerFileApis() error {
@@ -58,6 +62,27 @@ func (a *AudioAPI) CreateAudioFile(sub string, req *UploadAudioFileRequest) (*Up
 		return nil, fmt.Errorf("failed to add file to database: %w", err)
 	}
 
+	// Get a Temporary Location
+	temp := path.Join(os.TempDir(), "dynocue", "audio")
+	err = os.MkdirAll(temp, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	fullObjectKey := a.persistence.GetFullObjectKey(fileKey)
+	err = a.persistence.ObjectStore().GetFile(context.Background(), fullObjectKey, path.Join(temp, fileUUID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve file from object store: %w", err)
+	}
+	defer os.Remove(path.Join(temp, fileUUID))
+
+	info, err := probe.ProbeFile(path.Join(temp, fileUUID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to probe file: %w", err)
+	}
+
+	a.model.SetFileProperties(fileUUID, info.Duration, uint(info.SizeBytes), info.Format)
+
 	return &UploadAudioFileResponse{FileId: fileUUID, Number: number}, nil
 }
 
@@ -83,6 +108,27 @@ func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy file from temp location: %w", err)
 	}
+
+	// Get a Temporary Location
+	temp := path.Join(os.TempDir(), "dynocue", "audio")
+	err = os.MkdirAll(temp, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	fullObjectKey := a.persistence.GetFullObjectKey(f.Key)
+	err = a.persistence.ObjectStore().GetFile(context.Background(), fullObjectKey, path.Join(temp, f.Key))
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve file from object store: %w", err)
+	}
+	defer os.Remove(path.Join(temp, f.Key))
+
+	info, err := probe.ProbeFile(path.Join(temp, f.Key))
+	if err != nil {
+		return nil, fmt.Errorf("failed to probe file: %w", err)
+	}
+
+	a.model.SetFileProperties(f.Key, info.Duration, uint(info.SizeBytes), info.Format)
 
 	return &ReplaceAudioFileResponse{}, nil
 }
