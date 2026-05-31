@@ -93,14 +93,6 @@
 							<td class="w-100 truncate font-mono">{file.format}</td>
 							<td class="w-100 truncate font-mono">{formatSize(file.sizeBytes)}</td>
 							<td class="flex flex-row justify-end gap-1">
-								<button
-									class="btn btn-soft btn-secondary"
-									onclick={() => {
-										audioStore.replaceWithDialog(file.fileId);
-									}}
-								>
-									Replace
-								</button>
 								<details
 									class="dropdown dropdown-end"
 									use:clickOutside={(node) => {
@@ -126,9 +118,17 @@
 										</svg>
 									</summary>
 									<ul
-										class="dropdown-content menu z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
+										class="dropdown-content menu z-1 w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
 									>
 										<li>
+											<button
+												class="btn btn-soft btn-secondary"
+												onclick={() => {
+													audioStore.replaceWithDialog(file.fileId);
+												}}
+											>
+												Replace
+											</button>
 											<button
 												class="btn btn-outline btn-error"
 												onclick={() => {

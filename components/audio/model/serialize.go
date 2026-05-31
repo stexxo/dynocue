@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 package model
 
 import (
@@ -12,7 +16,7 @@ import (
 func (m *AudioModel) SerializeEachTable(fn func(name string, reader io.Reader) error) error {
 	m.dbMu.Lock()
 	defer m.dbMu.Unlock()
-	
+
 	for _, table := range persistentSchema.Tables {
 		buf, err := db.SerializeTable(m.persistent, table.Name)
 		if err != nil {

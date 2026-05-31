@@ -34,7 +34,7 @@
 </script>
 
 <div
-	class="relative h-full p-4 drop-zone"
+	class="drop-zone relative h-full p-4"
 	data-file-drop-target
 	ondragenter={onDragEnter}
 	ondragover={onDragOver}
