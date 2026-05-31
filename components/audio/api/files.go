@@ -215,12 +215,28 @@ type DeleteAudioFileResponse struct {
 }
 
 func (a *AudioAPI) DeleteAudioFile(sub string, req *DeleteAudioFileRequest) (*DeleteAudioFileResponse, error) {
-	err := a.model.DeleteFile(req.FileId)
+	f, err := a.model.GetFile(req.FileId)
+	if err != nil {
+		if errors.Is(err, model.ErrFileNotFound) {
+			return &DeleteAudioFileResponse{}, nil
+		}
+		return nil, fmt.Errorf("failed to retrieve file from database: %w", err)
+	}
+
+	// Remove From Database
+	err = a.model.DeleteFile(req.FileId)
 	if err != nil {
 		if errors.Is(err, model.ErrFileNotFound) {
 			return nil, errors.Join(err, &messaging.FriendlyError{FriendlyErr: AudioFileNotFound})
 		}
 		return nil, fmt.Errorf("failed to delete file from database: %w", err)
+	}
+
+	// Remove From Object Store
+	fullKey := a.persistence.GetFullObjectKey(f.Key)
+	err = a.persistence.ObjectStore().Delete(context.Background(), fullKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete file from object store: %w", err)
 	}
 
 	return &DeleteAudioFileResponse{}, nil

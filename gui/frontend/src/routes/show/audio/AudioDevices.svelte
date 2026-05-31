@@ -5,10 +5,6 @@
 -->
 
 <script>
-	import Tabs from '$lib/components/tabs/Tabs.svelte';
-	import { audioTabState } from './audioTabsState.svelte';
 </script>
 
-<div class="h-full">
-	<Tabs tabManager={audioTabState}></Tabs>
-</div>
+<h1>Audio Devices</h1>
