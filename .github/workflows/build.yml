@@ -144,7 +144,7 @@ jobs:
             echo "CGO_CFLAGS=-I$VLC_INCLUDE_PATH" >> $GITHUB_ENV
             echo "CGO_LDFLAGS=-L$VLC_LIB_PATH -lvlc" >> $GITHUB_ENV
           fi
-          
+          echo "DYLD_LIBRARY_PATH=$VLC_LIB_PATH:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
