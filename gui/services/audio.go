@@ -189,3 +189,22 @@ func (a *AudioService) ReplaceAudioFileWithDialog(fileId string) bool {
 
 	return a.ReplaceAudioFile(fileId, res)
 }
+
+func (a *AudioService) GetAudioOutputDevices() ([]api.AudioOutputDevice, bool) {
+	var out []api.AudioOutputDevice
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		devices, err := c.GetAudioOutputDevices()
+		if err != nil {
+			return err
+		}
+		out = devices
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to get audio output devices", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}

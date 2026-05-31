@@ -14,6 +14,7 @@ import (
 	"github.com/stexxo/dynocue/core"
 	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
+	"github.com/stexxo/dynocue/pkg/vlc"
 )
 
 type Audio struct {
@@ -66,6 +67,12 @@ func (a *Audio) onStart() error {
 	}
 
 	a.api = audioApi
+
+	// Ensure VLC is Accessible
+	err = vlc.Initialize()
+	if err != nil {
+		return err
+	}
 
 	return err
 }
