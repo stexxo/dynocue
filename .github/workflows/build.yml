@@ -96,26 +96,19 @@ jobs:
           # Install SDK into a predictable directory structure
           nuget install VideoLAN.LibVLC.Windows -Version 3.0.18 -OutputDirectory .\vlc_sdk
           
-          # Resolve absolute paths fully
+          # Resolve clean, absolute paths
           $sdkPath = (Get-Item .\vlc_sdk\VideoLAN.LibVLC.Windows.*).FullName
           $includePath = Join-Path $sdkPath "build\include"
           $libPath = Join-Path $sdkPath "build\x64"
           
-          # CRITICAL FIX: Ensure clean Unix/Windows style variable assignment
-          # Using [System.IO.File]::AppendAllLines guarantees pure UTF-8 without BOM issues
-          $envFile = $env:GITHUB_ENV
-          [System.IO.File]::AppendAllLines($envFile, @(
-              "CGO_ENABLED=1",
-              "CGO_CFLAGS=-I$includePath",
-              "CGO_LDFLAGS=-L$libPath -lvlc"
-          ))
+          # Write environment variables using native PowerShell cmdlets (guarantees proper UTF-8)
+          Add-Content -Path $env:GITHUB_ENV -Value "CGO_ENABLED=1"
+          Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I$includePath"
+          Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L$libPath -lvlc"
           
-          # Add standard player execution binaries to system PATH
-          $pathFile = $env:GITHUB_PATH
-          [System.IO.File]::AppendAllLines($pathFile, @(
-              "C:\Program Files\VideoLAN\VLC",
-              "C:\Program Data\chocolatey\bin"
-          ))
+          # Add player execution binaries to system PATH
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Data\chocolatey\bin"
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
