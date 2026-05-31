@@ -96,19 +96,20 @@ jobs:
           # Install SDK into a predictable directory structure
           nuget install VideoLAN.LibVLC.Windows -Version 3.0.18 -OutputDirectory .\vlc_sdk
           
-          # Resolve clean, absolute paths
-          $sdkPath = (Get-Item .\vlc_sdk\VideoLAN.LibVLC.Windows.*).FullName
-          $includePath = Join-Path $sdkPath "build\include"
-          $libPath = Join-Path $sdkPath "build\x64"
+          # Resolve clean, absolute paths and force forward slashes for the C compiler
+          $sdkPath = (Get-Item .\vlc_sdk\VideoLAN.LibVLC.Windows.*).FullName.Replace('\', '/')
+          $includePath = "$sdkPath/build/include"
+          $libPath = "$sdkPath/build/x64"
           
-          # Write environment variables using native PowerShell cmdlets (guarantees proper UTF-8)
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_ENABLED=1"
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I$includePath"
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L$libPath -lvlc"
+          # Explicitly force UTF-8 encoding without BOM using Set-Content / Add-Content
+          # This guarantees GitHub Actions parses CGO_CFLAGS correctly
+          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_ENABLED=1" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_CFLAGS=-I$includePath" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_LDFLAGS=-L$libPath -lvlc" -Encoding utf8 -Append
           
           # Add player execution binaries to system PATH
-          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
-          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Data\chocolatey\bin"
+          Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Files\VideoLAN\VLC" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Data\chocolatey\bin" -Encoding utf8 -Append
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
