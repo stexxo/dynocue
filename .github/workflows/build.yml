@@ -91,27 +91,21 @@ jobs:
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
-          choco install vlc ffmpeg -y --no-progress
+          # Install VLC Player, FFmpeg, and the official VLC Developer SDK via Chocolatey
+          choco install vlc ffmpeg vlc-devel -y --no-progress
           
-          # Use a standard User-Agent header to prevent VideoLAN from serving a truncated/blocked file
-          $url = "https://get.videolan.org/vlc/3.0.18/win64/vlc-3.0.18-win64-devel.zip"
-          Invoke-WebRequest -Uri $url -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -OutFile "vlc_devel.zip"
+          # Chocolatey installs vlc-devel to: C:\tools\vlc-devel
+          # We resolve this absolute directory layout and swap backslashes to forward slashes for CGO
+          $sdkPath = "C:/tools/vlc-devel"
+          $includePath = "$sdkPath/sdk/include"
+          $libPath = "$sdkPath/sdk/lib"
           
-          # Unpack the raw archive safely
-          Expand-Archive -Path "vlc_devel.zip" -DestinationPath "vlc_sdk_raw"
-          
-          # Normalize the root directory structure so it's a guaranteed location
-          Move-Item -Path "vlc_sdk_raw/vlc-3.0.18" -Destination "vlc_sdk"
-          
-          # Format absolute paths using forward slashes for the CGO compiler
-          $workspace = $env:GITHUB_WORKSPACE.Replace('\', '/')
-          
-          # Export to GITHUB_ENV with clean UTF-8 encoding
+          # Export variables cleanly to GITHUB_ENV with standard UTF-8 encoding
           Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_ENABLED=1" -Encoding utf8 -Append
-          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_CFLAGS=-I$workspace/vlc_sdk/sdk/include" -Encoding utf8 -Append
-          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_LDFLAGS=-L$workspace/vlc_sdk/sdk/lib -lvlc" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_CFLAGS=-I$includePath" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_LDFLAGS=-L$libPath -lvlc" -Encoding utf8 -Append
           
-          # Add player execution binaries to system PATH
+          # Append runtime application binaries to system PATH
           Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Files\VideoLAN\VLC" -Encoding utf8 -Append
           Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Data\chocolatey\bin" -Encoding utf8 -Append
         shell: powershell
