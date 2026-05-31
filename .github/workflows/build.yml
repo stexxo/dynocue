@@ -104,20 +104,18 @@ jobs:
           # CRITICAL FIX: Ensure clean Unix/Windows style variable assignment
           # Using [System.IO.File]::AppendAllLines guarantees pure UTF-8 without BOM issues
           $envFile = $env:GITHUB_ENV
-           [System.IO.File]::AppendAllLines($envFile, @(
-           "CGO_ENABLED=1",
-           "CGO_CFLAGS=-I$includePath",
-           "CGO_LDFLAGS=-L$libPath -lvlc"
-           ))
-          
-          # Force set directly to the environment block for this job context
-          echo "CGO_ENABLED=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "CGO_CFLAGS=$cflags" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "CGO_LDFLAGS=$ldflags" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          [System.IO.File]::AppendAllLines($envFile, @(
+              "CGO_ENABLED=1",
+              "CGO_CFLAGS=-I$includePath",
+              "CGO_LDFLAGS=-L$libPath -lvlc"
+          ))
           
           # Add standard player execution binaries to system PATH
-          echo "C:\Program Files\VideoLAN\VLC" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "C:\Program Data\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $pathFile = $env:GITHUB_PATH
+          [System.IO.File]::AppendAllLines($pathFile, @(
+              "C:\Program Files\VideoLAN\VLC",
+              "C:\Program Data\chocolatey\bin"
+          ))
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
