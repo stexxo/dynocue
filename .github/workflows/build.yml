@@ -119,23 +119,33 @@ jobs:
         if: matrix.osName == 'mac'
         run: |
           brew update
-          # Install ffmpeg standard formula
-          brew install ffmpeg
+          # Install ffmpeg, vlc, and pkg-config
+          brew install ffmpeg vlc pkg-config
           
-          # Install VLC SDK/libvlc using VideoLAN's official tap
-          brew tap videolan/tap
-          brew install videolan/tap/vlc-sid
+          # Since VLC is installed as a Cask/App bundle, brew won't symlink it into /opt/homebrew.
+          # We point pkg-config to the manifest bundled inside the VLC application layout.
+          VLC_APP_PATH="/Applications/VLC.app"
+          if [ ! -d "$VLC_APP_PATH" ]; then
+            VLC_APP_PATH="$HOME/Applications/VLC.app"
+          fi
           
-          # Explicitly target the Homebrew installation paths for CGO
-          VLC_PREFIX=$(brew --prefix vlc-sid)
+          VLC_PKG_CONFIG_DIR="$VLC_APP_PATH/Contents/MacOS/lib/pkgconfig"
           
-          # Export to GITHUB_ENV for subsequent steps (like task build)
+          # Fallback: if pkgconfig isn't present inside the bundle, resolve path structures directly
+          if [ -d "$VLC_PKG_CONFIG_DIR" ]; then
+            echo "PKG_CONFIG_PATH=$VLC_PKG_CONFIG_DIR:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+            # Let pkg-config resolve flags cleanly
+            echo "CGO_CFLAGS=$(PKG_CONFIG_PATH=$VLC_PKG_CONFIG_DIR pkg-config --cflags libvlc)" >> $GITHUB_ENV
+            echo "CGO_LDFLAGS=$(PKG_CONFIG_PATH=$VLC_PKG_CONFIG_DIR pkg-config --libs libvlc)" >> $GITHUB_ENV
+          else
+            # Manual fallback assignments if the structure varies
+            VLC_INCLUDE_PATH="$VLC_APP_PATH/Contents/MacOS/include"
+            VLC_LIB_PATH="$VLC_APP_PATH/Contents/MacOS/lib"
+            echo "CGO_CFLAGS=-I$VLC_INCLUDE_PATH" >> $GITHUB_ENV
+            echo "CGO_LDFLAGS=-L$VLC_LIB_PATH -lvlc" >> $GITHUB_ENV
+          fi
+          
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
-          echo "CGO_CFLAGS=-I$VLC_PREFIX/include" >> $GITHUB_ENV
-          echo "CGO_LDFLAGS=-L$VLC_PREFIX/lib -lvlc" >> $GITHUB_ENV
-          
-          # Optional: Append to PKG_CONFIG_PATH if your build system uses pkg-config
-          echo "PKG_CONFIG_PATH=$VLC_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
 
