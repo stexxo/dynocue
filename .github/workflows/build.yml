@@ -93,21 +93,25 @@ jobs:
         run: |
           choco install vlc ffmpeg -y --no-progress
           
-          # Download the official VideoLAN build directly to bypass NuGet's internal path generation
-          Invoke-WebRequest -Uri "https://get.videolan.org/vlc/3.0.18/win64/vlc-3.0.18-win64.zip" -OutFile "vlc.zip"
-          Expand-Archive -Path "vlc.zip" -DestinationPath "vlc_sdk_raw"
+          # Use a standard User-Agent header to prevent VideoLAN from serving a truncated/blocked file
+          $url = "https://get.videolan.org/vlc/3.0.18/win64/vlc-3.0.18-win64-devel.zip"
+          Invoke-WebRequest -Uri $url -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -OutFile "vlc_devel.zip"
           
-          # Normalize path structure to a clean, static location
+          # Unpack the raw archive safely
+          Expand-Archive -Path "vlc_devel.zip" -DestinationPath "vlc_sdk_raw"
+          
+          # Normalize the root directory structure so it's a guaranteed location
           Move-Item -Path "vlc_sdk_raw/vlc-3.0.18" -Destination "vlc_sdk"
           
-          # Write exact hardcoded forward-slash paths directly to GITHUB_ENV with UTF8 encoding
+          # Format absolute paths using forward slashes for the CGO compiler
           $workspace = $env:GITHUB_WORKSPACE.Replace('\', '/')
           
+          # Export to GITHUB_ENV with clean UTF-8 encoding
           Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_ENABLED=1" -Encoding utf8 -Append
           Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_CFLAGS=-I$workspace/vlc_sdk/sdk/include" -Encoding utf8 -Append
           Out-File -FilePath $env:GITHUB_ENV -InputObject "CGO_LDFLAGS=-L$workspace/vlc_sdk/sdk/lib -lvlc" -Encoding utf8 -Append
           
-          # Update runner binary routing
+          # Add player execution binaries to system PATH
           Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Files\VideoLAN\VLC" -Encoding utf8 -Append
           Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Data\chocolatey\bin" -Encoding utf8 -Append
         shell: powershell
