@@ -47,6 +47,8 @@ tasks:
       GOOS: windows
       CGO_ENABLED: '{{.CGO_ENABLED | default "0"}}'
       GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_CFLAGS: "{{.CGO_CFLAGS}}"
+      CGO_LDFLAGS: "{{.CGO_LDFLAGS}}"
 
   generate:syso:
     summary: Generates Windows `.syso` file
