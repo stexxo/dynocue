@@ -91,10 +91,38 @@ jobs:
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
-          # Install VLC Player, FFmpeg, and the official VLC Developer SDK via Chocolatey
-          choco install vlc ffmpeg vlc-devel -y --no-progress
+          # Install VLC Player and FFmpeg via Chocolatey
+          choco install vlc ffmpeg -y --no-progress
           
-          # Chocolatey installs vlc-devel to: C:\tools\vlc-devel
+          # Get the installed VLC version to download the matching SDK
+          $vlcVersion = ((choco list --local-only vlc --limit-output | Select-String "^vlc\|" | Select-Object -First 1).Line -split '\|')[1]
+          if (!$vlcVersion) { $vlcVersion = "3.0.23" }
+          Write-Host "Detected VLC version: $vlcVersion"
+          
+          # Download and extract VLC SDK
+          $vlcUrl = "https://get.videolan.org/vlc/$vlcVersion/win64/vlc-$vlcVersion-win64.7z"
+          Write-Host "Downloading VLC SDK from $vlcUrl"
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-WebRequest -Uri $vlcUrl -OutFile "vlc-sdk.7z"
+          
+          if (!(Test-Path "C:\tools")) {
+              New-Item -ItemType Directory -Path "C:\tools" | Out-Null
+          }
+          if (Test-Path "C:\tools\vlc-devel") {
+              Remove-Item -Recurse -Force "C:\tools\vlc-devel"
+          }
+          
+          # Extract using 7z (available on GH runners)
+          & 7z.exe x vlc-sdk.7z -o"C:\tools"
+          
+          $extractedDir = Get-ChildItem "C:\tools\vlc-$vlcVersion*" | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+          if ($extractedDir) {
+              Move-Item $extractedDir.FullName "C:\tools\vlc-devel"
+          } else {
+              Write-Error "Could not find extracted VLC directory"
+              exit 1
+          }
+          
           # We resolve this absolute directory layout and swap backslashes to forward slashes for CGO
           $sdkPath = "C:/tools/vlc-devel"
           $includePath = "$sdkPath/sdk/include"
@@ -107,7 +135,7 @@ jobs:
           
           # Append runtime application binaries to system PATH
           Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Files\VideoLAN\VLC" -Encoding utf8 -Append
-          Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\Program Data\chocolatey\bin" -Encoding utf8 -Append
+          Out-File -FilePath $env:GITHUB_PATH -InputObject "C:\ProgramData\chocolatey\bin" -Encoding utf8 -Append
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
