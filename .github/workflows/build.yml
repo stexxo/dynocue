@@ -88,19 +88,36 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev vlc libvlc-dev ffmpeg
 
-      - name: Install Windows dependencies (VLC & FFmpeg)
-        if: matrix.osName == 'windows'
-        run: |
-          # Install VLC Player and FFmpeg via Chocolatey
-          choco install ffmpeg -y --no-progress
-          choco install vlc --package-parameters "'/ADD_SDK=1'"
-
-          # Add VLC and FFmpeg to PATH
-          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
-          $ffmpegBin = Get-ChildItem -Path "$env:ProgramData\chocolatey\lib\ffmpeg" -Filter "ffmpeg.exe" -Recurse | Select-Object -First 1 -ExpandProperty DirectoryName
-          if ($ffmpegBin) { Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin }
-          vlc --version
-        shell: powershell
+    - name: Install Windows dependencies (VLC & FFmpeg)
+      if: matrix.osName == 'windows'
+      run: |
+        # Install FFmpeg and VLC with SDK headers via Chocolatey
+        choco install ffmpeg -y --no-progress
+        choco install vlc -y --no-progress --package-parameters="/ADD_SDK=1"
+        
+        # Add VLC to GitHub PATH
+        if (Test-Path "C:\Program Files\VideoLAN\VLC") {
+            Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
+        } else {
+            Write-Error "VLC installation directory not found."
+        }
+        
+        # Add FFmpeg bin to GitHub PATH
+        # Chocolatey typically installs it to C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin
+        $ffmpegBin = Get-ChildItem -Path "$env:ProgramData\chocolatey\lib\ffmpeg" -Directory -Filter "bin" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        if ($ffmpegBin) { 
+            Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin 
+        } else {
+            Write-Error "FFmpeg binary directory not found."
+        }
+        
+        # Force environment refresh for the current session to verify versions
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        
+        # Verify installations
+        vlc --version
+        ffmpeg -version
+      shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
         if: matrix.osName == 'mac'
