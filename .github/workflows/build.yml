@@ -91,32 +91,33 @@ jobs:
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
-          # Install FFmpeg and VLC with SDK headers via Chocolatey
+          # 1. Install FFmpeg and VLC with SDK headers via Chocolatey
           choco install ffmpeg -y --no-progress
           choco install vlc -y --no-progress --package-parameters="/ADD_SDK=1"
           
-          # Add VLC to GitHub PATH
+          # 2. Add VLC to GitHub PATH
           if (Test-Path "C:\Program Files\VideoLAN\VLC") {
               Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
+              Write-Output "Added VLC to GITHUB_PATH"
           } else {
               Write-Error "VLC installation directory not found."
           }
           
-          # Add FFmpeg bin to GitHub PATH
-          # Chocolatey typically installs it to C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin
-          $ffmpegBin = Get-ChildItem -Path "$env:ProgramData\chocolatey\lib\ffmpeg" -Directory -Filter "bin" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          # 3. Add FFmpeg to GitHub PATH (Targeting the exact extraction path from your logs)
+          $ffmpegTools = "C:\ProgramData\chocolatey\lib\ffmpeg\tools"
+          $ffmpegBin = Get-ChildItem -Path $ffmpegTools -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1 -ExpandProperty DirectoryName
+          
           if ($ffmpegBin) { 
-              Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin 
+              Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin
+              Write-Output "Added FFmpeg ($ffmpegBin) to GITHUB_PATH"
           } else {
-              Write-Error "FFmpeg binary directory not found."
+              Write-Error "FFmpeg binary directory could not be located."
           }
           
-          # Force environment refresh for the current session to verify versions
-          $env:PATH = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          
-          # Verify installations
-          vlc --version
-          ffmpeg -version
+          # 4. Verify using absolute paths for this current step 
+          # (Subsequent workflow steps will be able to just use 'vlc' and 'ffmpeg' normally)
+          & "C:\Program Files\VideoLAN\VLC\vlc.exe" --version
+          & "$ffmpegBin\ffmpeg.exe" -version
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
