@@ -82,14 +82,10 @@ jobs:
           $baseDir = "C:\Program Files\VideoLAN"
           if (!(Test-Path $baseDir)) { mkdir $baseDir -Force | Out-Null }
           
-          # Extract the archive cleanly into C:\Program Files\VideoLAN
-          # This creates "C:\Program Files\VideoLAN\vlc-3.0.23"
+          # Extract and rename folder
           7z.exe x $vlcZip -o"$baseDir" -y | Out-Null
-          
-          # Clean up zip archive
           Remove-Item $vlcZip -Force
           
-          # Rename the extracted folder to exactly 'VLC' so paths remain consistent
           $vlcTargetDir = "$baseDir\VLC"
           if (Test-Path "$baseDir\vlc-3.0.23") {
               if (Test-Path $vlcTargetDir) { Remove-Item $vlcTargetDir -Recurse -Force }
@@ -99,21 +95,20 @@ jobs:
           # 4. Add VLC to GitHub PATH
           if (Test-Path "$vlcTargetDir\vlc.exe") {
               Add-Content -Path $env:GITHUB_PATH -Value $vlcTargetDir
-              Write-Output "Successfully installed VLC and added to GITHUB_PATH"
-          } else {
-              Write-Error "VLC binaries could not be found at $vlcTargetDir\vlc.exe"
           }
           
-          # 5. Expose VLC SDK paths to CGO for subsequent workflow steps
-          $vlcSdkInclude = "$vlcTargetDir\sdk\include"
-          $vlcSdkLib = "$vlcTargetDir\sdk\lib"
+          # 5. Expose VLC SDK paths to CGO using Space-Free 8.3 Short Paths
+          # "C:\Program Files" -> "C:\PROGRA~1"
+          $shortVlcPath = "C:\PROGRA~1\VideoLAN\VLC"
+          $vlcSdkInclude = "$shortVlcPath\sdk\include"
+          $vlcSdkLib = "$shortVlcPath\sdk\lib"
           
-          if (Test-Path $vlcSdkInclude) {
-              Add-Content -Path $env:GITHUB_ENV -Value 'CGO_CFLAGS=-I"C:\Program Files\VideoLAN\VLC\sdk\include"'
-              Add-Content -Path $env:GITHUB_ENV -Value 'CGO_LDFLAGS=-L"C:\Program Files\VideoLAN\VLC\sdk\lib"'
-              Write-Output "Successfully configured CGO environment variables for VLC SDK."
+          if (Test-Path "C:\Program Files\VideoLAN\VLC\sdk\include") {
+              Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I$vlcSdkInclude"
+              Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L$vlcSdkLib"
+              Write-Output "Successfully configured CGO using space-free short paths: $vlcSdkInclude"
           } else {
-              Write-Error "VLC SDK include directory was not found at $vlcSdkInclude."
+              Write-Error "VLC SDK include directory was not found."
           }
         shell: powershell
 
