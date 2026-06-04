@@ -63,7 +63,9 @@ jobs:
         run: |
           # 1. Install FFmpeg and VLC with SDK headers
           choco install ffmpeg -y --no-progress
-          choco install vlc -y --no-progress --package-parameters="/ADD_SDK=1"
+          
+          # Force native installer arguments cleanly through PowerShell to Chocolatey
+          choco install vlc -y --no-progress --params="'/ADD_SDK=1'" --install-arguments="'/ADD_SDK=1'"
           
           # 2. Add VLC to GitHub PATH
           $vlcPath = "C:\Program Files\VideoLAN\VLC"
@@ -85,13 +87,14 @@ jobs:
           $vlcSdkLib = "$vlcPath\sdk\lib"
           
           if (Test-Path $vlcSdkInclude) {
-              # Tell compiler where to find vlc/vlc.h
-              Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I`"$vlcSdkInclude`""
-              # Tell linker where to find libvlc.lib / libvlccore.lib
-              Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L`"$vlcSdkLib`""
+              # Double quotes escaped inside the single-quoted string for GITHUB_ENV stability
+              Add-Content -Path $env:GITHUB_ENV -Value 'CGO_CFLAGS=-I"C:\Program Files\VideoLAN\VLC\sdk\include"'
+              Add-Content -Path $env:GITHUB_ENV -Value 'CGO_LDFLAGS=-L"C:\Program Files\VideoLAN\VLC\sdk\lib"'
           
               Write-Output "Successfully configured CGO environment variables for VLC SDK."
           } else {
+              # Let's list the directory contents to debug if it fails again
+              Get-ChildItem -Path $vlcPath
               Write-Error "VLC SDK include directory not found at $vlcSdkInclude. Verify /ADD_SDK=1 parameter worked."
           }
         shell: powershell
