@@ -92,9 +92,15 @@ jobs:
         if: matrix.osName == 'windows'
         run: |
           # Install VLC Player and FFmpeg via Chocolatey
-          choco install vlc ffmpeg -y --no-progress
+          choco install ffmpeg -y --no-progress
+          choco install vlc --package-parameters "'/ADD_SDK=1'"
+
+          # Add VLC and FFmpeg to PATH
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
+          $ffmpegBin = Get-ChildItem -Path "$env:ProgramData\chocolatey\lib\ffmpeg" -Filter "ffmpeg.exe" -Recurse | Select-Object -First 1 -ExpandProperty DirectoryName
+          if ($ffmpegBin) { Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin }
           vlc --version
-          Get-ChildItem "C:\Program Files (x86)\VideoLAN\VLC\sdk\include"
+        shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
         if: matrix.osName == 'mac'
