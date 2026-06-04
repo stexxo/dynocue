@@ -42,36 +42,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.26'
-          cache: true
-          cache-dependency-path: go.sum
-
-      - name: Cache Go Binaries
-        id: cache-go-bin
-        uses: actions/cache@v4
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'yarn'
-          cache-dependency-path: gui/frontend/yarn.lock
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Install Task
-        if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
       - name: Cache Linux dependencies
         if: startsWith(matrix.os, 'ubuntu')
         id: cache-apt
@@ -91,33 +61,39 @@ jobs:
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
-          # 1. Install FFmpeg and VLC with SDK headers via Chocolatey
+          # 1. Install FFmpeg and VLC with SDK headers
           choco install ffmpeg -y --no-progress
           choco install vlc -y --no-progress --package-parameters="/ADD_SDK=1"
           
           # 2. Add VLC to GitHub PATH
-          if (Test-Path "C:\Program Files\VideoLAN\VLC") {
-              Add-Content -Path $env:GITHUB_PATH -Value "C:\Program Files\VideoLAN\VLC"
-              Write-Output "Added VLC to GITHUB_PATH"
+          $vlcPath = "C:\Program Files\VideoLAN\VLC"
+          if (Test-Path $vlcPath) {
+              Add-Content -Path $env:GITHUB_PATH -Value $vlcPath
           } else {
               Write-Error "VLC installation directory not found."
           }
           
-          # 3. Add FFmpeg to GitHub PATH (Targeting the exact extraction path from your logs)
+          # 3. Add FFmpeg to GitHub PATH
           $ffmpegTools = "C:\ProgramData\chocolatey\lib\ffmpeg\tools"
           $ffmpegBin = Get-ChildItem -Path $ffmpegTools -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1 -ExpandProperty DirectoryName
-          
           if ($ffmpegBin) { 
               Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin
-              Write-Output "Added FFmpeg ($ffmpegBin) to GITHUB_PATH"
-          } else {
-              Write-Error "FFmpeg binary directory could not be located."
           }
           
-          # 4. Verify using absolute paths for this current step 
-          # (Subsequent workflow steps will be able to just use 'vlc' and 'ffmpeg' normally)
-          & "C:\Program Files\VideoLAN\VLC\vlc.exe" --version
-          & "$ffmpegBin\ffmpeg.exe" -version
+          # 4. Expose VLC SDK to CGO for subsequent workflow steps
+          $vlcSdkInclude = "$vlcPath\sdk\include"
+          $vlcSdkLib = "$vlcPath\sdk\lib"
+          
+          if (Test-Path $vlcSdkInclude) {
+              # Tell compiler where to find vlc/vlc.h
+              Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I`"$vlcSdkInclude`""
+              # Tell linker where to find libvlc.lib / libvlccore.lib
+              Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L`"$vlcSdkLib`""
+          
+              Write-Output "Successfully configured CGO environment variables for VLC SDK."
+          } else {
+              Write-Error "VLC SDK include directory not found at $vlcSdkInclude. Verify /ADD_SDK=1 parameter worked."
+          }
         shell: powershell
 
       - name: Install macOS dependencies (VLC & FFmpeg)
@@ -153,6 +129,36 @@ jobs:
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
         env:
           HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Cache Go Binaries
+        id: cache-go-bin
+        uses: actions/cache@v4
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+          cache-dependency-path: gui/frontend/yarn.lock
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Install Task
+        if: steps.cache-go-bin.outputs.cache-hit != 'true'
+        run: go install github.com/go-task/task/v3/cmd/task@latest
 
       - name: Install Wails v3 CLI
         if: steps.cache-go-bin.outputs.cache-hit != 'true'
