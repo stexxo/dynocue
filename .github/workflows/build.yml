@@ -61,41 +61,53 @@ jobs:
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
-          # 1. Install FFmpeg and VLC with SDK headers
+          # 1. Install FFmpeg via Chocolatey
           choco install ffmpeg -y --no-progress
           
-          # Force native installer arguments cleanly through PowerShell to Chocolatey
-          choco install vlc -y --no-progress --params="'/ADD_SDK=1'" --install-arguments="'/ADD_SDK=1'"
-          
-          # 2. Add VLC to GitHub PATH
-          $vlcPath = "C:\Program Files\VideoLAN\VLC"
-          if (Test-Path $vlcPath) {
-              Add-Content -Path $env:GITHUB_PATH -Value $vlcPath
-          } else {
-              Write-Error "VLC installation directory not found."
-          }
-          
-          # 3. Add FFmpeg to GitHub PATH
+          # 2. Add FFmpeg to GitHub PATH
           $ffmpegTools = "C:\ProgramData\chocolatey\lib\ffmpeg\tools"
           $ffmpegBin = Get-ChildItem -Path $ffmpegTools -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1 -ExpandProperty DirectoryName
           if ($ffmpegBin) { 
               Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin
           }
           
-          # 4. Expose VLC SDK to CGO for subsequent workflow steps
-          $vlcSdkInclude = "$vlcPath\sdk\include"
-          $vlcSdkLib = "$vlcPath\sdk\lib"
+          # 3. Download and unpack the entire VLC Win64 + SDK bundle
+          Write-Output "Downloading VLC 3.0.23 with SDK..."
+          $vlcZip = "$env:TEMP\vlc-3.0.23-win64.7z"
+          $downloadUrl = "https://download.videolan.org/pub/videolan/vlc/3.0.23/win64/vlc-3.0.23-win64.7z"
+          
+          curl.exe -sSL $downloadUrl -o $vlcZip
+          
+          # Ensure target directory exists
+          $vlcTargetDir = "C:\Program Files\VideoLAN\VLC"
+          if (!(Test-Path $vlcTargetDir)) { mkdir $vlcTargetDir -Force | Out-Null }
+          
+          # Extract everything directly into C:\Program Files\VideoLAN\VLC
+          # --x! tells 7z to strip the root 'vlc-3.0.23' wrapper folder during extraction
+          7z.exe x $vlcZip -o"$vlcTargetDir" -x!"vlc-3.0.23" -y | Out-Null
+          7z.exe x $vlcZip -o"$vlcTargetDir" "vlc-3.0.23\*" -y | Out-Null
+          
+          # Clean up zip archive
+          Remove-Item $vlcZip -Force
+          
+          # 4. Add VLC to GitHub PATH
+          if (Test-Path "$vlcTargetDir\vlc.exe") {
+              Add-Content -Path $env:GITHUB_PATH -Value $vlcTargetDir
+              Write-Output "Successfully installed VLC and added to GITHUB_PATH"
+          } else {
+              Write-Error "VLC binaries could not be properly extracted."
+          }
+          
+          # 5. Expose VLC SDK paths to CGO for subsequent workflow steps
+          $vlcSdkInclude = "$vlcTargetDir\sdk\include"
+          $vlcSdkLib = "$vlcTargetDir\sdk\lib"
           
           if (Test-Path $vlcSdkInclude) {
-              # Double quotes escaped inside the single-quoted string for GITHUB_ENV stability
               Add-Content -Path $env:GITHUB_ENV -Value 'CGO_CFLAGS=-I"C:\Program Files\VideoLAN\VLC\sdk\include"'
               Add-Content -Path $env:GITHUB_ENV -Value 'CGO_LDFLAGS=-L"C:\Program Files\VideoLAN\VLC\sdk\lib"'
-          
               Write-Output "Successfully configured CGO environment variables for VLC SDK."
           } else {
-              # Let's list the directory contents to debug if it fails again
-              Get-ChildItem -Path $vlcPath
-              Write-Error "VLC SDK include directory not found at $vlcSdkInclude. Verify /ADD_SDK=1 parameter worked."
+              Write-Error "VLC SDK include directory was not found in the extracted archive."
           }
         shell: powershell
 
