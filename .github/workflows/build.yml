@@ -146,7 +146,15 @@ jobs:
               exit 1
           }
           Write-Output "Found gcc at: $gccDir"
-          & "$gccDir\gcc.exe" -v 2>&1 | Select-Object -First 20 | ForEach-Object { Write-Output $_ }
+          # `gcc -v` writes to stderr; merging it into the success stream produces
+          # ErrorRecord objects that PowerShell treats as terminating with the default
+          # $ErrorActionPreference on recent runners. Capture as plain strings instead.
+          try {
+              $gccInfo = & cmd.exe /c "`"$gccDir\gcc.exe`" -v 2>&1" 2>$null
+              $gccInfo | Select-Object -First 20 | ForEach-Object { Write-Output $_ }
+          } catch {
+              Write-Output "(failed to capture 'gcc -v' diagnostic output; continuing)"
+          }
           Add-Content -Path $env:GITHUB_PATH -Value $gccDir
           Add-Content -Path $env:GITHUB_ENV -Value "CC=$gccDir\gcc.exe"
           Add-Content -Path $env:GITHUB_ENV -Value "CXX=$gccDir\g++.exe"
