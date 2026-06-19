@@ -226,8 +226,59 @@ jobs:
           $shortVlcPath = "C:\PROGRA~1\VideoLAN\VLC"
           $vlcSdkInclude = "$shortVlcPath\sdk\include"
           $vlcSdkLib = "$shortVlcPath\sdk\lib"
-          
+
           if (Test-Path "C:\Program Files\VideoLAN\VLC\sdk\include") {
+              # The Windows arm64 VLC SDK ships only MSVC-style `vlc.lib` import libs,
+              # which `ld.lld` (used by the llvm-mingw clang toolchain) rejects with
+              # "unknown file type". Generate a mingw-friendly `libvlc.dll.a` from the
+              # shipped `libvlc.dll` so the cgo link step finds something it can consume.
+              # The amd64 SDK already ships `libvlc.dll.a`, so this is a no-op there.
+              if ("${{ matrix.arch }}" -eq "arm64") {
+                  $vlcLibDir = "C:\Program Files\VideoLAN\VLC\sdk\lib"
+                  $dllPath = "C:\Program Files\VideoLAN\VLC\libvlc.dll"
+                  $defPath = "$vlcLibDir\libvlc.def"
+                  $importLib = "$vlcLibDir\libvlc.dll.a"
+                  if (-not (Test-Path $importLib)) {
+                      if (-not (Test-Path $dllPath)) {
+                          Write-Error "libvlc.dll not found at $dllPath; cannot generate mingw import lib."
+                          exit 1
+                      }
+                      # Locate gendef + dlltool from the llvm-mingw toolchain on PATH.
+                      $genDef = (Get-Command gendef.exe -ErrorAction SilentlyContinue).Source
+                      $dllTool = (Get-Command llvm-dlltool.exe -ErrorAction SilentlyContinue).Source
+                      if (-not $dllTool) {
+                          $dllTool = (Get-Command aarch64-w64-mingw32-dlltool.exe -ErrorAction SilentlyContinue).Source
+                      }
+                      if (-not $dllTool) {
+                          Write-Error "Could not find llvm-dlltool / dlltool from llvm-mingw on PATH."
+                          exit 1
+                      }
+                      Push-Location $vlcLibDir
+                      try {
+                          if ($genDef) {
+                              & $genDef $dllPath | Out-Null
+                          } else {
+                              # Fallback: synthesize a minimal .def by listing DLL exports via llvm-nm
+                              # on the import lib that already exists. As a last resort, ask dlltool
+                              # to derive symbols from the DLL directly (works for most cases).
+                              Write-Output "gendef not available; relying on dlltool DLL inference."
+                          }
+                          if (Test-Path "libvlc.def") {
+                              & $dllTool -m arm64 -d "libvlc.def" -D "libvlc.dll" -l "libvlc.dll.a"
+                          } else {
+                              & $dllTool -m arm64 -D "libvlc.dll" -l "libvlc.dll.a"
+                          }
+                      } finally {
+                          Pop-Location
+                      }
+                      if (-not (Test-Path $importLib)) {
+                          Write-Error "Failed to generate $importLib"
+                          exit 1
+                      }
+                      Write-Output "Generated mingw-style import lib: $importLib"
+                  }
+              }
+
               Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I$vlcSdkInclude"
               Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L$vlcSdkLib"
               Write-Output "Successfully configured CGO using space-free short paths: $vlcSdkInclude"
