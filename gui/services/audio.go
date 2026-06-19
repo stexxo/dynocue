@@ -190,8 +190,8 @@ func (a *AudioService) ReplaceAudioFileWithDialog(fileId string) bool {
 	return a.ReplaceAudioFile(fileId, res)
 }
 
-func (a *AudioService) GetAudioOutputDevices() ([]api.AudioOutputDevice, bool) {
-	var out []api.AudioOutputDevice
+func (a *AudioService) GetAudioOutputDevices() ([]types.AudioDevice, bool) {
+	var out []types.AudioDevice
 	err := a.clientManager.WithClient(func(c *client.Client) error {
 		devices, err := c.GetAudioOutputDevices()
 		if err != nil {
@@ -207,4 +207,93 @@ func (a *AudioService) GetAudioOutputDevices() ([]api.AudioOutputDevice, bool) {
 	}
 
 	return out, true
+}
+
+func (a *AudioService) CreateAudioOutputWithDeviceName(number uint, label string, audioDeviceName string) (uint, bool) {
+	var out uint
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		n, err := c.CreateAudioOutputWithDeviceName(number, label, audioDeviceName)
+		if err != nil {
+			return err
+		}
+		out = n
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to create audio output", "err", err, "label", label, "deviceName", audioDeviceName)
+		return 0, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) CreateAudioOutputWithSystemDefault(number uint, label string) (uint, bool) {
+	var out uint
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		n, err := c.CreateAudioOutputWithSystemDefault(number, label)
+		if err != nil {
+			return err
+		}
+		out = n
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to create audio output with system default", "err", err, "label", label)
+		return 0, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) GetAudioOutput(outputId string) (*types.AudioOutput, bool) {
+	var out *types.AudioOutput
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		o, err := c.GetAudioOutput(outputId)
+		if err != nil {
+			return err
+		}
+		out = o
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to get audio output", "err", err, "outputId", outputId)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) EnumerateAudioOutputs() ([]types.AudioOutput, bool) {
+	var out []types.AudioOutput
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		outputs, err := c.EnumerateAudioOutputs()
+		if err != nil {
+			return err
+		}
+		out = outputs
+		return nil
+	})
+
+	if err != nil {
+		a.logger.Error("failed to enumerate audio outputs", "err", err)
+		return nil, false
+	}
+
+	return out, true
+}
+
+func (a *AudioService) DeleteAudioOutput(outputId string) bool {
+	err := a.clientManager.WithClient(func(c *client.Client) error {
+		return c.DeleteAudioOutput(outputId)
+	})
+
+	if err != nil {
+		a.logger.Error("failed to delete audio output", "err", err, "outputId", outputId)
+		return false
+	}
+
+	return true
 }

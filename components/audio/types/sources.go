@@ -21,4 +21,5 @@ type AudioSource struct {
 	Number   uint   `msgpack:"number" json:"number"`
 	FileId   string `msgpack:"fileId" json:"fileId"`
 	Label    string `msgpack:"sourceLabel" json:"sourceLabel"`
+	OutputId string `msgpack:"outputId" json:"outputId"`
 }

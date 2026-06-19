@@ -10,9 +10,11 @@ const (
 	ResourceFile   = "file"
 	ResourceSource = "source"
 	ResourceModel  = "model"
+	ResourceOutput = "output"
 
 	MetadataFileId   = "FileId"
 	MetadataSourceId = "SourceId"
+	MetadataOutputId = "OutputId"
 
 	OperationLoaded     = "loaded"
 	OperationCreated    = "created"

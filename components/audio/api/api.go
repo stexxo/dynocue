@@ -32,6 +32,7 @@ func NewAudioAPI(m *model.AudioModel, persistence *system.PersistenceManager, me
 	err := errors.Join(
 		a.registerFileApis(),
 		a.registerPersistenceApis(),
+		a.registerOutputDevicesApis(),
 	)
 	if err != nil {
 		return nil, err

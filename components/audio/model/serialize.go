@@ -38,19 +38,6 @@ var tableRestore = map[string]tableRestorer{
 	},
 }
 
-func (m *AudioModel) RestoreTable(name string, data io.Reader) error {
-	fn, ok := tableRestore[name]
-	if !ok {
-		return errors.New("table not found")
-	}
-
-	err := fn(m.persistent, data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (m *AudioModel) LoadModel(fn func(name string) (io.Reader, error)) error {
 	// Clear the Table
 	m.dbMu.Lock()

@@ -9,6 +9,7 @@ import "github.com/hashicorp/go-memdb"
 const (
 	TableSources = "sources"
 	TableFiles   = "files"
+	TableDevices = "devices"
 
 	IndexId     = "id"
 	IndexFileId = "file_id"
@@ -39,6 +40,21 @@ var persistentSchema = &memdb.DBSchema{
 					Name:    IndexId,
 					Unique:  true,
 					Indexer: &memdb.StringFieldIndex{Field: "FileId"},
+				},
+				IndexNumber: {
+					Name:    IndexNumber,
+					Unique:  true,
+					Indexer: &memdb.UintFieldIndex{Field: "Number"},
+				},
+			},
+		},
+		TableDevices: {
+			Name: TableDevices,
+			Indexes: map[string]*memdb.IndexSchema{
+				IndexId: {
+					Name:    IndexId,
+					Unique:  true,
+					Indexer: &memdb.StringFieldIndex{Field: "DeviceId"},
 				},
 				IndexNumber: {
 					Name:    IndexNumber,
