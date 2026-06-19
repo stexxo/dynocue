@@ -110,54 +110,60 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-choco-ffmpeg-
 
-      - name: Locate arm64 C toolchain (Windows arm64)
+      - name: Cache llvm-mingw aarch64 toolchain (Windows arm64)
+        if: matrix.osName == 'windows' && matrix.arch == 'arm64'
+        id: cache-llvm-mingw
+        uses: actions/cache@v5
+        with:
+          path: C:\llvm-mingw
+          key: ${{ runner.os }}-llvm-mingw-aarch64-20260616
+
+      - name: Setup arm64 C toolchain (Windows arm64)
         if: matrix.osName == 'windows' && matrix.arch == 'arm64'
         shell: powershell
         run: |
-          # The `windows-11-vs2026-arm` runner ships gcc 14.2.0 + GNU Binutils 2.44
-          # (per the image readme), but the MSYS2/MinGW bin directory is NOT on PATH
-          # by default. cgo therefore can't invoke any C compiler and fails with
-          # "could not import C (no metadata for C)".
+          # The preinstalled `gcc` on the windows-11-vs2026-arm runner (C:\mingw64\bin) is an
+          # x86_64-targeting mingw build — it cannot assemble cgo's `gcc_arm64.S` (errors:
+          # "no such instruction: stp x29,x30"). The runner also ships LLVM 20.1.6, but it
+          # lacks a mingw-w64 aarch64 sysroot, so clang can't find `stdlib.h` / `windows.h`.
           #
-          # Search the well-known MSYS2 install locations for a native aarch64 gcc
-          # (preferring `clangarm64` / `mingw64` style layouts) and prepend its bin
-          # directory to PATH. Also export CC/CXX so cgo uses an unambiguous compiler.
-          $candidates = @(
-              "C:\msys64\clangarm64\bin",
-              "C:\msys64\mingw64\bin",
-              "C:\msys64\ucrt64\bin",
-              "C:\ProgramData\chocolatey\bin",
-              "C:\mingw64\bin"
-          )
-          $gccDir = $null
-          foreach ($dir in $candidates) {
-              if (Test-Path (Join-Path $dir "gcc.exe")) {
-                  $gccDir = $dir
-                  break
-              }
+          # `mstorsjo/llvm-mingw` is a self-contained clang + mingw-w64 (UCRT) toolchain
+          # with a native aarch64 sysroot — the proven combination for cgo on Windows arm64.
+          # Cached across runs to avoid the ~150MB download every build.
+          $llvmMingwVersion = "20260616"
+          $installRoot = "C:\llvm-mingw"
+          $toolchainDir = $null
+          if (Test-Path $installRoot) {
+              $toolchainDir = Get-ChildItem -Path $installRoot -Directory -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
           }
-          if (-not $gccDir) {
-              Write-Output "gcc not found in well-known locations; falling back to a recursive search under C:\msys64 and C:\..."
-              $found = Get-ChildItem -Path "C:\msys64","C:\" -Filter "gcc.exe" -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1
-              if ($found) { $gccDir = $found.DirectoryName }
+          if (-not $toolchainDir -or -not (Test-Path (Join-Path $toolchainDir "bin\clang.exe"))) {
+              $zipName = "llvm-mingw-$llvmMingwVersion-ucrt-aarch64.zip"
+              $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$llvmMingwVersion/$zipName"
+              $zipPath = "$env:TEMP\$zipName"
+              Write-Output "Downloading $url ..."
+              curl.exe -sSL $url -o $zipPath
+              if (!(Test-Path $installRoot)) { mkdir $installRoot -Force | Out-Null }
+              Write-Output "Extracting llvm-mingw to $installRoot ..."
+              7z.exe x $zipPath -o"$installRoot" -y | Out-Null
+              Remove-Item $zipPath -Force
+              $toolchainDir = Get-ChildItem -Path $installRoot -Directory | Select-Object -First 1 -ExpandProperty FullName
+          } else {
+              Write-Output "llvm-mingw restored from cache at $toolchainDir"
           }
-          if (-not $gccDir) {
-              Write-Error "Could not locate gcc on the runner. cgo will fail."
+          $binDir = Join-Path $toolchainDir "bin"
+          if (!(Test-Path "$binDir\clang.exe")) {
+              Write-Error "llvm-mingw clang not found at $binDir"
               exit 1
           }
-          Write-Output "Found gcc at: $gccDir"
-          # `gcc -v` writes to stderr; merging it into the success stream produces
-          # ErrorRecord objects that PowerShell treats as terminating with the default
-          # $ErrorActionPreference on recent runners. Capture as plain strings instead.
-          try {
-              $gccInfo = & cmd.exe /c "`"$gccDir\gcc.exe`" -v 2>&1" 2>$null
-              $gccInfo | Select-Object -First 20 | ForEach-Object { Write-Output $_ }
-          } catch {
-              Write-Output "(failed to capture 'gcc -v' diagnostic output; continuing)"
-          }
-          Add-Content -Path $env:GITHUB_PATH -Value $gccDir
-          Add-Content -Path $env:GITHUB_ENV -Value "CC=$gccDir\gcc.exe"
-          Add-Content -Path $env:GITHUB_ENV -Value "CXX=$gccDir\g++.exe"
+          # Prepend so its clang/ld/as win over the preinstalled x86_64 mingw gcc.
+          Add-Content -Path $env:GITHUB_PATH -Value $binDir
+          # The aarch64-targeted wrappers shipped by llvm-mingw already know the sysroot.
+          Add-Content -Path $env:GITHUB_ENV -Value "CC=aarch64-w64-mingw32-clang"
+          Add-Content -Path $env:GITHUB_ENV -Value "CXX=aarch64-w64-mingw32-clang++"
+          # Ensure cgo is enabled for the Windows arm64 build (Taskfile defaults to 1, but
+          # set it explicitly here so it can't be silently disabled by the environment).
+          Add-Content -Path $env:GITHUB_ENV -Value "CGO_ENABLED=1"
+          Write-Output "Configured llvm-mingw aarch64 toolchain at $binDir"
 
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
