@@ -203,6 +203,18 @@ jobs:
         run: |
           # Drop preinstalled third-party taps we don't use so `brew update` / `brew install`
           # don't spend time on them or print "skipping ... not trusted" warnings.
+          # Some taps have preinstalled formulae/casks (e.g. hashicorp/tap → packer,
+          # azure/bicep → bicep) that block `brew untap`; uninstall them first.
+          # We don't use any of these in the build.
+          unwanted_formulae=(packer bicep vagrant)
+          for f in "${unwanted_formulae[@]}"; do
+            if brew list --formula --versions "$f" >/dev/null 2>&1; then
+              brew uninstall --ignore-dependencies --force "$f" || true
+            fi
+            if brew list --cask --versions "$f" >/dev/null 2>&1; then
+              brew uninstall --cask --force "$f" || true
+            fi
+          done
           for tap in aws/tap azure/bicep hashicorp/tap; do
             if brew tap | grep -qx "$tap"; then
               brew untap "$tap" || true
