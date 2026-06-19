@@ -46,21 +46,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Prepare APT cache dir
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          # actions/cache runs `tar` as the runner user during post-job save.
+          # /var/cache/apt/archives contains root-owned subdirs (`partial/`, `lock`)
+          # that the runner can't read, causing the cache save to fail.
+          # Use a user-owned directory and tell apt to download .deb files there.
+          mkdir -p "$HOME/apt-cache/archives/partial"
+          sudo tee /etc/apt/apt.conf.d/99cache-dir >/dev/null <<EOF
+          Dir::Cache "$HOME/apt-cache";
+          Dir::Cache::archives "$HOME/apt-cache/archives";
+          EOF
+
       - name: Cache Linux dependencies
         if: startsWith(matrix.os, 'ubuntu')
         id: cache-apt
         uses: actions/cache@v5
         with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/build.yml') }}
+          path: ~/apt-cache/archives
+          key: ${{ runner.os }}-${{ matrix.arch }}-apt-${{ hashFiles('.github/workflows/build.yml') }}
           restore-keys: |
-            ${{ runner.os }}-apt-
+            ${{ runner.os }}-${{ matrix.arch }}-apt-
 
       - name: Install Linux dependencies
         if: startsWith(matrix.os, 'ubuntu')
         run: |
+          # Keep downloaded .debs in the user-owned cache for reuse on subsequent runs.
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev vlc libvlc-dev ffmpeg
+          sudo apt-get -o Dir::Cache="$HOME/apt-cache" -o Dir::Cache::archives="$HOME/apt-cache/archives" \
+            install -y --no-install-recommends \
+            libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev vlc libvlc-dev ffmpeg
+          # Ensure the runner user owns everything that ended up in the cache dir.
+          sudo chown -R "$USER" "$HOME/apt-cache"
 
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
