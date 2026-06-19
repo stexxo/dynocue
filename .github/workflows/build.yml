@@ -30,7 +30,7 @@ jobs:
           - os: windows-2025-vs2026
             arch: amd64
             osName: windows
-          - os: windows-11-arm
+          - os: windows-11-vs2026-arm
             arch: arm64
             osName: windows
           - os: macos-26
@@ -109,26 +109,6 @@ jobs:
           key: ${{ runner.os }}-choco-ffmpeg-${{ hashFiles('.github/workflows/build.yml') }}
           restore-keys: |
             ${{ runner.os }}-choco-ffmpeg-
-
-      - name: Setup arm64 C toolchain (Windows arm64)
-        if: matrix.osName == 'windows' && matrix.arch == 'arm64'
-        shell: powershell
-        run: |
-          # The default `gcc` on the windows-11-arm runner is an x86_64-targeting mingw build,
-          # which fails to assemble cgo's `gcc_arm64.S` (errors like "no such instruction: stp x29,x30").
-          # Install LLVM/clang via Chocolatey — clang is a multi-target compiler and can produce
-          # native arm64 Windows objects via `--target=aarch64-w64-mingw32`.
-          choco install llvm -y --no-progress
-          $llvmBin = "C:\Program Files\LLVM\bin"
-          if (Test-Path "$llvmBin\clang.exe") {
-              Add-Content -Path $env:GITHUB_PATH -Value $llvmBin
-              # Tell cgo to use clang targeting aarch64 Windows for both compile and link.
-              Add-Content -Path $env:GITHUB_ENV -Value "CC=clang --target=aarch64-w64-mingw32"
-              Add-Content -Path $env:GITHUB_ENV -Value "CXX=clang++ --target=aarch64-w64-mingw32"
-              Write-Output "Configured clang as arm64 C toolchain for cgo."
-          } else {
-              Write-Error "LLVM clang not found after install."
-          }
 
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
