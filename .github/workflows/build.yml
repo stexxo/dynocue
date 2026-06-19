@@ -30,6 +30,9 @@ jobs:
           - os: windows-2025-vs2026
             arch: amd64
             osName: windows
+          - os: windows-11-arm
+            arch: arm64
+            osName: windows
           - os: macos-26
             arch: arm64
             osName: mac
@@ -89,7 +92,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: C:\Program Files\VideoLAN\VLC
-          key: ${{ runner.os }}-vlc-${{ env.VLC_WIN_VERSION }}
+          # Include arch in the key: amd64 uses the win64 bundle, arm64 uses the
+          # native winarm64 bundle (available from VLC 3.0.22+).
+          key: ${{ runner.os }}-${{ matrix.arch }}-vlc-${{ env.VLC_WIN_VERSION }}
 
       - name: Cache Windows Chocolatey ffmpeg
         if: matrix.osName == 'windows'
@@ -122,14 +127,23 @@ jobs:
               Add-Content -Path $env:GITHUB_PATH -Value $ffmpegBin
           }
           
-          # 3. Download + extract the VLC Win64 + SDK bundle (skipped on cache hit)
+          # 3. Download + extract the VLC + SDK bundle (skipped on cache hit).
+          # VLC 3.0.22+ ships a native Windows arm64 build under the `winarm64/` path;
+          # amd64 still uses the long-standing `win64/` bundle.
           $vlcTargetDir = "C:\Program Files\VideoLAN\VLC"
-          if ("${{ steps.cache-vlc-win.outputs.cache-hit }}" -eq "true" -and (Test-Path "$vlcTargetDir\vlc.exe")) {
-              Write-Output "VLC ${{ env.VLC_WIN_VERSION }} restored from cache at $vlcTargetDir"
+          if ("${{ matrix.arch }}" -eq "arm64") {
+              $vlcFlavor = "winarm64"
+              $vlcSubdir = "winarm64"
           } else {
-              Write-Output "Downloading VLC ${{ env.VLC_WIN_VERSION }} with SDK..."
-              $vlcZip = "$env:TEMP\vlc-${{ env.VLC_WIN_VERSION }}-win64.7z"
-              $downloadUrl = "https://download.videolan.org/pub/videolan/vlc/${{ env.VLC_WIN_VERSION }}/win64/vlc-${{ env.VLC_WIN_VERSION }}-win64.7z"
+              $vlcFlavor = "win64"
+              $vlcSubdir = "win64"
+          }
+          if ("${{ steps.cache-vlc-win.outputs.cache-hit }}" -eq "true" -and (Test-Path "$vlcTargetDir\vlc.exe")) {
+              Write-Output "VLC ${{ env.VLC_WIN_VERSION }} ($vlcFlavor) restored from cache at $vlcTargetDir"
+          } else {
+              Write-Output "Downloading VLC ${{ env.VLC_WIN_VERSION }} ($vlcFlavor) with SDK..."
+              $vlcZip = "$env:TEMP\vlc-${{ env.VLC_WIN_VERSION }}-$vlcFlavor.7z"
+              $downloadUrl = "https://download.videolan.org/pub/videolan/vlc/${{ env.VLC_WIN_VERSION }}/$vlcSubdir/vlc-${{ env.VLC_WIN_VERSION }}-$vlcFlavor.7z"
           
               curl.exe -sSL $downloadUrl -o $vlcZip
           
@@ -139,9 +153,11 @@ jobs:
               7z.exe x $vlcZip -o"$baseDir" -y | Out-Null
               Remove-Item $vlcZip -Force
           
-              if (Test-Path "$baseDir\vlc-${{ env.VLC_WIN_VERSION }}") {
+              # The archive extracts to `vlc-<version>` for both flavors.
+              $extractedDir = "$baseDir\vlc-${{ env.VLC_WIN_VERSION }}"
+              if (Test-Path $extractedDir) {
                   if (Test-Path $vlcTargetDir) { Remove-Item $vlcTargetDir -Recurse -Force }
-                  Rename-Item -Path "$baseDir\vlc-${{ env.VLC_WIN_VERSION }}" -NewName "VLC"
+                  Rename-Item -Path $extractedDir -NewName "VLC"
               }
           }
           
