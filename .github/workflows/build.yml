@@ -110,6 +110,47 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-choco-ffmpeg-
 
+      - name: Locate arm64 C toolchain (Windows arm64)
+        if: matrix.osName == 'windows' && matrix.arch == 'arm64'
+        shell: powershell
+        run: |
+          # The `windows-11-vs2026-arm` runner ships gcc 14.2.0 + GNU Binutils 2.44
+          # (per the image readme), but the MSYS2/MinGW bin directory is NOT on PATH
+          # by default. cgo therefore can't invoke any C compiler and fails with
+          # "could not import C (no metadata for C)".
+          #
+          # Search the well-known MSYS2 install locations for a native aarch64 gcc
+          # (preferring `clangarm64` / `mingw64` style layouts) and prepend its bin
+          # directory to PATH. Also export CC/CXX so cgo uses an unambiguous compiler.
+          $candidates = @(
+              "C:\msys64\clangarm64\bin",
+              "C:\msys64\mingw64\bin",
+              "C:\msys64\ucrt64\bin",
+              "C:\ProgramData\chocolatey\bin",
+              "C:\mingw64\bin"
+          )
+          $gccDir = $null
+          foreach ($dir in $candidates) {
+              if (Test-Path (Join-Path $dir "gcc.exe")) {
+                  $gccDir = $dir
+                  break
+              }
+          }
+          if (-not $gccDir) {
+              Write-Output "gcc not found in well-known locations; falling back to a recursive search under C:\msys64 and C:\..."
+              $found = Get-ChildItem -Path "C:\msys64","C:\" -Filter "gcc.exe" -Recurse -ErrorAction SilentlyContinue -Force | Select-Object -First 1
+              if ($found) { $gccDir = $found.DirectoryName }
+          }
+          if (-not $gccDir) {
+              Write-Error "Could not locate gcc on the runner. cgo will fail."
+              exit 1
+          }
+          Write-Output "Found gcc at: $gccDir"
+          & "$gccDir\gcc.exe" -v 2>&1 | Select-Object -First 20 | ForEach-Object { Write-Output $_ }
+          Add-Content -Path $env:GITHUB_PATH -Value $gccDir
+          Add-Content -Path $env:GITHUB_ENV -Value "CC=$gccDir\gcc.exe"
+          Add-Content -Path $env:GITHUB_ENV -Value "CXX=$gccDir\g++.exe"
+
       - name: Install Windows dependencies (VLC & FFmpeg)
         if: matrix.osName == 'windows'
         run: |
