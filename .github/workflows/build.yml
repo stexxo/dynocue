@@ -38,14 +38,18 @@ jobs:
             osName: mac
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      # Pinned versions of Go-based CLI tools. Bumping a version invalidates the Go binaries
+      # cache (see the `Cache Go Binaries` step) and triggers a fresh `go install`.
+      TASK_VERSION: v3.51.1
+      WAILS_VERSION: v3.0.0-alpha2.104
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache Linux dependencies
         if: startsWith(matrix.os, 'ubuntu')
         id: cache-apt
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /var/cache/apt/archives
           key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/build.yml') }}
@@ -147,7 +151,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.26'
           cache: true
@@ -155,15 +159,21 @@ jobs:
 
       - name: Cache Go Binaries
         id: cache-go-bin
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
+          # Cache both POSIX and Windows GOBIN locations so the cache works on every runner.
+          # On Linux/macOS Go installs to ~/go/bin; on Windows runners it lands in %USERPROFILE%\go\bin.
+          path: |
+            ~/go/bin
+            ~\go\bin
+          # Bump the version segment (v2) whenever the list of installed tools or their pinned
+          # versions changes so the cache is invalidated intentionally.
+          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-v2-task-${{ env.TASK_VERSION }}-wails-${{ env.WAILS_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
+            ${{ runner.os }}-${{ matrix.arch }}-go-tools-v2-
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: 'yarn'
@@ -174,18 +184,26 @@ jobs:
 
       - name: Install Task
         if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: go install github.com/go-task/task/v3/cmd/task@latest
+        run: go install github.com/go-task/task/v3/cmd/task@${{ env.TASK_VERSION }}
 
       - name: Install Wails v3 CLI
         if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+
+      - name: Add Go bin to PATH
+        shell: bash
+        run: |
+          # `setup-go` adds GOPATH/bin to PATH only on first install; ensure it's present on
+          # cache hits too, on every OS. `go env GOPATH` is portable across Linux/macOS/Windows.
+          GOBIN="$(go env GOPATH)/bin"
+          echo "$GOBIN" >> "$GITHUB_PATH"
 
       - name: Build Application
         run: task build ARCH=${{ matrix.arch }}
 
       - name: Upload Artifacts
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.osName }}-${{ matrix.arch }}
           path: out/bin/
