@@ -194,7 +194,21 @@ jobs:
 
       - name: Install macOS dependencies (VLC & FFmpeg)
         if: matrix.osName == 'mac'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          # Silence the "untrusted tap" warnings/skips emitted by recent Homebrew versions
+          # for preinstalled third-party taps on the GitHub macOS runner images
+          # (aws/tap, azure/bicep, hashicorp/tap). We don't use any of them.
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: 1
         run: |
+          # Drop preinstalled third-party taps we don't use so `brew update` / `brew install`
+          # don't spend time on them or print "skipping ... not trusted" warnings.
+          for tap in aws/tap azure/bicep hashicorp/tap; do
+            if brew tap | grep -qx "$tap"; then
+              brew untap "$tap" || true
+            fi
+          done
+
           brew update
           # Install ffmpeg, vlc, and pkg-config
           brew install ffmpeg vlc pkg-config
@@ -223,8 +237,6 @@ jobs:
           fi
           echo "DYLD_LIBRARY_PATH=$VLC_LIB_PATH:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
 
       - name: Setup Go
         uses: actions/setup-go@v6
