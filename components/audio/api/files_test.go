@@ -164,7 +164,8 @@ func TestReplaceAudioFile(t *testing.T) {
 
 		ctx := context.Background()
 		tempKey := "temp/new-file.wav"
-		_, err = tempOS.Put(ctx, jetstream.ObjectMeta{Name: tempKey}, bytes.NewReader([]byte("new data")))
+		audioData := testWAVData()
+		_, err = tempOS.Put(ctx, jetstream.ObjectMeta{Name: tempKey}, bytes.NewReader(audioData))
 		require.NoError(t, err)
 
 		req := &ReplaceAudioFileRequest{
@@ -180,7 +181,7 @@ func TestReplaceAudioFile(t *testing.T) {
 		res, err := os.Get(ctx, "audio/files/test-file-id")
 		assert.NoError(t, err)
 		data, _ := io.ReadAll(res)
-		assert.Equal(t, []byte("new data"), data)
+		assert.Equal(t, audioData, data)
 
 		// Verify temp file is deleted
 		_, err = tempOS.Get(ctx, tempKey)
@@ -281,9 +282,12 @@ func TestUpdateAudioFileAttributes(t *testing.T) {
 }
 
 func TestDeleteAudioFile(t *testing.T) {
-	am, api, _, _, _ := setup(t)
+	am, api, os, _, _ := setup(t)
 
-	_, _ = am.AddFile("id1", "key1", "", 0)
+	_, err := am.AddFile("id1", "key1", "", 0)
+	require.NoError(t, err)
+	_, err = os.Put(context.Background(), jetstream.ObjectMeta{Name: "audio/key1"}, bytes.NewReader([]byte("audio data")))
+	require.NoError(t, err)
 
 	resp, err := api.DeleteAudioFile("sub", &DeleteAudioFileRequest{FileId: "id1"})
 	assert.NoError(t, err)

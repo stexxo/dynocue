@@ -126,13 +126,14 @@ func (a *AudioAPI) ReplaceAudioFile(sub string, req *ReplaceAudioFileRequest) (*
 	}
 
 	fullObjectKey := a.persistence.GetFullObjectKey(f.Key)
-	err = a.persistence.ObjectStore().GetFile(context.Background(), fullObjectKey, path.Join(temp, f.Key))
+	tempFile := path.Join(temp, path.Base(f.Key))
+	err = a.persistence.ObjectStore().GetFile(context.Background(), fullObjectKey, tempFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve file from object store: %w", err)
 	}
-	defer os.Remove(path.Join(temp, f.Key))
+	defer os.Remove(tempFile)
 
-	info, err := probe.ProbeFile(path.Join(temp, f.Key))
+	info, err := probe.ProbeFile(tempFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to probe file: %w", err)
 	}
