@@ -22,18 +22,18 @@ concurrency:
 
 jobs:
   build:
-    name: Build (${{ matrix.os }})
+    name: Build (${{ matrix.os }} ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-24.04
-          - ubuntu-24.04-arm
-          - windows-2025-vs2026
-          - windows-11-arm
-          - macos-26
-          - macos-26-intel
+        include:
+          - { os: ubuntu-24.04, arch: amd64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+          - { os: windows-2025-vs2026, arch: amd64 }
+          - { os: windows-11-arm, arch: arm64 }
+          - { os: macos-26, arch: arm64 }
+          - { os: macos-26, arch: amd64 }
     steps:
       - uses: actions/checkout@v7
         with:
@@ -57,13 +57,13 @@ jobs:
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
-          HOMEBREW_NO_INSTALL_CLEANUP: 1
         run: |
-          brew install --cask vlc
-          echo "CGO_CFLAGS=-I/Applications/VLC.app/Contents/MacOS/include" >> "$GITHUB_ENV"
-          echo "CGO_LDFLAGS=-L/Applications/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
+          flavor=$([ "${{ matrix.arch }}" = amd64 ] && echo intel64 || echo arm64)
+          file=$(curl -fsSL https://download.videolan.org/pub/videolan/vlc/last/macosx/ | grep -o "vlc-[0-9.]*-$flavor\.dmg" | head -1)
+          curl -fsSL --retry 5 --speed-limit 1000000 --speed-time 20 "https://get.videolan.org/vlc/last/macosx/$file" -o "$RUNNER_TEMP/vlc.dmg"
+          hdiutil attach "$RUNNER_TEMP/vlc.dmg" -mountpoint /Volumes/VLC -nobrowse -readonly -noverify -noautofsck -quiet
+          echo "CGO_CFLAGS=-I/Volumes/VLC/VLC.app/Contents/MacOS/include" >> "$GITHUB_ENV"
+          echo "CGO_LDFLAGS=-L/Volumes/VLC/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
 
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
@@ -73,9 +73,8 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
           $dir = if ($env:RUNNER_ARCH -eq 'ARM64') { 'winarm64' } else { 'win64' }
-          $base = "https://download.videolan.org/pub/videolan/vlc/last/$dir"
-          $file = [regex]::Match((Invoke-WebRequest "$base/").Content, "vlc-[\d.]+-$dir\.7z").Value
-          curl.exe -fsSL --retry 3 "$base/$file" -o vlc.7z
+          $file = [regex]::Match((Invoke-WebRequest "https://download.videolan.org/pub/videolan/vlc/last/$dir/").Content, "vlc-[\d.]+-$dir\.7z").Value
+          curl.exe -fsSL --retry 5 --speed-limit 1000000 --speed-time 20 "https://get.videolan.org/vlc/last/$dir/$file" -o vlc.7z
           7z x vlc.7z -o"$env:RUNNER_TEMP" -y | Out-Null
           $vlc = (Get-Item "$env:RUNNER_TEMP\vlc-*").FullName
 
@@ -109,10 +108,10 @@ jobs:
           go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
 
       - name: Build
-        run: task build
+        run: task build ARCH=${{ matrix.arch }}
 
       - uses: actions/upload-artifact@v7
         with:
-          name: dynocue-${{ runner.os }}-${{ runner.arch }}
+          name: dynocue-${{ runner.os }}-${{ matrix.arch }}
           path: out/bin/
           if-no-files-found: error
