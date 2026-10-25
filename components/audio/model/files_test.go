@@ -17,15 +17,15 @@ func TestAddFileNumbering(t *testing.T) {
 		m, err := NewAudioModel()
 		require.NoError(t, err)
 
-		number, err := m.AddFile("id1", "key1", 0)
+		number, err := m.AddFile("id1", "key1", "", 0)
 		require.NoError(t, err)
 		assert.Equal(t, uint(1), number)
 
-		number, err = m.AddFile("id2", "key2", 10)
+		number, err = m.AddFile("id2", "key2", "", 10)
 		require.NoError(t, err)
 		assert.Equal(t, uint(10), number)
 
-		number, err = m.AddFile("id3", "key3", 0)
+		number, err = m.AddFile("id3", "key3", "", 0)
 		require.NoError(t, err)
 		assert.Equal(t, uint(11), number)
 
@@ -42,10 +42,10 @@ func TestAddFileNumbering(t *testing.T) {
 		m, err := NewAudioModel()
 		require.NoError(t, err)
 
-		_, err = m.AddFile("id1", "key1", 7)
+		_, err = m.AddFile("id1", "key1", "", 7)
 		require.NoError(t, err)
 
-		_, err = m.AddFile("id2", "key2", 7)
+		_, err = m.AddFile("id2", "key2", "", 7)
 		assert.True(t, errors.Is(err, ErrNumberExists))
 	})
 
@@ -53,11 +53,11 @@ func TestAddFileNumbering(t *testing.T) {
 		m, err := NewAudioModel()
 		require.NoError(t, err)
 
-		_, err = m.AddFile("id5", "key5", 5)
+		_, err = m.AddFile("id5", "key5", "", 5)
 		require.NoError(t, err)
-		_, err = m.AddFile("id1", "key1", 1)
+		_, err = m.AddFile("id1", "key1", "", 1)
 		require.NoError(t, err)
-		_, err = m.AddFile("id3", "key3", 3)
+		_, err = m.AddFile("id3", "key3", "", 3)
 		require.NoError(t, err)
 
 		files, err := m.EnumerateFiles()

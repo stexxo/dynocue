@@ -43,11 +43,11 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       # Pinned versions of Go-based CLI tools. Bumping a version invalidates the Go binaries
       # cache (see the `Cache Go Binaries` step) and triggers a fresh `go install`.
-      TASK_VERSION: v3.51.1
-      WAILS_VERSION: v3.0.0-alpha2.104
+      TASK_VERSION: v3.54.0
+      WAILS_VERSION: v3.0.0-beta.34
       # Pinned VLC version for Windows. Bumping this invalidates the Windows VLC cache
       # and forces a fresh download + extract.
-      VLC_WIN_VERSION: 3.0.23
+      VLC_WIN_VERSION: 3.0.24
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

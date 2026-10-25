@@ -185,7 +185,7 @@ func Reply[Req any, Resp any](m *Messenger, structValidation bool, subject strin
 			if err != nil {
 				m.logger.Error("failed to validate message body", "subject", subject, "error", err)
 				resp.Success = false
-				resp.Error = "Request body in is invalid."
+				resp.Error = "Request body is invalid."
 				return
 			}
 		}

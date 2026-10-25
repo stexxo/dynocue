@@ -7,6 +7,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"testing"
@@ -66,13 +67,35 @@ func setup(t *testing.T) (*model.AudioModel, *AudioAPI, jetstream.ObjectStore, j
 	return am, api, os, tempOS, messenger
 }
 
+func testWAVData() []byte {
+	const sampleRate = 8000
+	data := make([]byte, 44+sampleRate)
+	copy(data[0:4], "RIFF")
+	binary.LittleEndian.PutUint32(data[4:8], uint32(len(data)-8))
+	copy(data[8:16], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(data[16:20], 16)
+	binary.LittleEndian.PutUint16(data[20:22], 1)
+	binary.LittleEndian.PutUint16(data[22:24], 1)
+	binary.LittleEndian.PutUint32(data[24:28], sampleRate)
+	binary.LittleEndian.PutUint32(data[28:32], sampleRate)
+	binary.LittleEndian.PutUint16(data[32:34], 1)
+	binary.LittleEndian.PutUint16(data[34:36], 8)
+	copy(data[36:40], "data")
+	binary.LittleEndian.PutUint32(data[40:44], sampleRate)
+	for i := 44; i < len(data); i++ {
+		data[i] = 0x80
+	}
+	return data
+}
+
 func TestCreateAudioFile(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		_, api, os, tempOS, _ := setup(t)
 
 		ctx := context.Background()
 		tempKey := "temp/file.wav"
-		_, err := tempOS.Put(ctx, jetstream.ObjectMeta{Name: tempKey}, bytes.NewReader([]byte("audio data")))
+		audioData := testWAVData()
+		_, err := tempOS.Put(ctx, jetstream.ObjectMeta{Name: tempKey}, bytes.NewReader(audioData))
 		require.NoError(t, err)
 
 		req := &UploadAudioFileRequest{
@@ -89,7 +112,7 @@ func TestCreateAudioFile(t *testing.T) {
 		res, err := os.Get(ctx, fmt.Sprintf("audio/files/%s", resp.FileId))
 		assert.NoError(t, err)
 		data, _ := io.ReadAll(res)
-		assert.Equal(t, []byte("audio data"), data)
+		assert.Equal(t, audioData, data)
 
 		// Verify temp file is deleted
 		_, err = tempOS.Get(ctx, tempKey)
@@ -112,7 +135,7 @@ func TestCreateAudioFile(t *testing.T) {
 	t.Run("Number Exists", func(t *testing.T) {
 		am, api, _, tempOS, _ := setup(t)
 
-		_, err := am.AddFile("existing-file-id", "files/existing-file-id", 5)
+		_, err := am.AddFile("existing-file-id", "files/existing-file-id", "", 5)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -136,7 +159,7 @@ func TestReplaceAudioFile(t *testing.T) {
 
 		fileId := "test-file-id"
 		fileKey := "files/test-file-id"
-		_, err := am.AddFile(fileId, fileKey, 0)
+		_, err := am.AddFile(fileId, fileKey, "", 0)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -182,7 +205,7 @@ func TestReplaceAudioFile(t *testing.T) {
 		am, api, _, _, _ := setup(t)
 
 		fileId := "test-file-id"
-		_, _ = am.AddFile(fileId, "files/test-file-id", 0)
+		_, _ = am.AddFile(fileId, "files/test-file-id", "", 0)
 
 		req := &ReplaceAudioFileRequest{
 			FileId:               fileId,
@@ -199,8 +222,8 @@ func TestReplaceAudioFile(t *testing.T) {
 func TestEnumerateAudioFiles(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	_, _ = am.AddFile("id1", "key1", 0)
-	_, _ = am.AddFile("id2", "key2", 0)
+	_, _ = am.AddFile("id1", "key1", "", 0)
+	_, _ = am.AddFile("id2", "key2", "", 0)
 
 	resp, err := api.EnumerateAudioFiles("sub", &EnumerateAudioFilesRequest{})
 	assert.NoError(t, err)
@@ -211,7 +234,7 @@ func TestEnumerateAudioFiles(t *testing.T) {
 func TestGetAudioFile(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	_, _ = am.AddFile("id1", "key1", 0)
+	_, _ = am.AddFile("id1", "key1", "", 0)
 
 	t.Run("Success", func(t *testing.T) {
 		resp, err := api.GetAudioFile("sub", &GetAudioFileRequest{FileId: "id1"})
@@ -229,7 +252,7 @@ func TestGetAudioFile(t *testing.T) {
 func TestUpdateAudioFileAttributes(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	_, err := am.AddFile("id1", "key1", 0)
+	_, err := am.AddFile("id1", "key1", "", 0)
 	require.NoError(t, err)
 
 	resp, err := api.UpdateAudioFileAttributes("sub", &UpdateAudioFileAttributesRequest{
@@ -260,7 +283,7 @@ func TestUpdateAudioFileAttributes(t *testing.T) {
 func TestDeleteAudioFile(t *testing.T) {
 	am, api, _, _, _ := setup(t)
 
-	_, _ = am.AddFile("id1", "key1", 0)
+	_, _ = am.AddFile("id1", "key1", "", 0)
 
 	resp, err := api.DeleteAudioFile("sub", &DeleteAudioFileRequest{FileId: "id1"})
 	assert.NoError(t, err)
@@ -292,7 +315,7 @@ func TestFileEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	// Trigger created event
-	_, err = am.AddFile("test-id", "test-key", 0)
+	_, err = am.AddFile("test-id", "test-key", "", 0)
 	require.NoError(t, err)
 
 	select {
