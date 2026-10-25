@@ -23,9 +23,7 @@ export default defineConfig({
 				strict: false
 			}),
 			prerender: {
-				crawl: false,
-				entries: ['*'],
-				handleUnseenRoutes: 'warn'
+				entries: []
 			}
 		})
 	],

@@ -5,7 +5,7 @@
 -->
 
 <script lang="ts">
-        import { GetAudioOutputDevices } from '../../../../bindings/github.com/stexxo/dynocue/gui/services/audioservice';
+	import { GetAudioOutputDevices } from '../../../../bindings/github.com/stexxo/dynocue/gui/services/audioservice';
 	import type { AudioDevice } from '../../../../bindings/github.com/stexxo/dynocue/components/audio/types';
 
 	let devices = $state<AudioDevice[]>([]);
@@ -46,13 +46,13 @@
 		</div>
 
 		{#if error}
-			<div class="alert alert-error mb-4">
+			<div class="mb-4 alert alert-error">
 				<span>{error}</span>
 			</div>
 		{/if}
 
 		<div class="flex-1 overflow-auto">
-			<table class="table-pin-rows table">
+			<table class="table table-pin-rows">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
 						<th class="w-1/4">Name</th>
@@ -63,7 +63,7 @@
 				<tbody>
 					{#if loading && devices.length === 0}
 						<tr>
-							<td colspan="3" class="text-center italic text-gray-500">Loading…</td>
+							<td colspan="3" class="text-center text-gray-500 italic">Loading…</td>
 						</tr>
 					{:else}
 						{#each devices as device}
@@ -74,7 +74,7 @@
 							</tr>
 						{:else}
 							<tr>
-								<td colspan="3" class="text-center italic text-gray-500">
+								<td colspan="3" class="text-center text-gray-500 italic">
 									No audio devices found.
 								</td>
 							</tr>

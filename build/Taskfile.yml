@@ -11,14 +11,14 @@ tasks:
     summary: Runs `go mod tidy`
     internal: true
     cmds:
-      - go mod tidy
+      - '{{if eq .CI "true"}}echo "Skipping go mod tidy in CI"{{else}}go mod tidy{{end}}'
 
   install:frontend:deps:
     summary: Install frontend dependencies
     dir: gui/frontend
     sources:
       - package.json
-      - package-lock.json
+      - yarn.lock
     generates:
       - node_modules
     preconditions:
