@@ -31,8 +31,8 @@ func NewAction(cueId string) *Action {
 }
 
 type ActionFields struct {
-	FieldName  string      `msgpack:"fieldName" json:"fieldName"`
-	FieldLabel string      `msgpack:"fieldLabel" json:"fieldLabel"`
-	DataType   string      `msgpack:"dataType" json:"dataType"`
-	Value      interface{} `msgpack:"value" json:"value"`
+	FieldName  string `msgpack:"fieldName" json:"fieldName"`
+	FieldLabel string `msgpack:"fieldLabel" json:"fieldLabel"`
+	DataType   string `msgpack:"dataType" json:"dataType"`
+	Value      any    `msgpack:"value" json:"value"`
 }

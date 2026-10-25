@@ -133,9 +133,9 @@ func (c *CueingApi) DeleteCueList(sub string, request *DeleteCueListRequest) (*D
 const UpdateCueListAttributesRequestSubject = "request.cueing.cuelists.attributes.update"
 
 type UpdateCueListAttributesRequest struct {
-	CueListId string      `msgpack:"cueListId" json:"cueListId" validate:"required"`
-	Field     string      `msgpack:"field" json:"field" validate:"required,ne=id,ne=cueListType"`
-	Value     interface{} `msgpack:"value" json:"value" validate:"required"`
+	CueListId string `msgpack:"cueListId" json:"cueListId" validate:"required"`
+	Field     string `msgpack:"field" json:"field" validate:"required,ne=id,ne=cueListType"`
+	Value     any    `msgpack:"value" json:"value" validate:"required"`
 }
 
 type UpdateCueListAttributesResponse struct{}

@@ -52,13 +52,13 @@ func (c *CueingEngine) executeAction(actionId string) (err error) {
 		return err
 	}
 
-	request := map[string]interface{}{}
+	request := map[string]any{}
 	for _, f := range action.Fields {
 		request[f.FieldName] = f.Value
 	}
 
 	if action.WaitForFinish {
-		_, err = messaging.Request[map[interface{}]interface{}](c.messenger, action.Subject, request)
+		_, err = messaging.Request[map[any]any](c.messenger, action.Subject, request)
 	} else {
 		err = messaging.Publish(c.messenger, action.Subject, request)
 	}

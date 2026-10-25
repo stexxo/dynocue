@@ -183,12 +183,12 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 			return nil, err
 		}
 
-		if strings.HasPrefix(f.Name, "kv/") {
-			key := strings.TrimPrefix(f.Name, "kv/")
+		if after, ok := strings.CutPrefix(f.Name, "kv/"); ok {
+			key := after
 			data, _ := io.ReadAll(rc)
 			_, err = p.kvStore.Put(context.Background(), key, data)
-		} else if strings.HasPrefix(f.Name, "blobs/") {
-			name := strings.TrimPrefix(f.Name, "blobs/")
+		} else if after, ok := strings.CutPrefix(f.Name, "blobs/"); ok {
+			name := after
 			_, err = p.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: name}, rc)
 		}
 
@@ -373,8 +373,8 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	// Reconciliation: Reuse valid data from the existing zip file if possible.
 	if oldZip != nil {
 		for _, f := range oldZip.File {
-			if strings.HasPrefix(f.Name, "kv/") {
-				key := strings.TrimPrefix(f.Name, "kv/")
+			if after, ok := strings.CutPrefix(f.Name, "kv/"); ok {
+				key := after
 				if entry, exists := liveKeys[key]; exists {
 					// Verify if the revision matches the zip entry's comment.
 					if f.Comment == fmt.Sprintf("%d", entry.Revision()) {
@@ -385,8 +385,8 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 						delete(liveKeys, key)
 					}
 				}
-			} else if strings.HasPrefix(f.Name, "blobs/") {
-				name := strings.TrimPrefix(f.Name, "blobs/")
+			} else if after, ok := strings.CutPrefix(f.Name, "blobs/"); ok {
+				name := after
 				if info, exists := liveBlobs[name]; exists {
 					// Verify if the SHA-256 digest matches the zip entry's comment.
 					if f.Comment == info.Digest {

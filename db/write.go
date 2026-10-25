@@ -43,7 +43,7 @@ func DeleteItemFromDb[T any](db *memdb.MemDB, table string, index string, key an
 	})
 }
 
-func UpdateStructDb[T any](db *memdb.MemDB, table, index string, key any, field string, value interface{}) (*T, error) {
+func UpdateStructDb[T any](db *memdb.MemDB, table, index string, key any, field string, value any) (*T, error) {
 	var out *T
 	err := WithWrite(db, func(txn *memdb.Txn) error {
 		res, err := UpdateStructTxn[T](txn, table, index, key, field, value)
@@ -60,7 +60,7 @@ func UpdateStructDb[T any](db *memdb.MemDB, table, index string, key any, field 
 	return out, nil
 }
 
-func UpdateStructTxn[T any](txn *memdb.Txn, table, index string, key any, field string, value interface{}) (*T, error) {
+func UpdateStructTxn[T any](txn *memdb.Txn, table, index string, key any, field string, value any) (*T, error) {
 	item, err := GetFirstTxn[T](txn, table, index, key)
 	if err != nil {
 		return nil, err

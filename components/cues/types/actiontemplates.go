@@ -28,8 +28,8 @@ func (a *ActionTemplate) NewAction(cueId string, number uint) *Action {
 }
 
 type ActionTemplateField struct {
-	FieldName    string      `msgpack:"fieldName" json:"fieldName"`
-	FieldLabel   string      `msgpack:"fieldLabel" json:"fieldLabel"`
-	DataType     string      `msgpack:"dataType" json:"dataType"` // string, float, int, bool, time
-	DefaultValue interface{} `msgpack:"defaultValue" json:"defaultValue"`
+	FieldName    string `msgpack:"fieldName" json:"fieldName"`
+	FieldLabel   string `msgpack:"fieldLabel" json:"fieldLabel"`
+	DataType     string `msgpack:"dataType" json:"dataType"` // string, float, int, bool, time
+	DefaultValue any    `msgpack:"defaultValue" json:"defaultValue"`
 }
