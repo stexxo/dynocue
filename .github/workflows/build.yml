@@ -9,339 +9,108 @@ name: Build DynoCue
 on:
   push:
     branches: [ main, dev ]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.idea/**'
   pull_request:
     branches: [ main, dev ]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - '.idea/**'
   workflow_dispatch:
 
-# Least-privilege token: the build only needs to read the repository.
 permissions:
   contents: read
 
-# Cancel superseded runs for the same PR/branch to free up (slow, expensive) mac/windows runners.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-defaults:
-  run:
-    shell: bash
 
 jobs:
   build:
-    name: Build (${{ matrix.osName }} - ${{ matrix.arch }})
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        # `vlcFlavor` / `vlcSha256` must be updated together with `VLC_VERSION`.
-        # Hashes come from https://download.videolan.org/pub/videolan/vlc/<version>/<dir>/<file>.sha256
-        include:
-          - os: ubuntu-24.04
-            arch: amd64
-            osName: linux
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            osName: linux
-          - os: windows-2025-vs2026
-            arch: amd64
-            osName: windows
-            vlcFlavor: win64
-            vlcSha256: 1ed59c09152e78aff84663fa76efab26057716576db74332858810e5ef54ae1f
-          - os: windows-11-vs2026-arm
-            arch: arm64
-            osName: windows
-            vlcFlavor: winarm64
-            vlcSha256: 4c448ca4995bafc4954a4c929bc7dad756eb0a234afc9d58946ad05b8fe51389
-          - os: macos-26
-            arch: arm64
-            osName: mac
-            vlcFlavor: arm64
-            vlcSha256: 64a89d93cdd30b0e97131743e246373db82d6826ea882d265d46d74b136da2b7
-          - os: macos-26-intel
-            arch: amd64
-            osName: mac
-            vlcFlavor: intel64
-            vlcSha256: 1ef6c903e2dc026d4e58ddf7b2a9ed0eb6f8caf80a9a9f46f96490340b962707
-    env:
-      # Pinned versions of Go-based CLI tools. Bumping a version invalidates the Go binaries
-      # cache (see the `Cache Go binaries` step) and triggers a fresh `go install`.
-      TASK_VERSION: v3.54.0
-      WAILS_VERSION: v3.0.0-beta.34
-      # Pinned VLC version across platforms. Bumping this invalidates the VLC cache and
-      # triggers a fresh download + extract (remember to update the matrix hashes).
-      VLC_VERSION: 3.0.24
-      # Windows arm64 C toolchain (https://github.com/mstorsjo/llvm-mingw/releases).
-      LLVM_MINGW_VERSION: '20261020'
-      LLVM_MINGW_SHA256: 8f24fedd0b75c674c6c83dec2d76a7ac31a690120212843a17e465ef49854f69
-      YARN_VERSION: 1.22.22
-      # Never let `go` silently download a different toolchain than the one set up below.
-      GOTOOLCHAIN: local
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+          - windows-2025-vs2026
+          - windows-11-arm
+          - macos-26
+          - macos-26-intel
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      # ---------------------------------------------------------------- Linux
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
       - name: Install Linux dependencies
-        if: matrix.osName == 'linux'
-        run: |
-          # Skip the man-db trigger, which is notoriously slow on Ubuntu runners.
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get update -qq
-          # Wails v3 defaults to GTK4 + WebKitGTK 6.0 (no `gtk3` build tag); libvlc-dev
-          # provides the headers/libs required by libvlc-go. The full `vlc` player is not
-          # needed to compile.
-          sudo apt-get install -y -qq --no-install-recommends \
-            libgtk-4-dev libwebkitgtk-6.0-dev libvlc-dev
-
-      # -------------------------------------------------------------- Windows
-      - name: Cache llvm-mingw aarch64 toolchain (Windows arm64)
-        if: matrix.osName == 'windows' && matrix.arch == 'arm64'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          path: C:\llvm-mingw
-          key: ${{ runner.os }}-llvm-mingw-aarch64-${{ env.LLVM_MINGW_VERSION }}
+          packages: libgtk-4-dev libwebkitgtk-6.0-dev libvlc-dev
 
-      - name: Setup arm64 C toolchain (Windows arm64)
-        if: matrix.osName == 'windows' && matrix.arch == 'arm64'
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+        run: |
+          brew install --cask vlc
+          echo "CGO_CFLAGS=-I/Applications/VLC.app/Contents/MacOS/include" >> "$GITHUB_ENV"
+          echo "CGO_LDFLAGS=-L/Applications/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # The preinstalled `gcc` on the windows-11-vs2026-arm runner (C:\mingw64\bin) is an
-          # x86_64-targeting mingw build — it cannot assemble cgo's `gcc_arm64.S` (errors:
-          # "no such instruction: stp x29,x30"). The runner also ships LLVM, but it lacks a
-          # mingw-w64 aarch64 sysroot, so clang can't find `stdlib.h` / `windows.h`.
-          #
-          # `mstorsjo/llvm-mingw` is a self-contained clang + mingw-w64 (UCRT) toolchain
-          # with a native aarch64 sysroot — the proven combination for cgo on Windows arm64.
           $PSNativeCommandUseErrorActionPreference = $true
-          $installRoot = "C:\llvm-mingw"
-          $toolchainDir = $null
-          if (Test-Path $installRoot) {
-              $toolchainDir = Get-ChildItem -Path $installRoot -Directory -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-          }
-          if (-not $toolchainDir -or -not (Test-Path (Join-Path $toolchainDir "bin\clang.exe"))) {
-              $zipName = "llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-aarch64.zip"
-              $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$env:LLVM_MINGW_VERSION/$zipName"
-              $zipPath = Join-Path $env:RUNNER_TEMP $zipName
-              Write-Output "Downloading $url ..."
-              curl.exe -fsSL --retry 3 $url -o $zipPath
-              $actual = (Get-FileHash $zipPath -Algorithm SHA256).Hash
-              if ($actual -ne $env:LLVM_MINGW_SHA256) {
-                  throw "SHA256 mismatch for $zipName (expected $env:LLVM_MINGW_SHA256, got $actual)"
-              }
-              New-Item -ItemType Directory -Force -Path $installRoot | Out-Null
-              7z.exe x $zipPath -o"$installRoot" -y | Out-Null
-              Remove-Item $zipPath -Force
-              $toolchainDir = Get-ChildItem -Path $installRoot -Directory | Select-Object -First 1 -ExpandProperty FullName
-          } else {
-              Write-Output "llvm-mingw restored from cache at $toolchainDir"
-          }
-          $binDir = Join-Path $toolchainDir "bin"
-          if (!(Test-Path "$binDir\clang.exe")) {
-              throw "llvm-mingw clang not found at $binDir"
-          }
-          # Prepend so its clang/ld/as win over the preinstalled x86_64 mingw gcc.
-          Add-Content -Path $env:GITHUB_PATH -Value $binDir
-          # The aarch64-targeted wrappers shipped by llvm-mingw already know the sysroot.
-          Add-Content -Path $env:GITHUB_ENV -Value "CC=aarch64-w64-mingw32-clang"
-          Add-Content -Path $env:GITHUB_ENV -Value "CXX=aarch64-w64-mingw32-clang++"
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_ENABLED=1"
-          Write-Output "Configured llvm-mingw aarch64 toolchain at $binDir"
+          $dir = if ($env:RUNNER_ARCH -eq 'ARM64') { 'winarm64' } else { 'win64' }
+          $base = "https://download.videolan.org/pub/videolan/vlc/last/$dir"
+          $file = [regex]::Match((Invoke-WebRequest "$base/").Content, "vlc-[\d.]+-$dir\.7z").Value
+          curl.exe -fsSL --retry 3 "$base/$file" -o vlc.7z
+          7z x vlc.7z -o"$env:RUNNER_TEMP" -y | Out-Null
+          $vlc = (Get-Item "$env:RUNNER_TEMP\vlc-*").FullName
 
-      - name: Cache Windows VLC
-        if: matrix.osName == 'windows'
-        id: cache-vlc-win
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: C:\Program Files\VideoLAN\VLC
-          key: ${{ runner.os }}-${{ matrix.arch }}-vlc-${{ env.VLC_VERSION }}-${{ matrix.vlcFlavor }}
+          if ($env:RUNNER_ARCH -eq 'ARM64') {
+              # The runner's gcc only targets x86_64, so use llvm-mingw.
+              $release = Invoke-RestMethod https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest -Headers @{ Authorization = "Bearer $env:GH_TOKEN" }
+              $asset = $release.assets | Where-Object name -like '*-ucrt-aarch64.zip'
+              curl.exe -fsSL --retry 3 $asset.browser_download_url -o llvm-mingw.zip
+              7z x llvm-mingw.zip -o"$env:RUNNER_TEMP" -y | Out-Null
+              $bin = (Get-Item "$env:RUNNER_TEMP\llvm-mingw-*\bin").FullName
+              $env:PATH = "$bin;$env:PATH"
+              Add-Content $env:GITHUB_PATH $bin
+              Add-Content $env:GITHUB_ENV "CC=aarch64-w64-mingw32-clang"
+              Add-Content $env:GITHUB_ENV "CXX=aarch64-w64-mingw32-clang++"
 
-      - name: Install Windows dependencies (VLC)
-        if: matrix.osName == 'windows'
-        shell: pwsh
+              # The arm64 SDK only ships an MSVC import lib, which lld can't use.
+              Push-Location "$vlc\sdk\lib"
+              gendef "$vlc\libvlc.dll"
+              llvm-dlltool -m arm64 -d libvlc.def -D libvlc.dll -l libvlc.dll.a
+              Pop-Location
+          }
+
+          Add-Content $env:GITHUB_ENV "CGO_CFLAGS=-I$vlc\sdk\include"
+          Add-Content $env:GITHUB_ENV "CGO_LDFLAGS=-L$vlc\sdk\lib"
+
+      - name: Install Task, Wails CLI and Yarn
+        shell: bash
         run: |
-          # Download + extract the VLC + SDK bundle (skipped on cache hit).
-          # VLC 3.0.22+ ships a native Windows arm64 build under `winarm64/`; amd64 uses `win64/`.
-          $PSNativeCommandUseErrorActionPreference = $true
-          $vlcVersion = "${{ env.VLC_VERSION }}"
-          $vlcFlavor = "${{ matrix.vlcFlavor }}"
-          $baseDir = "C:\Program Files\VideoLAN"
-          $vlcTargetDir = "$baseDir\VLC"
-          if ("${{ steps.cache-vlc-win.outputs.cache-hit }}" -eq "true" -and (Test-Path "$vlcTargetDir\vlc.exe")) {
-              Write-Output "VLC $vlcVersion ($vlcFlavor) restored from cache at $vlcTargetDir"
-          } else {
-              $archive = "vlc-$vlcVersion-$vlcFlavor.7z"
-              $archivePath = Join-Path $env:RUNNER_TEMP $archive
-              $url = "https://download.videolan.org/pub/videolan/vlc/$vlcVersion/$vlcFlavor/$archive"
-              Write-Output "Downloading $url ..."
-              curl.exe -fsSL --retry 3 $url -o $archivePath
-              $actual = (Get-FileHash $archivePath -Algorithm SHA256).Hash
-              if ($actual -ne "${{ matrix.vlcSha256 }}") {
-                  throw "SHA256 mismatch for $archive (expected ${{ matrix.vlcSha256 }}, got $actual)"
-              }
-              New-Item -ItemType Directory -Force -Path $baseDir | Out-Null
-              7z.exe x $archivePath -o"$baseDir" -y | Out-Null
-              Remove-Item $archivePath -Force
-              # The archive extracts to `vlc-<version>` for both flavors.
-              if (Test-Path $vlcTargetDir) { Remove-Item $vlcTargetDir -Recurse -Force }
-              Rename-Item -Path "$baseDir\vlc-$vlcVersion" -NewName "VLC"
-          }
+          npm install -g yarn
+          go install github.com/go-task/task/v3/cmd/task@latest
+          go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
 
-          if (!(Test-Path "$vlcTargetDir\sdk\include")) {
-              throw "VLC SDK include directory was not found."
-          }
-          Add-Content -Path $env:GITHUB_PATH -Value $vlcTargetDir
+      - name: Build
+        run: task build
 
-          # The Windows arm64 VLC SDK ships only MSVC-style `vlc.lib` import libs, which
-          # `ld.lld` (used by llvm-mingw) rejects with "unknown file type". Generate a
-          # mingw-friendly `libvlc.dll.a` from `libvlc.dll` so cgo can link against it.
-          # The amd64 SDK already ships `libvlc.dll.a`. The generated file is saved in the
-          # VLC cache, so this only runs on a cache miss.
-          $vlcLibDir = "$vlcTargetDir\sdk\lib"
-          $importLib = "$vlcLibDir\libvlc.dll.a"
-          if ("${{ matrix.arch }}" -eq "arm64" -and -not (Test-Path $importLib)) {
-              $dllPath = "$vlcTargetDir\libvlc.dll"
-              if (-not (Test-Path $dllPath)) {
-                  throw "libvlc.dll not found at $dllPath; cannot generate mingw import lib."
-              }
-              $genDef = (Get-Command gendef.exe -ErrorAction SilentlyContinue).Source
-              $dllTool = (Get-Command llvm-dlltool.exe -ErrorAction SilentlyContinue).Source
-              if (-not $dllTool) {
-                  $dllTool = (Get-Command aarch64-w64-mingw32-dlltool.exe -ErrorAction SilentlyContinue).Source
-              }
-              if (-not $dllTool) {
-                  throw "Could not find llvm-dlltool / dlltool from llvm-mingw on PATH."
-              }
-              Push-Location $vlcLibDir
-              try {
-                  if ($genDef) { & $genDef $dllPath | Out-Null }
-                  if (Test-Path "libvlc.def") {
-                      & $dllTool -m arm64 -d "libvlc.def" -D "libvlc.dll" -l "libvlc.dll.a"
-                  } else {
-                      Write-Output "gendef not available; relying on dlltool DLL inference."
-                      & $dllTool -m arm64 -D "libvlc.dll" -l "libvlc.dll.a"
-                  }
-              } finally {
-                  Pop-Location
-              }
-              if (-not (Test-Path $importLib)) { throw "Failed to generate $importLib" }
-              Write-Output "Generated mingw-style import lib: $importLib"
-          }
-
-          # Expose the VLC SDK to cgo using space-free 8.3 short paths ("C:\Program Files" -> "C:\PROGRA~1").
-          $shortVlcPath = "C:\PROGRA~1\VideoLAN\VLC"
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_CFLAGS=-I$shortVlcPath\sdk\include"
-          Add-Content -Path $env:GITHUB_ENV -Value "CGO_LDFLAGS=-L$shortVlcPath\sdk\lib"
-
-      # ---------------------------------------------------------------- macOS
-      - name: Cache macOS VLC
-        if: matrix.osName == 'mac'
-        id: cache-vlc-mac
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/upload-artifact@v7
         with:
-          path: ~/vlc/VLC.app
-          key: ${{ runner.os }}-${{ matrix.arch }}-vlc-${{ env.VLC_VERSION }}-${{ matrix.vlcFlavor }}
-
-      - name: Install macOS dependencies (VLC)
-        if: matrix.osName == 'mac'
-        run: |
-          set -euo pipefail
-          # Installed under $HOME (not /Applications) so no sudo is required and the
-          # cache can be restored/saved as the runner user.
-          VLC_APP_PATH="$HOME/vlc/VLC.app"
-          if [ "${{ steps.cache-vlc-mac.outputs.cache-hit }}" = "true" ] && [ -d "$VLC_APP_PATH" ]; then
-            echo "VLC $VLC_VERSION restored from cache at $VLC_APP_PATH"
-          else
-            DMG_NAME="vlc-$VLC_VERSION-${{ matrix.vlcFlavor }}.dmg"
-            DMG_PATH="$RUNNER_TEMP/$DMG_NAME"
-            URL="https://download.videolan.org/pub/videolan/vlc/$VLC_VERSION/macosx/$DMG_NAME"
-            echo "Downloading $URL ..."
-            curl -fsSL --retry 3 "$URL" -o "$DMG_PATH"
-            echo "${{ matrix.vlcSha256 }}  $DMG_PATH" | shasum -a 256 -c -
-            MOUNT_POINT="$RUNNER_TEMP/vlc-mount"
-            hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse -readonly -quiet
-            mkdir -p "$(dirname "$VLC_APP_PATH")"
-            rm -rf "$VLC_APP_PATH"
-            ditto "$MOUNT_POINT/VLC.app" "$VLC_APP_PATH"
-            hdiutil detach "$MOUNT_POINT" -quiet
-            rm -f "$DMG_PATH"
-          fi
-
-          # The bundled pkg-config files reference the VLC build machine's prefix, so point
-          # cgo at the SDK inside the app bundle directly.
-          VLC_SDK="$VLC_APP_PATH/Contents/MacOS"
-          test -f "$VLC_SDK/include/vlc/vlc.h" || { echo "::error::VLC headers not found in $VLC_SDK/include"; exit 1; }
-          {
-            echo "CGO_CFLAGS=-I$VLC_SDK/include"
-            echo "CGO_LDFLAGS=-L$VLC_SDK/lib"
-            echo "CGO_ENABLED=1"
-          } >> "$GITHUB_ENV"
-
-      # ------------------------------------------------------------ Toolchain
-      - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          # Latest patch of the newest Go release (go.mod declares the minimum, 1.26).
-          go-version: '1.27'
-          check-latest: true
-          cache-dependency-path: go.sum
-
-      - name: Cache Go binaries
-        id: cache-go-bin
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-task-${{ env.TASK_VERSION }}-wails-${{ env.WAILS_VERSION }}
-
-      - name: Install Task and Wails v3 CLI
-        if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: |
-          go install github.com/go-task/task/v3/cmd/task@"$TASK_VERSION"
-          go install github.com/wailsapp/wails/v3/cmd/wails3@"$WAILS_VERSION"
-
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          # Active LTS. Node 25+ no longer bundles corepack, so bump deliberately.
-          node-version: '24'
-          # Caching is handled by the node_modules cache below (faster than the yarn cache).
-          package-manager-cache: false
-
-      - name: Enable Yarn
-        run: corepack enable && corepack prepare "yarn@$YARN_VERSION" --activate
-
-      - name: Cache frontend node_modules
-        id: cache-node-modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: gui/frontend/node_modules
-          # OS/arch/Node-specific because some npm packages ship native binaries.
-          key: ${{ runner.os }}-${{ matrix.arch }}-node${{ steps.setup-node.outputs.node-version }}-node-modules-${{ hashFiles('gui/frontend/yarn.lock') }}
-
-      - name: Install frontend dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        working-directory: gui/frontend
-        run: yarn install --frozen-lockfile --non-interactive --prefer-offline
-
-      # ---------------------------------------------------------------- Build
-      - name: Build Application
-        run: task build ARCH=${{ matrix.arch }}
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ${{ matrix.osName }}-${{ matrix.arch }}
+          name: dynocue-${{ runner.os }}-${{ runner.arch }}
           path: out/bin/
           if-no-files-found: error
-          retention-days: 14
