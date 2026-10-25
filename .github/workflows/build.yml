@@ -60,6 +60,7 @@ jobs:
           hdiutil attach "$RUNNER_TEMP/vlc.dmg" -mountpoint /Volumes/VLC -nobrowse -readonly -noverify -noautofsck -quiet
           echo "CGO_CFLAGS=-I/Volumes/VLC/VLC.app/Contents/MacOS/include" >> "$GITHUB_ENV"
           echo "CGO_LDFLAGS=-L/Volumes/VLC/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=/Volumes/VLC/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
 
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
@@ -93,6 +94,7 @@ jobs:
               Pop-Location
           }
 
+          Add-Content $env:GITHUB_PATH $vlc
           Add-Content $env:GITHUB_ENV "CGO_CFLAGS=-I$vlc\sdk\include"
           Add-Content $env:GITHUB_ENV "CGO_LDFLAGS=-L$vlc\sdk\lib"
 
@@ -102,6 +104,22 @@ jobs:
           npm install -g yarn
           go install github.com/go-task/task/v3/cmd/task@latest
           go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+
+      - name: Test
+        shell: bash
+        env:
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+        run: |
+          # gui/frontend embeds dist/, which only exists after a frontend build.
+          mkdir -p gui/frontend/dist && touch gui/frontend/dist/.keep
+          task test
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-reports-${{ runner.os }}-${{ matrix.arch }}
+          path: out/reports/
 
       - name: Build
         run: task build ARCH=${{ matrix.arch }}
