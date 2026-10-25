@@ -5,7 +5,7 @@
 -->
 
 <script lang="ts">
-	import { formatTime } from '$lib/utils/time';
+	import { formatTime } from '#lib/utils/time';
 
 	interface EditableTimeInputProps {
 		value: number; // nanoseconds
@@ -17,6 +17,7 @@
 	}
 
 	const props: EditableTimeInputProps = $props();
+	const inputId = $props.id();
 
 	let editValue = $state('');
 	let hasChanged = $derived(editValue !== formatTime(props.value));
@@ -90,13 +91,14 @@
 
 <div class="form-control relative w-full">
 	{#if props.label}
-		<label class="label pb-1">
+		<label for={inputId} class="label pb-1">
 			<span class="label-text">{props.label}</span>
 		</label>
 	{/if}
 	<div class="flex flex-row gap-2">
 		<div class="flex-1">
 			<input
+				id={inputId}
 				type="text"
 				class="input-bordered input w-full {props.inputClass ?? ''}"
 				bind:value={editValue}

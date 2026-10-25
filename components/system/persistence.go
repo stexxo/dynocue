@@ -30,6 +30,7 @@ type registeredSubsystem struct {
 
 const PersistenceKeyValueBucketName = "working-kv"
 const PersistenceObjectBucketName = "working-object"
+const PersistenceTempObjectBucketName = "temp-object"
 
 type Persistence struct {
 	*core.SubsystemCore
@@ -38,6 +39,7 @@ type Persistence struct {
 	registeredSubsystems []registeredSubsystem
 	kvStore              jetstream.KeyValue
 	objectStore          jetstream.ObjectStore
+	tempStore            jetstream.ObjectStore
 
 	showOpen bool
 	savePath string
@@ -68,6 +70,15 @@ func (p *Persistence) onStart() error {
 		return err
 	}
 	p.objectStore = object
+
+	object, err = p.Messenger().JetStream().CreateObjectStore(context.Background(), jetstream.ObjectStoreConfig{
+		Bucket:  PersistenceTempObjectBucketName,
+		Storage: jetstream.FileStorage,
+	})
+	if err != nil {
+		return err
+	}
+	p.tempStore = object
 
 	err = p.softClear()
 	if err != nil {
@@ -118,16 +129,18 @@ type PersistenceRegistrationRequest struct {
 }
 
 type PersistenceRegistrationResponse struct {
-	ObjectStoreName   string `json:"objectStoreName" msgpack:"objectStoreName"`
-	KeyValueStoreName string `json:"keyValueStoreName" msgpack:"keyValueStoreName"`
+	ObjectStoreName     string `json:"objectStoreName" msgpack:"objectStoreName"`
+	TempObjectStoreName string `json:"tempObjectStoreName" msgpack:"tempObjectStoreName"`
+	KeyValueStoreName   string `json:"keyValueStoreName" msgpack:"keyValueStoreName"`
 }
 
 func (p *Persistence) RegisterRequest(sub string, in *PersistenceRegistrationRequest) (*PersistenceRegistrationResponse, error) {
 	p.registeredSubsystems = append(p.registeredSubsystems, registeredSubsystem{Name: in.SubsystemName, Load: in.LoadSubject, Save: in.SaveSubject})
 	p.Logger().Debug("registered subsystem for persistence", "subsystem", in.SubsystemName)
 	return &PersistenceRegistrationResponse{
-		ObjectStoreName:   PersistenceObjectBucketName,
-		KeyValueStoreName: PersistenceKeyValueBucketName,
+		ObjectStoreName:     PersistenceObjectBucketName,
+		KeyValueStoreName:   PersistenceKeyValueBucketName,
+		TempObjectStoreName: PersistenceTempObjectBucketName,
 	}, nil
 }
 
@@ -170,12 +183,12 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 			return nil, err
 		}
 
-		if strings.HasPrefix(f.Name, "kv/") {
-			key := strings.TrimPrefix(f.Name, "kv/")
+		if after, ok := strings.CutPrefix(f.Name, "kv/"); ok {
+			key := after
 			data, _ := io.ReadAll(rc)
 			_, err = p.kvStore.Put(context.Background(), key, data)
-		} else if strings.HasPrefix(f.Name, "blobs/") {
-			name := strings.TrimPrefix(f.Name, "blobs/")
+		} else if after, ok := strings.CutPrefix(f.Name, "blobs/"); ok {
+			name := after
 			_, err = p.objectStore.Put(context.Background(), jetstream.ObjectMeta{Name: name}, rc)
 		}
 
@@ -196,6 +209,9 @@ func (p *Persistence) OpenRequest(sub string, in *PersistenceOpenRequest) (*Pers
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Load == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})
@@ -229,6 +245,9 @@ func (p *Persistence) NewRequest(sub string, in *PersistenceNewRequest) (*Persis
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Load == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Load, "")
 			return err
 		})
@@ -264,6 +283,7 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	}
 
 	p.savePath = cmp.Or(in.Location, p.savePath)
+	p.Logger().Debug("saving to location " + p.savePath)
 
 	if !strings.HasSuffix(p.savePath, ".dyno") {
 		p.savePath = p.savePath + ".dyno"
@@ -274,6 +294,9 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	execgroup := errgroup.Group{}
 	for _, subsystem := range p.registeredSubsystems {
 		execgroup.Go(func() error {
+			if subsystem.Save == "" {
+				return nil
+			}
 			_, err := messaging.Request[string](p.Messenger(), subsystem.Save, "")
 			return err
 		})
@@ -350,8 +373,8 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 	// Reconciliation: Reuse valid data from the existing zip file if possible.
 	if oldZip != nil {
 		for _, f := range oldZip.File {
-			if strings.HasPrefix(f.Name, "kv/") {
-				key := strings.TrimPrefix(f.Name, "kv/")
+			if after, ok := strings.CutPrefix(f.Name, "kv/"); ok {
+				key := after
 				if entry, exists := liveKeys[key]; exists {
 					// Verify if the revision matches the zip entry's comment.
 					if f.Comment == fmt.Sprintf("%d", entry.Revision()) {
@@ -362,8 +385,8 @@ func (p *Persistence) SaveRequest(sub string, in *PersistenceSaveRequest) (*Pers
 						delete(liveKeys, key)
 					}
 				}
-			} else if strings.HasPrefix(f.Name, "blobs/") {
-				name := strings.TrimPrefix(f.Name, "blobs/")
+			} else if after, ok := strings.CutPrefix(f.Name, "blobs/"); ok {
+				name := after
 				if info, exists := liveBlobs[name]; exists {
 					// Verify if the SHA-256 digest matches the zip entry's comment.
 					if f.Comment == info.Digest {

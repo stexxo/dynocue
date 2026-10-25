@@ -123,9 +123,9 @@ func TestRequestReply(t *testing.T) {
 	t.Run("Request-Reply Success", func(t *testing.T) {
 		messenger := NewMessenger(&MessengerCfg{Conn: nc})
 
-		err := Reply(messenger, false, "test.request", func(s string, req string) (*string, error) {
+		err := Reply(messenger, false, "test.request", func(s string, req *string) (*string, error) {
 			assert.Equal(t, "test.request", s)
-			assert.Equal(t, "ping", req)
+			assert.Equal(t, "ping", *req)
 			resp := "pong"
 			return &resp, nil
 		})
@@ -145,7 +145,7 @@ func TestRequestReply(t *testing.T) {
 			Data string `validate:"required"`
 		}
 
-		err := Reply(messenger, true, "test.validate", func(s string, req ReqResp) (*ReqResp, error) {
+		err := Reply(messenger, true, "test.validate", func(s string, req *ReqResp) (*ReqResp, error) {
 			return &ReqResp{Data: "Received: " + req.Data}, nil
 		})
 		assert.NoError(t, err)
@@ -163,7 +163,7 @@ func TestRequestReply(t *testing.T) {
 			Data string `validate:"required"`
 		}
 
-		err := Reply(messenger, true, "test.validate.fail", func(s string, req ReqResp) (*ReqResp, error) {
+		err := Reply(messenger, true, "test.validate.fail", func(s string, req *ReqResp) (*ReqResp, error) {
 			res := ReqResp{Data: "should not reach"}
 			return &res, nil
 		})
@@ -172,14 +172,14 @@ func TestRequestReply(t *testing.T) {
 		resp, err := Request[ReqResp](messenger, "test.validate.fail", ReqResp{Data: ""})
 		assert.NoError(t, err)
 		assert.False(t, resp.Success)
-		assert.Contains(t, resp.Error, "Request body in invalid.")
+		assert.Contains(t, resp.Error, "Request body is invalid.")
 	})
 
 	t.Run("Request-Reply with FriendlyError including internal error", func(t *testing.T) {
 		messenger := NewMessenger(&MessengerCfg{Conn: nc})
 
 		internalErr := errors.New("database connection failed")
-		err := Reply(messenger, false, "test.friendly.internal", func(s string, req string) (*string, error) {
+		err := Reply(messenger, false, "test.friendly.internal", func(s string, req *string) (*string, error) {
 			return nil, &FriendlyError{
 				Err:         internalErr,
 				FriendlyErr: "Could not save data.",
@@ -196,7 +196,7 @@ func TestRequestReply(t *testing.T) {
 	t.Run("Request-Reply with unexpected error", func(t *testing.T) {
 		messenger := NewMessenger(&MessengerCfg{Conn: nc})
 
-		err := Reply(messenger, false, "test.unexpected", func(s string, req string) (*string, error) {
+		err := Reply(messenger, false, "test.unexpected", func(s string, req *string) (*string, error) {
 			return nil, errors.New("something went wrong")
 		})
 		assert.NoError(t, err)

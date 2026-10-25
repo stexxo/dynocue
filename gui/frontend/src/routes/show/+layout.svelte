@@ -14,7 +14,7 @@
 		OpenShow,
 		CloseShow
 	} from '../../../bindings/github.com/stexxo/dynocue/gui/services/selectorservice.js';
-	import { withLoading, createLoadingState } from '$lib/loading.svelte';
+	import { withLoading, createLoadingState } from '#lib/loading.svelte.js';
 
 	let { children } = $props();
 
@@ -84,13 +84,6 @@
 			class:dock-active={page.url.pathname === '/show/video'}
 		>
 			<span class="dock-label">Video</span>
-		</button>
-		<button
-			onclick={() => goto('/show/lighting')}
-			class="dock-item"
-			class:dock-active={page.url.pathname === '/show/lighting'}
-		>
-			<span class="dock-label">Lighting</span>
 		</button>
 		<button
 			onclick={() => goto('/show/settings')}

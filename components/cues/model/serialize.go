@@ -14,6 +14,9 @@ import (
 )
 
 func (m *CueingModel) SerializeEachTable(fn func(name string, reader io.Reader) error) error {
+	m.dbMu.Lock()
+	defer m.dbMu.Unlock()
+
 	for _, table := range persistentSchema.Tables {
 		buf, err := db.SerializeTable(m.persistent, table.Name)
 		if err != nil {
@@ -55,6 +58,21 @@ func (m *CueingModel) RestoreTable(name string, data io.Reader) error {
 }
 
 func (m *CueingModel) LoadModel(fn func(name string) (io.Reader, error)) error {
+	// Clear the Table
+	m.dbMu.Lock()
+	defer m.dbMu.Unlock()
+
+	var err error
+	m.persistent, err = memdb.NewMemDB(persistentSchema)
+	if err != nil {
+		return err
+	}
+
+	m.runtime, err = memdb.NewMemDB(runtimeSchema)
+	if err != nil {
+		return err
+	}
+
 	var errs error
 	for tableName, restorer := range tableRestore {
 		res, err := fn(tableName)

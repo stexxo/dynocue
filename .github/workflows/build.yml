@@ -13,91 +13,127 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build (${{ matrix.osName }} - ${{ matrix.arch }})
+    name: Build (${{ matrix.os }} ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-24.04
-            arch: amd64
-            osName: linux
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            osName: linux
-          - os: windows-2025-vs2026
-            arch: amd64
-            osName: windows
-          - os: macos-26
-            arch: arm64
-            osName: mac
-          - os: macos-26-intel
-            arch: amd64
-            osName: mac
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+          - { os: ubuntu-24.04, arch: amd64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+          - { os: windows-2025-vs2026, arch: amd64 }
+          - { os: windows-11-arm, arch: arm64 }
+          - { os: macos-26, arch: arm64 }
+          - { os: macos-26, arch: amd64 }
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
         with:
-          go-version: '1.26'
-          cache: true
-          cache-dependency-path: go.sum
+          persist-credentials: false
 
-      - name: Cache Go Binaries
-        id: cache-go-bin
-        uses: actions/cache@v5
+      - uses: actions/setup-go@v7
         with:
-          path: ~/go/bin
-          key: ${{ runner.os }}-${{ matrix.arch }}-go-tools-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-go-tools-
+          go-version: stable
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: '24'
-          cache: 'yarn'
-          cache-dependency-path: gui/frontend/yarn.lock
-
-      - name: Install Yarn
-        run: npm install -g yarn
-
-      - name: Install Task
-        if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: go install github.com/go-task/task/v3/cmd/task@latest
-
-      - name: Cache Linux dependencies
-        if: startsWith(matrix.os, 'ubuntu')
-        id: cache-apt
-        uses: actions/cache@v5
-        with:
-          path: /var/cache/apt/archives
-          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/build.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-apt-
+          node-version: lts/*
 
       - name: Install Linux dependencies
-        if: startsWith(matrix.os, 'ubuntu')
+        if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev webkit2gtk-4.1 libappindicator3-dev
+          sudo rm -f /var/lib/man-db/auto-update
+          echo 'force-unsafe-io' | sudo tee /etc/dpkg/dpkg.cfg.d/unsafe-io > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev libvlc-dev vlc-plugin-base ffmpeg
 
-      - name: Install Wails v3 CLI
-        if: steps.cache-go-bin.outputs.cache-hit != 'true'
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          flavor=$([ "${{ matrix.arch }}" = amd64 ] && echo intel64 || echo arm64)
+          file=$(curl -fsSL https://download.videolan.org/pub/videolan/vlc/last/macosx/ | grep -o "vlc-[0-9.]*-$flavor\.dmg" | head -1)
+          curl -fsSL --retry 5 --speed-limit 1000000 --speed-time 20 "https://get.videolan.org/vlc/last/macosx/$file" -o "$RUNNER_TEMP/vlc.dmg"
+          hdiutil attach "$RUNNER_TEMP/vlc.dmg" -mountpoint /Volumes/VLC -nobrowse -readonly -noverify -noautofsck -quiet
+          echo "CGO_CFLAGS=-I/Volumes/VLC/VLC.app/Contents/MacOS/include" >> "$GITHUB_ENV"
+          echo "CGO_LDFLAGS=-L/Volumes/VLC/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=/Volumes/VLC/VLC.app/Contents/MacOS/lib" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL --retry 5 https://ffmpeg.martin-riedl.de/redirect/latest/macos/arm64/release/ffprobe.zip -o "$RUNNER_TEMP/ffprobe.zip"
+          unzip -q -o "$RUNNER_TEMP/ffprobe.zip" -d "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
-      - name: Build Application
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $dir = if ($env:RUNNER_ARCH -eq 'ARM64') { 'winarm64' } else { 'win64' }
+          $file = [regex]::Match((Invoke-WebRequest "https://download.videolan.org/pub/videolan/vlc/last/$dir/").Content, "vlc-[\d.]+-$dir\.7z").Value
+          curl.exe -fsSL --retry 5 --speed-limit 1000000 --speed-time 20 "https://get.videolan.org/vlc/last/$dir/$file" -o vlc.7z
+          7z x vlc.7z -o"$env:RUNNER_TEMP" -y | Out-Null
+          $vlc = (Get-Item "$env:RUNNER_TEMP\vlc-*").FullName
+
+          if ($env:RUNNER_ARCH -eq 'ARM64') {
+              # The runner's gcc only targets x86_64, so use llvm-mingw.
+              $release = Invoke-RestMethod https://api.github.com/repos/mstorsjo/llvm-mingw/releases/latest -Headers @{ Authorization = "Bearer $env:GH_TOKEN" }
+              $asset = $release.assets | Where-Object name -like '*-ucrt-aarch64.zip'
+              curl.exe -fsSL --retry 3 $asset.browser_download_url -o llvm-mingw.zip
+              7z x llvm-mingw.zip -o"$env:RUNNER_TEMP" -y | Out-Null
+              $bin = (Get-Item "$env:RUNNER_TEMP\llvm-mingw-*\bin").FullName
+              $env:PATH = "$bin;$env:PATH"
+              Add-Content $env:GITHUB_PATH $bin
+              Add-Content $env:GITHUB_ENV "CC=aarch64-w64-mingw32-clang"
+              Add-Content $env:GITHUB_ENV "CXX=aarch64-w64-mingw32-clang++"
+
+              # The arm64 SDK only ships an MSVC import lib, which lld can't use.
+              Push-Location "$vlc\sdk\lib"
+              gendef "$vlc\libvlc.dll"
+              llvm-dlltool -m arm64 -d libvlc.def -D libvlc.dll -l libvlc.dll.a
+              Pop-Location
+          }
+
+          curl.exe -fsSL --retry 5 "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-$dir-gpl.zip" -o ffmpeg.zip
+          7z e ffmpeg.zip -o"$env:RUNNER_TEMP\ffmpeg" ffprobe.exe -r -y | Out-Null
+          Add-Content $env:GITHUB_PATH "$env:RUNNER_TEMP\ffmpeg"
+
+          Add-Content $env:GITHUB_PATH $vlc
+          Add-Content $env:GITHUB_ENV "CGO_CFLAGS=-I$vlc\sdk\include"
+          Add-Content $env:GITHUB_ENV "CGO_LDFLAGS=-L$vlc\sdk\lib"
+
+      - name: Install Task, Wails CLI and Yarn
+        shell: bash
+        run: |
+          npm install -g yarn
+          go install github.com/go-task/task/v3/cmd/task@latest
+          go install github.com/wailsapp/wails/v3/cmd/wails3@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v3)
+
+      - name: Test
+        shell: bash
+        env:
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+        run: |
+          # gui/frontend embeds dist/, which only exists after a frontend build.
+          mkdir -p gui/frontend/dist && touch gui/frontend/dist/.keep
+          task test
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-reports-${{ runner.os }}-${{ matrix.arch }}
+          path: out/reports/
+
+      - name: Build
         run: task build ARCH=${{ matrix.arch }}
 
-      - name: Upload Artifacts
-        if: success()
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.osName }}-${{ matrix.arch }}
+          name: dynocue-${{ runner.os }}-${{ matrix.arch }}
           path: out/bin/
+          if-no-files-found: error

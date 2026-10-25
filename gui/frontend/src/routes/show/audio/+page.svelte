@@ -4,5 +4,11 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 -->
 
-<h1 class="mb-4 text-3xl font-bold">Audio</h1>
-<p>Management of audio tracks and output routing.</p>
+<script>
+	import Tabs from '#lib/components/tabs/Tabs.svelte';
+	import { audioTabState } from './audioTabsState.svelte';
+</script>
+
+<div class="h-full">
+	<Tabs tabManager={audioTabState}></Tabs>
+</div>

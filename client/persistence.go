@@ -15,7 +15,7 @@ import (
 var NoSaveLocation = errors.New("no save location provided")
 
 func (c *Client) SaveShow(location string) error {
-	resp, err := messaging.Request[system.PersistenceSaveResponse](c.messenger, system.PersistenceSaveRequestSubject, system.PersistenceSaveRequest{Location: location})
+	resp, err := messaging.RequestLong[system.PersistenceSaveResponse](c.messenger, system.PersistenceSaveRequestSubject, system.PersistenceSaveRequest{Location: location})
 	if err != nil {
 		return err
 	}

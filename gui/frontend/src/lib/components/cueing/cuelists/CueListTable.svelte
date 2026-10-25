@@ -6,9 +6,9 @@
 
 <script lang="ts">
 	import { cuelistsStore } from '../../../stores/cuelistsStore.svelte';
-	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
-	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
-	import { clickOutside } from '$lib/utils/clickOutside';
+	import EditableTableData from '#lib/components/table/EditableTableData.svelte';
+	import ConfirmationModal from '#lib/components/modals/ConfirmationModal.svelte';
+	import { clickOutside } from '#lib/utils/clickOutside';
 
 	interface CueListTableProps {
 		AllowCreation?: boolean;
@@ -47,7 +47,7 @@
 			{/if}
 		</div>
 		<div class="flex-1 overflow-auto">
-			<table class="table-pin-rows table">
+			<table class="table table-pin-rows">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
 						<th class="w-40">#</th>
@@ -109,7 +109,7 @@
 										</svg>
 									</summary>
 									<ul
-										class="dropdown-content menu z-[1] mt-2 w-32 rounded-box bg-base-200 p-2 shadow"
+										class="menu dropdown-content z-[1] mt-2 w-32 rounded-box bg-base-200 p-2 shadow"
 									>
 										<li>
 											<button
@@ -125,7 +125,7 @@
 						</tr>
 					{:else}
 						<tr>
-							<td colspan="3" class="text-center italic text-gray-500"> No cue lists found. </td>
+							<td colspan="3" class="text-center text-gray-500 italic"> No cue lists found. </td>
 						</tr>
 					{/each}
 				</tbody>

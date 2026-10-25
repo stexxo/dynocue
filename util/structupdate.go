@@ -18,7 +18,7 @@ func DeepCopyStruct[T any](input *T) *T {
 	}
 
 	v := reflect.ValueOf(input)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
 		}
@@ -55,7 +55,7 @@ func deepCopyValue(src, dst reflect.Value) {
 				deepCopyValue(src.Field(i), dst.Field(i))
 			}
 		}
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if src.IsNil() {
 			return
 		}
@@ -79,11 +79,11 @@ func deepCopyValue(src, dst reflect.Value) {
 
 // UpdateStructByTag updates a field in a struct identified by a tag value.
 // It supports pointers and pointers to pointers for the data argument.
-func UpdateStructByTag(tag string, tagValue string, value interface{}, data interface{}) error {
+func UpdateStructByTag(tag string, tagValue string, value any, data any) error {
 	v := reflect.ValueOf(data)
 
 	// Unpack pointers until we find something else
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return errors.New("data is a nil pointer")
 		}
@@ -107,7 +107,7 @@ func UpdateStructByTag(tag string, tagValue string, value interface{}, data inte
 		}
 
 		// Handle tag options like omitempty
-		actualTagValue := strings.Split(tv, ",")[0]
+		actualTagValue, _, _ := strings.Cut(tv, ",")
 
 		if actualTagValue == tagValue {
 			structField := v.Field(i)

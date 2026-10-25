@@ -22,10 +22,11 @@ type Manager struct {
 	core           *core.DynoCue
 	logger         logging.Logger
 	onNewClientFns []func(*Client) error
+	clientName     string
 }
 
-func NewClientManager(logger logging.Logger) *Manager {
-	return &Manager{logger: logger}
+func NewClientManager(clientName string, logger logging.Logger) *Manager {
+	return &Manager{clientName: clientName, logger: logger}
 }
 
 func (cm *Manager) Connected() bool {
@@ -66,7 +67,10 @@ func (cm *Manager) ConnectLocal(core *core.DynoCue) error {
 		return err
 	}
 
-	c := NewClient(conn, cm.logger)
+	c, err := NewClient(cm.clientName, conn, cm.logger)
+	if err != nil {
+		return err
+	}
 
 	cm.client = c
 	cm.core = core
@@ -89,7 +93,10 @@ func (cm *Manager) ConnectRemote(addr string) error {
 	if err != nil {
 		return err
 	}
-	c := NewClient(conn, cm.logger)
+	c, err := NewClient(cm.clientName, conn, cm.logger)
+	if err != nil {
+		return err
+	}
 	cm.client = c
 	cm.core = nil
 

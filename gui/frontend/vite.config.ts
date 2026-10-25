@@ -4,11 +4,36 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import tailwindcss from '@tailwindcss/vite';
+import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
-	server: { fs: { allow: ['.', '..'] } }
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			preprocess: vitePreprocess(),
+			adapter: adapter({
+				pages: 'dist',
+				assets: 'dist',
+				fallback: 'index.html', // Essential for SPA behavior with Wails
+				precompress: false,
+				strict: false
+			}),
+			prerender: {
+				crawl: false,
+				handleUnseenRoutes: 'ignore',
+				entries: ['*'],
+			}
+		})
+	],
+	// UPDATE THIS BLOCK
+	server: {
+		port: 9245,
+		strictPort: true,
+		host: '127.0.0.1',
+		fs: { allow: ['.', '..'] }
+	}
 });

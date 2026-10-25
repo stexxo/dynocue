@@ -250,7 +250,7 @@ func (m *CueingModel) DeleteAllCuesByCueListId(cueListId string) error {
 	return nil
 }
 
-func (m *CueingModel) UpdateCueAttribute(cueId string, field string, value interface{}) error {
+func (m *CueingModel) UpdateCueAttribute(cueId string, field string, value any) error {
 	m.dbMu.RLock()
 	defer m.dbMu.RUnlock()
 	c, err := db.UpdateStructDb[types.Cue](m.persistent, TableCues, IndexId, cueId, field, value)

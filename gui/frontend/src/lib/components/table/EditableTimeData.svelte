@@ -6,7 +6,7 @@
 
 <script lang="ts">
 	import EditableTimeInput from '../inputs/EditableTimeInput.svelte';
-	import { formatTime, parseTimeToMs } from '$lib/utils/time';
+	import { formatTime, parseTimeToMs } from '#lib/utils/time';
 
 	interface EditableTimeDataProps {
 		value: number; // nanoseconds

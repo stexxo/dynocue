@@ -4,5 +4,7 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0/.
 -->
 
-<h1 class="mb-4 text-3xl font-bold">Lighting</h1>
-<p>Management of lighting fixtures and presets.</p>
+<script>
+</script>
+
+<h1>Audio Sources</h1>

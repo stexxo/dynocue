@@ -137,9 +137,9 @@ func (c *CueingApi) DeleteCue(sub string, request *DeleteCueRequest) (*DeleteCue
 const UpdateCueAttributesRequestSubject = "request.cueing.cue.attributes.update"
 
 type UpdateCueAttributesRequest struct {
-	CueId string      `msgpack:"cueId" json:"cueId" validate:"required"`
-	Field string      `msgpack:"field" json:"field" validate:"required,ne=cueId,ne=number,ne=cueListId"`
-	Value interface{} `msgpack:"value" json:"value" validate:"required"`
+	CueId string `msgpack:"cueId" json:"cueId" validate:"required"`
+	Field string `msgpack:"field" json:"field" validate:"required,ne=cueId,ne=number,ne=cueListId"`
+	Value any    `msgpack:"value" json:"value" validate:"required"`
 }
 
 type UpdateCueAttributesResponse struct{}

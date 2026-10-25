@@ -64,7 +64,7 @@ func TestSaveModel(t *testing.T) {
 	m, _ := model.NewCueingModel()
 	mockOS := new(mockObjectStore)
 
-	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, logging.NewNoopLogger())
+	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, nil, logging.NewNoopLogger())
 
 	api := &CueingApi{
 		model:       m,
@@ -95,7 +95,7 @@ func TestLoadModel(t *testing.T) {
 	m, _ := model.NewCueingModel()
 	mockOS := new(mockObjectStore)
 
-	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, logging.NewNoopLogger())
+	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, nil, logging.NewNoopLogger())
 
 	api := &CueingApi{
 		model:       m,
@@ -130,7 +130,7 @@ func TestRegisterPersistenceApis(t *testing.T) {
 	})
 
 	mockOS := new(mockObjectStore)
-	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, logging.NewNoopLogger())
+	pm := system.NewPersistenceManagerForTest("cueing", nil, mockOS, nil, logging.NewNoopLogger())
 
 	_, err := NewCueingApi(m, nil, pm, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)

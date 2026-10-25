@@ -99,23 +99,23 @@ func TestGoToNextCue(t *testing.T) {
 		assert.True(t, exec2.Selected)
 	})
 
-	t.Run("Error no cue selected", func(t *testing.T) {
+	t.Run("Starts first cue when none selected", func(t *testing.T) {
 		m, _, api := setupExecution(t)
 
 		clId, _, _ := m.CreateCueList(1, types.CueListTypeSequential)
-		_, _, _ = m.CreateCue(clId, 1)
+		cueId, _, _ := m.CreateCue(clId, 1)
 
 		req := &GoToNextCueRequest{
 			CueListId: clId,
 		}
 
 		resp, err := api.GoToNextCue("test-sub", req)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
 
-		friendlyErr, ok := errors.AsType[*messaging.FriendlyError](err)
-		assert.True(t, ok)
-		assert.Equal(t, NoCueSelected, friendlyErr.FriendlyErr)
+		execution, err := m.GetCueExecution(cueId)
+		assert.NoError(t, err)
+		assert.True(t, execution.Selected)
 	})
 
 	t.Run("Error no next cue", func(t *testing.T) {

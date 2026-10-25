@@ -1,0 +1,90 @@
+commit 4b3ffcc942705883ac4eddad7c77c298ea76fa3d
+Author: Benjamin Dow <benjamindow1@gmail.com>
+Date:   Sun Oct 25 14:23:54 2026 -0400
+
+    fix
+
+diff --git a/cmd/dynocue/main.go b/cmd/dynocue/main.go
+index 876a78d..bbf55c0 100644
+--- a/cmd/dynocue/main.go
++++ b/cmd/dynocue/main.go
+@@ -12,7 +12,7 @@ import (
+ )
+ 
+ func main() {
+-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}))
++	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo, AddSource: true}))
+ 	slog.SetDefault(logger)
+ 
+ 	// Build and Run GUI
+diff --git a/gui/frontend/patches/@sveltejs+kit+3.1.0.patch b/gui/frontend/patches/@sveltejs+kit+3.1.0.patch
+deleted file mode 100644
+index 608f202..0000000
+--- a/gui/frontend/patches/@sveltejs+kit+3.1.0.patch
++++ /dev/null
+@@ -1,15 +0,0 @@
+-diff --git a/node_modules/@sveltejs/kit/src/core/sync/write_tsconfig/index.js b/node_modules/@sveltejs/kit/src/core/sync/write_tsconfig/index.js
+-index a543762..cb58bd4 100644
+---- a/node_modules/@sveltejs/kit/src/core/sync/write_tsconfig/index.js
+-+++ b/node_modules/@sveltejs/kit/src/core/sync/write_tsconfig/index.js
+-@@ -109,8 +109,8 @@ function write_parent_tsconfig(root, id, config, transform) {
+-  * @param {any} options.example What to print if the user config does _not_ extend the generated config
+-  */
+- function validate_config(dir, options) {
+--	if (!ts) {
+--		// The user has not installed TypeScript. Skip validation of config.
+-+	if (!ts || !ts.readConfigFile || !ts.sys) {
+-+		// TypeScript 7+ native builds do not expose the compiler host API.
+- 		return;
+- 	}
+- 
+diff --git a/gui/frontend/src/routes/+layout.server.ts b/gui/frontend/src/routes/+layout.server.ts
+index dc1a244..2243e34 100644
+--- a/gui/frontend/src/routes/+layout.server.ts
++++ b/gui/frontend/src/routes/+layout.server.ts
+@@ -5,5 +5,6 @@
+  */
+ 
+ // src/routes/+layout.ts or src/routes/+layout.js
+-export const prerender = false;
++export const prerender = true;
+ export const ssr = false;
++export const csr = true;
+\ No newline at end of file
+diff --git a/gui/frontend/src/routes/+page.svelte b/gui/frontend/src/routes/+page.svelte
+index 9050053..3e61141 100644
+--- a/gui/frontend/src/routes/+page.svelte
++++ b/gui/frontend/src/routes/+page.svelte
+@@ -9,7 +9,7 @@
+ 		NewShow,
+ 		OpenShow
+ 	} from '../../bindings/github.com/stexxo/dynocue/gui/services/selectorservice.js';
+-	import { withLoading, createLoadingState } from '#lib/loading.svelte';
++	import { withLoading, createLoadingState } from '#lib/loading.svelte.js';
+ 
+ 	const loadingState = createLoadingState();
+ 	const handleNewShow = withLoading(loadingState, NewShow);
+diff --git a/gui/frontend/vite.config.ts b/gui/frontend/vite.config.ts
+index d0dbf8c..8624914 100644
+--- a/gui/frontend/vite.config.ts
++++ b/gui/frontend/vite.config.ts
+@@ -23,9 +23,17 @@ export default defineConfig({
+ 				strict: false
+ 			}),
+ 			prerender: {
+-				entries: []
++				crawl: false,
++				handleUnseenRoutes: 'ignore',
++				entries: ['*'],
+ 			}
+ 		})
+ 	],
+-	server: { fs: { allow: ['.', '..'] } }
++	// UPDATE THIS BLOCK
++	server: {
++		port: 9245,
++		strictPort: true,
++		host: '127.0.0.1',
++		fs: { allow: ['.', '..'] }
++	}
+ });

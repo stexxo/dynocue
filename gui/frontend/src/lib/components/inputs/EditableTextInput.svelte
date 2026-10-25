@@ -17,8 +17,9 @@
 	}
 
 	const props: EditableTextInputProps = $props();
+	const inputId = $props.id();
 
-	let editValue = $state(props.value);
+	let editValue = $state<any>();
 	let hasChanged = $derived(editValue !== props.value);
 
 	$effect(() => {
@@ -46,7 +47,7 @@
 
 <div class="form-control relative w-full">
 	{#if props.label}
-		<label class="label pb-1">
+		<label for={inputId} class="label pb-1">
 			<span class="label-text {props.textarea ? 'font-semibold' : ''}">{props.label}</span>
 		</label>
 	{/if}
@@ -55,16 +56,17 @@
 		<div class="flex-1">
 			{#if props.textarea}
 				<textarea
+					id={inputId}
 					class="textarea-bordered textarea w-full {props.inputClass ?? ''}"
 					bind:value={editValue}
 					onblur={handleSave}
 					onkeydown={(e) => {
 						if (e.key === 'Escape') handleCancel();
 					}}
-					use:focus
-				></textarea>
+					use:focus></textarea>
 			{:else}
 				<input
+					id={inputId}
 					type={props.inputType ?? 'text'}
 					class="input-bordered input w-full {props.inputClass ?? ''}"
 					bind:value={editValue}

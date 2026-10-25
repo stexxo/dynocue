@@ -6,13 +6,13 @@
 
 <script lang="ts">
 	import { cuesStore } from '../../../stores/cuesStore.svelte';
-	import { cueExecutionStore } from '$lib/stores/cueExecutionStore.svelte';
-	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
-	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
-	import ConfirmationModal from '$lib/components/modals/ConfirmationModal.svelte';
-	import { clickOutside } from '$lib/utils/clickOutside';
+	import { cueExecutionStore } from '#lib/stores/cueExecutionStore.svelte';
+	import EditableTableData from '#lib/components/table/EditableTableData.svelte';
+	import EditableTimeData from '#lib/components/table/EditableTimeData.svelte';
+	import ConfirmationModal from '#lib/components/modals/ConfirmationModal.svelte';
+	import { clickOutside } from '#lib/utils/clickOutside';
 	import { GoToCue } from '../../../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
-	import { formatTime, parseTimeToMs } from '$lib/utils/time';
+	import { formatTime, parseTimeToMs } from '#lib/utils/time';
 
 	interface CueTableProps {
 		CueListId: string;
@@ -65,7 +65,7 @@
 			>
 		</div>
 		<div class="flex-1 overflow-auto">
-			<table class="table-pin-rows table">
+			<table class="table table-pin-rows">
 				<thead class="sticky top-0 z-10 bg-base-100">
 					<tr class="bg-base-100">
 						<th class="w-25 text-center"></th>
@@ -176,7 +176,7 @@
 										</svg>
 									</summary>
 									<ul
-										class="dropdown-content menu z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
+										class="menu dropdown-content z-[1] w-32 gap-2 rounded-box bg-base-200 p-2 shadow"
 									>
 										<li>
 											<button
@@ -200,7 +200,7 @@
 						</tr>
 					{:else}
 						<tr>
-							<td colspan="3" class="text-center italic text-gray-500"> No cues found. </td>
+							<td colspan="3" class="text-center text-gray-500 italic"> No cues found. </td>
 						</tr>
 					{/each}
 				</tbody>

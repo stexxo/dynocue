@@ -5,8 +5,8 @@
 -->
 
 <script lang="ts">
-	import type { TabContentProps } from '$lib/components/tabs/tabTypes.svelte';
-	import CueTable from '$lib/components/cueing/cues/CueTable.svelte';
+	import type { TabContentProps } from '#lib/components/tabs/tabTypes.svelte';
+	import CueTable from '#lib/components/cueing/cues/CueTable.svelte';
 	import CueEdit from './CueEdit.svelte';
 	import { GoToNextCue } from '../../../../bindings/github.com/stexxo/dynocue/gui/services/executionservice';
 	const props: TabContentProps = $props();
