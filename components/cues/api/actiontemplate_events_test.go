@@ -12,6 +12,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/stexxo/dynocue/components/cues/model"
 	"github.com/stexxo/dynocue/components/cues/types"
+	"github.com/stexxo/dynocue/core/logging"
 	"github.com/stexxo/dynocue/core/messaging"
 	"github.com/stexxo/dynocue/util"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,7 @@ func TestRegisterActionTemplateEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	messenger := messaging.NewMessenger(&messaging.MessengerCfg{Conn: nc})
-	_, err = NewCueingApi(m, nil, nil, messenger, nil)
+	_, err = NewCueingApi(m, nil, nil, messenger, logging.NewNoopLogger())
 	require.NoError(t, err)
 
 	t.Run("ActionTemplateCreated event is published", func(t *testing.T) {
