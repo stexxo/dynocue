@@ -23,9 +23,17 @@ export default defineConfig({
 				strict: false
 			}),
 			prerender: {
-				entries: []
+				crawl: false,
+				handleUnseenRoutes: 'ignore',
+				entries: ['*'],
 			}
 		})
 	],
-	server: { fs: { allow: ['.', '..'] } }
+	// UPDATE THIS BLOCK
+	server: {
+		port: 9245,
+		strictPort: true,
+		host: '127.0.0.1',
+		fs: { allow: ['.', '..'] }
+	}
 });
