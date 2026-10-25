@@ -5,13 +5,13 @@
 -->
 
 <script lang="ts">
-	import { cuesStore } from '$lib/stores/cuesStore.svelte';
-	import { cuelistsStore } from '$lib/stores/cuelistsStore.svelte';
-	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
-	import { actionsStore } from '$lib/stores/actionsStore.svelte';
-	import { clickOutside } from '$lib/utils/clickOutside';
-	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
-	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
+	import { cuesStore } from '#lib/stores/cuesStore.svelte';
+	import { cuelistsStore } from '#lib/stores/cuelistsStore.svelte';
+	import { actionTemplatesStore } from '#lib/stores/actiontemplatesStore.svelte';
+	import { actionsStore } from '#lib/stores/actionsStore.svelte';
+	import { clickOutside } from '#lib/utils/clickOutside';
+	import EditableTimeInput from '#lib/components/inputs/EditableTimeInput.svelte';
+	import EditableTextInput from '#lib/components/inputs/EditableTextInput.svelte';
 	import ActionDetail from './ActionDetail.svelte';
 
 	interface CueEditProps {
@@ -144,6 +144,12 @@
 									role="button"
 									class="select-bordered select flex w-full items-center justify-between"
 									onclick={() => (dropdownOpen = !dropdownOpen)}
+									onkeydown={(event) => {
+										if (event.key === 'Enter' || event.key === ' ') {
+											event.preventDefault();
+											dropdownOpen = !dropdownOpen;
+										}
+									}}
 								>
 									<span class="truncate">
 										{selectedTemplate?.templateName ?? 'Select a template'}
@@ -152,12 +158,12 @@
 								<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 								<div
 									tabindex="0"
-									class="dropdown-content menu z-[100] w-full gap-2 rounded-box bg-base-200 p-2 shadow"
+									class="menu dropdown-content z-[100] w-full gap-2 rounded-box bg-base-200 p-2 shadow"
 								>
 									<input
 										type="text"
 										placeholder="Search templates..."
-										class="input-bordered input input-sm w-full"
+										class="input-bordered input w-full input-sm"
 										bind:value={searchTerm}
 										onclick={(e) => e.stopPropagation()}
 									/>
@@ -184,7 +190,7 @@
 												{/each}
 											</ul>
 										{:else}
-											<div class="p-2 text-center italic text-gray-500">No templates found</div>
+											<div class="p-2 text-center text-gray-500 italic">No templates found</div>
 										{/each}
 									</div>
 								</div>

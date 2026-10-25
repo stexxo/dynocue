@@ -5,11 +5,11 @@
 -->
 
 <script lang="ts">
-	import CueListTable from '$lib/components/cueing/cuelists/CueListTable.svelte';
+	import CueListTable from '#lib/components/cueing/cuelists/CueListTable.svelte';
 	import { cueListTabState } from './cuesListsState.svelte';
 	import CueListDetail from './CueListDetail.svelte';
-	import type { TabContentProps } from '$lib/components/tabs/tabTypes.svelte';
-	import { cuelistsStore } from '$lib/stores/cuelistsStore.svelte';
+	import type { TabContentProps } from '#lib/components/tabs/tabTypes.svelte';
+	import { cuelistsStore } from '#lib/stores/cuelistsStore.svelte';
 
 	const props: TabContentProps = $props();
 	$effect(() => {

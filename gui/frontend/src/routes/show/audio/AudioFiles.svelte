@@ -5,8 +5,8 @@
 -->
 
 <script lang="ts">
-	import AudioFileTable from '$lib/components/audio/AudioFileTable.svelte';
-	import { audioStore } from '$lib/stores/audioStore.svelte';
+	import AudioFileTable from '#lib/components/audio/AudioFileTable.svelte';
+	import { audioStore } from '#lib/stores/audioStore.svelte';
 
 	let dragCounter = $state(0);
 	let isDragging = $derived(dragCounter > 0);

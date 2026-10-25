@@ -19,6 +19,12 @@
 				tabindex={i}
 				class="tab gap-2 {tab.id === props.tabManager.activeId ? 'tab-active' : ''}"
 				onclick={() => props.tabManager.select(tab.id)}
+				onkeydown={(event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						props.tabManager.select(tab.id);
+					}
+				}}
 			>
 				{new TabState(tab).label}
 

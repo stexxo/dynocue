@@ -22,9 +22,6 @@ export default defineConfig({
 				precompress: false,
 				strict: false
 			}),
-			alias: {
-				$lib: 'src/lib'
-			},
 			prerender: {
 				crawl: false,
 				entries: ['*'],

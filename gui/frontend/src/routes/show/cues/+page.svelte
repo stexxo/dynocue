@@ -5,7 +5,7 @@
 -->
 
 <script>
-	import Tabs from '$lib/components/tabs/Tabs.svelte';
+	import Tabs from '#lib/components/tabs/Tabs.svelte';
 	import { cueListTabState } from './cuesListsState.svelte';
 </script>
 

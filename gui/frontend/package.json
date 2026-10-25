@@ -33,6 +33,9 @@
 		"typescript": "7.1.0-beta",
 		"vite": "^8.3.5"
 	},
+	"imports": {
+		"#lib/*": "./src/lib/*"
+	},
 	"dependencies": {
 		"@wailsio/runtime": "^3.0.0-beta.34"
 	}

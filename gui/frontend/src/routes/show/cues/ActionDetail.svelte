@@ -5,14 +5,14 @@
 -->
 
 <script lang="ts">
-	import { actionsStore } from '$lib/stores/actionsStore.svelte';
-	import { actionTemplatesStore } from '$lib/stores/actiontemplatesStore.svelte';
-	import { cueExecutionStore } from '$lib/stores/cueExecutionStore.svelte';
-	import EditableTextInput from '$lib/components/inputs/EditableTextInput.svelte';
-	import EditableTimeInput from '$lib/components/inputs/EditableTimeInput.svelte';
-	import EditableTableData from '$lib/components/table/EditableTableData.svelte';
-	import EditableTimeData from '$lib/components/table/EditableTimeData.svelte';
-	import { formatTime, parseTimeToMs } from '$lib/utils/time';
+	import { actionsStore } from '#lib/stores/actionsStore.svelte';
+	import { actionTemplatesStore } from '#lib/stores/actiontemplatesStore.svelte';
+	import { cueExecutionStore } from '#lib/stores/cueExecutionStore.svelte';
+	import EditableTextInput from '#lib/components/inputs/EditableTextInput.svelte';
+	import EditableTimeInput from '#lib/components/inputs/EditableTimeInput.svelte';
+	import EditableTableData from '#lib/components/table/EditableTableData.svelte';
+	import EditableTimeData from '#lib/components/table/EditableTimeData.svelte';
+	import { formatTime, parseTimeToMs } from '#lib/utils/time';
 
 	interface ActionDetailProps {
 		cueListId: string | undefined;
@@ -56,7 +56,7 @@
 	<tr class={execution ? 'bg-emerald-900 hover:bg-emerald-950' : 'hover:bg-base-200'}>
 		<td>
 			<button
-				class="btn h-full rounded-none px-1 btn-ghost btn-xs"
+				class="btn h-full rounded-none btn-ghost px-1 btn-xs"
 				onclick={(e) => {
 					e.stopPropagation();
 					isExpanded = !isExpanded;
@@ -123,7 +123,7 @@
 		<td>
 			<div class="flex gap-2">
 				<button
-					class="btn text-error btn-ghost btn-xs"
+					class="btn btn-ghost text-error btn-xs"
 					onclick={() => actionsStore.deleteAction(action.actionId)}
 				>
 					Delete
